@@ -1,0 +1,5 @@
+
+{
+  "name": "Sonos Hue Color Sync",
+  "domains": ["sonos_hue_sync"]
+}
