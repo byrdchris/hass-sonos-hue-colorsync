@@ -9,11 +9,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             return self.async_create_entry(title="Sonos Hue Sync", data=user_input)
 
-        schema = vol.Schema({
-            vol.Required("sonos_entity"): str,
-            vol.Required("hue_bridge_ip"): str,
-            vol.Required("hue_app_key"): str,
-            vol.Required("hue_group"): str
-        })
-
-        return self.async_show_form(step_id="user", data_schema=schema)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({
+                vol.Required("sonos_entity"): str,
+                vol.Required("hue_bridge_ip"): str,
+                vol.Required("hue_app_key"): str,
+                vol.Required("hue_group"): str
+            })
+        )

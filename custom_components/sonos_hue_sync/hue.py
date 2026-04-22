@@ -9,25 +9,10 @@ class HueBridgeManager:
     def get_groups(self):
         return requests.get(f"http://{self.ip}/api/{self.key}/groups", timeout=5).json()
 
-    def get_light_state(self, light):
-        url = f"http://{self.ip}/api/{self.key}/lights/{light}"
-        return requests.get(url, timeout=5).json().get("state")
-
     def set_light_color(self, light, rgb):
-        r, g, b = [x / 255.0 for x in rgb]
-        x = r * 0.664511 + g * 0.154324 + b * 0.162028
-        y = r * 0.283881 + g * 0.668433 + b * 0.047685
-        xy = [x / (x + y), y / (x + y)] if (x + y) else [0.3, 0.3]
-
-        requests.put(
-            f"http://{self.ip}/api/{self.key}/lights/{light}/state",
-            json={"xy": xy, "bri": int(max(r,g,b)*254)},
-            timeout=5
-        )
-
-    def restore_light_state(self, light, state):
-        requests.put(
-            f"http://{self.ip}/api/{self.key}/lights/{light}/state",
-            json=state,
-            timeout=5
-        )
+        r,g,b=[x/255 for x in rgb]
+        x=r*0.664511+g*0.154324+b*0.162028
+        y=r*0.283881+g*0.668433+b*0.047685
+        xy=[x/(x+y),y/(x+y)] if x+y else [0.3,0.3]
+        requests.put(f"http://{self.ip}/api/{self.key}/lights/{light}/state",
+            json={"xy":xy,"bri":int(max(r,g,b)*254)},timeout=5)
