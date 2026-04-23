@@ -15,3 +15,12 @@ Fixes palette extraction not triggering when Sonos is already playing.
   - `last_track_key`
   - `last_processing_reason`
 - Keeps HA-native light control only
+
+
+## v1.8.0
+
+Fixes artwork fetching for current Home Assistant versions:
+
+- Uses `timedelta(seconds=300)` for `async_sign_path`
+- Avoids re-signing media proxy artwork URLs that already include `token=`
+- Adds explicit `empty_response` and HTTP status diagnostics in the palette sensor

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from aiohttp import ClientError
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -105,19 +106,47 @@ class SonosHueCoordinator:
             if image_path.startswith("http://") or image_path.startswith("https://"):
                 url = image_path
             else:
-                signed_path = async_sign_path(self.hass, image_path, expiration=300)
                 base = get_url(self.hass, prefer_external=False)
-                url = f"{base}{signed_path}"
+
+                # Sonos/media_player_proxy entity_picture URLs commonly already include
+                # a media proxy token. Re-signing those paths can produce invalid URLs.
+                if "token=" in image_path:
+                    url = f"{base}{image_path}"
+                else:
+                    signed_path = async_sign_path(
+                        self.hass,
+                        image_path,
+                        expiration=timedelta(seconds=300),
+                    )
+                    url = f"{base}{signed_path}"
+
             _LOGGER.debug("Fetching artwork from %s", url)
             session = async_get_clientsession(self.hass)
             async with session.get(url) as resp:
-                resp.raise_for_status()
                 data = await resp.read()
+                if resp.status >= 400:
+                    self.last_error = f"image_fetch_failed:http_{resp.status}: {data[:120]!r}"
+                    _LOGGER.warning(
+                        "Unable to fetch Sonos artwork from %s; status=%s body=%r",
+                        image_path,
+                        resp.status,
+                        data[:120],
+                    )
+                    self._notify()
+                    return None
+
+                if not data:
+                    self.last_error = "image_fetch_failed:empty_response"
+                    _LOGGER.warning("Fetched zero bytes for Sonos artwork from %s via %s", image_path, url)
+                    self._notify()
+                    return None
+
                 _LOGGER.debug("Fetched artwork bytes: %s", len(data))
                 return data
-        except (ClientError, ValueError) as err:
-            self.last_error = f"image_fetch_failed: {err}"
-            _LOGGER.warning("Unable to fetch Sonos artwork from %s: %s", image_path, err)
+
+        except Exception as err:
+            self.last_error = f"image_fetch_failed:{type(err).__name__}: {err}"
+            _LOGGER.exception("Unable to fetch Sonos artwork from %s", image_path)
             self._notify()
             return None
 
