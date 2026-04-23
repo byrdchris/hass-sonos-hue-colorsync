@@ -7,11 +7,13 @@ CONF_COLOR_COUNT = "color_count"
 CONF_TRANSITION = "transition"
 CONF_FILTER_DULL = "filter_dull"
 CONF_CACHE = "cache"
+CONF_EXPAND_GROUPS = "expand_groups"
 
 DEFAULT_COLOR_COUNT = 3
 DEFAULT_TRANSITION = 2
 DEFAULT_FILTER_DULL = True
 DEFAULT_CACHE = True
+DEFAULT_EXPAND_GROUPS = True
 
 PLATFORMS = ["switch", "sensor"]
 SERVICE_ENABLE = "enable"

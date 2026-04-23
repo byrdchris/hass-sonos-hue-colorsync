@@ -5,8 +5,9 @@ from homeassistant import config_entries
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_CACHE, CONF_COLOR_COUNT, CONF_FILTER_DULL, CONF_LIGHT_ENTITIES,
+    CONF_CACHE, CONF_COLOR_COUNT, CONF_EXPAND_GROUPS, CONF_FILTER_DULL, CONF_LIGHT_ENTITIES,
     CONF_LIGHT_GROUP, CONF_SONOS_ENTITY, CONF_TRANSITION, DEFAULT_CACHE,
+    DEFAULT_EXPAND_GROUPS,
     DEFAULT_COLOR_COUNT, DEFAULT_FILTER_DULL, DEFAULT_TRANSITION, DOMAIN,
 )
 
@@ -22,6 +23,7 @@ def build_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
+        vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
     })
 
 class SonosHueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
