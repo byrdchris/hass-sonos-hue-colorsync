@@ -1,0 +1,6 @@
+enable:
+  name: Enable
+  description: Enable Sonos Hue Sync control.
+disable:
+  name: Disable
+  description: Disable Sonos Hue Sync control and restore the prior scene.

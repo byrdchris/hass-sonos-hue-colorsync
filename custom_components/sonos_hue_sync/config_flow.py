@@ -1,11 +1,59 @@
+from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
 
-from .const import *
+from .const import (
+    CONF_CACHE,
+    CONF_COLOR_COUNT,
+    CONF_FILTER_DULL,
+    CONF_LIGHT_GROUP,
+    CONF_SONOS_ENTITY,
+    CONF_TRANSITION,
+    DEFAULT_CACHE,
+    DEFAULT_COLOR_COUNT,
+    DEFAULT_FILTER_DULL,
+    DEFAULT_TRANSITION,
+    DOMAIN,
+)
+
+def build_schema(defaults: dict):
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_SONOS_ENTITY,
+                default=defaults.get(CONF_SONOS_ENTITY, ""),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="media_player")
+            ),
+            vol.Required(
+                CONF_LIGHT_GROUP,
+                default=defaults.get(CONF_LIGHT_GROUP, ""),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="light")
+            ),
+            vol.Optional(
+                CONF_COLOR_COUNT,
+                default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT),
+            ): vol.All(int, vol.Range(min=1, max=10)),
+            vol.Optional(
+                CONF_TRANSITION,
+                default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION),
+            ): vol.All(int, vol.Range(min=0, max=10)),
+            vol.Optional(
+                CONF_FILTER_DULL,
+                default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL),
+            ): bool,
+            vol.Optional(
+                CONF_CACHE,
+                default=defaults.get(CONF_CACHE, DEFAULT_CACHE),
+            ): bool,
+        }
+    )
 
 class SonosHueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    VERSION = 1
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
@@ -13,24 +61,12 @@ class SonosHueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({
-                vol.Required(CONF_SONOS_ENTITY): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="media_player")
-                ),
-                vol.Required(CONF_LIGHT_GROUP): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="light")
-                ),
-                vol.Optional(CONF_COLOR_COUNT, default=3): int,
-                vol.Optional(CONF_TRANSITION, default=2): int,
-                vol.Optional(CONF_FILTER_DULL, default=True): bool,
-                vol.Optional(CONF_CACHE, default=True): bool,
-            })
+            data_schema=build_schema({}),
         )
 
     @staticmethod
     def async_get_options_flow(config_entry):
         return OptionsFlowHandler(config_entry)
-
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, entry):
@@ -40,14 +76,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        data = self.entry.data
-
+        defaults = {**self.entry.data, **self.entry.options}
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_COLOR_COUNT, default=data.get(CONF_COLOR_COUNT, 3)): int,
-                vol.Optional(CONF_TRANSITION, default=data.get(CONF_TRANSITION, 2)): int,
-                vol.Optional(CONF_FILTER_DULL, default=data.get(CONF_FILTER_DULL, True)): bool,
-                vol.Optional(CONF_CACHE, default=data.get(CONF_CACHE, True)): bool,
-            })
+            data_schema=build_schema(defaults),
         )
