@@ -12,6 +12,10 @@ DEFAULT_TRANSITION = 2
 DEFAULT_FILTER_DULL = True
 DEFAULT_CACHE = True
 
-PLATFORMS = ["switch"]
+PLATFORMS = ["switch", "sensor"]
 SERVICE_ENABLE = "enable"
 SERVICE_DISABLE = "disable"
+
+ATTR_HEX_COLORS = "hex_colors"
+ATTR_RGB_COLORS = "rgb_colors"
+ATTR_SOURCE_IMAGE = "source_image"

@@ -36,11 +36,25 @@ def build_schema(defaults: dict):
             vol.Optional(
                 CONF_COLOR_COUNT,
                 default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT),
-            ): vol.All(int, vol.Range(min=1, max=10)),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=10,
+                    step=1,
+                    mode=selector.NumberSelectorMode.SLIDER,
+                )
+            ),
             vol.Optional(
                 CONF_TRANSITION,
                 default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION),
-            ): vol.All(int, vol.Range(min=0, max=10)),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=10,
+                    step=1,
+                    mode=selector.NumberSelectorMode.SLIDER,
+                )
+            ),
             vol.Optional(
                 CONF_FILTER_DULL,
                 default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL),

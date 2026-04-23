@@ -1,7 +1,7 @@
 {
   "domain": "sonos_hue_sync",
   "name": "Sonos Hue Sync",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "documentation": "https://github.com/example/sonos-hue-sync",
   "dependencies": ["sonos", "hue"],
   "requirements": ["colorthief==0.2.1"],

@@ -1,35 +1,26 @@
 # Sonos Hue Sync
 
-Home Assistant custom integration that reads Sonos album art, extracts a palette, and applies it to Hue lights.
+This build focuses on two issues:
 
-## Included in this build
+1. Fixing light changes not applying reliably
+2. Exposing the extracted colors in Home Assistant
 
-- UI setup via config flow
-- UI edits after setup via options flow
-- Change Sonos entity after setup
-- Change light target after setup
-- Enable/disable service calls
-- Enable/disable dashboard switch entity
-- Restore prior scene when disabled or playback stops
-- HSV dull-color filtering
-- Brightness scaling from luminance
-- White handling with color temperature
-- Crossfade-style stepped transitions
+## What changed
 
-## Install
+- Signed Sonos artwork URLs before fetching them from Home Assistant
+- Added error reporting to the palette sensor
+- Added a palette sensor with:
+  - hex colors
+  - rgb colors
+  - source artwork path
+  - last error
+- Switched the numeric config inputs to slider selectors
 
-Copy `custom_components/sonos_hue_sync` into your Home Assistant config directory or install with HACS as a custom repository.
+## Entities
 
-## Entities and services
+- Switch: enable/disable sync
+- Sensor: extracted palette
 
-This integration creates a switch entity per config entry:
-- `switch.sonos_hue_sync_enabled`
+## Important note about slider text values
 
-Services:
-- `sonos_hue_sync.enable`
-- `sonos_hue_sync.disable`
-
-## Notes
-
-Options flow is under:
-Settings → Devices & Services → Sonos Hue Sync → Configure
+The selector now uses Home Assistant's number slider control. Whether the frontend shows an always-visible text field next to the slider depends on the current Home Assistant frontend behavior. The integration can request a slider, but it cannot fully control that widget rendering beyond the selector mode.

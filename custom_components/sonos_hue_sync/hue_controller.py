@@ -33,8 +33,8 @@ async def apply_palette(hass, group: str, palette: list[tuple[int, int, int]], c
     if state is None:
         return
 
-    members = state.attributes.get("entity_id", [group])
-    if not isinstance(members, list):
+    members = state.attributes.get("entity_id")
+    if not isinstance(members, list) or not members:
         members = [group]
 
     steps = 5
@@ -55,13 +55,14 @@ async def apply_palette(hass, group: str, palette: list[tuple[int, int, int]], c
             if max(color) - min(color) < 15:
                 service_data["color_temp"] = rgb_to_mired(color)
             else:
-                service_data["rgb_color"] = color
+                service_data["rgb_color"] = list(color)
 
             await hass.services.async_call(
                 "light",
                 "turn_on",
                 service_data,
-                blocking=False,
+                blocking=True,
             )
 
-        await asyncio.sleep(step_transition)
+        if step_transition > 0:
+            await asyncio.sleep(step_transition)

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import aiohttp
 import colorsys
-from colorthief import ColorThief
 from io import BytesIO
+
+from colorthief import ColorThief
 
 def is_dull(rgb: tuple[int, int, int]) -> bool:
     r, g, b = [x / 255 for x in rgb]
@@ -14,16 +14,12 @@ def luminance(rgb: tuple[int, int, int]) -> float:
     r, g, b = [x / 255 for x in rgb]
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-async def extract_palette(url: str, config: dict) -> list[tuple[int, int, int]]:
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            resp.raise_for_status()
-            img = await resp.read()
-
-    ct = ColorThief(BytesIO(img))
+def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[int, int, int]]:
+    ct = ColorThief(BytesIO(image_bytes))
     palette = ct.get_palette(color_count=config.get("color_count", 3))
-
     if config.get("filter_dull", True):
         palette = [c for c in palette if not is_dull(c)]
-
     return palette or [(255, 255, 255)]
+
+def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    return "#{:02X}{:02X}{:02X}".format(*rgb)
