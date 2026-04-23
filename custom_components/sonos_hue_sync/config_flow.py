@@ -9,6 +9,7 @@ from .const import (
     CONF_COLOR_COUNT,
     CONF_FILTER_DULL,
     CONF_LIGHT_ENTITIES,
+    CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
     CONF_TRANSITION,
     DEFAULT_CACHE,
@@ -57,7 +58,8 @@ def build_schema(defaults: dict):
     )
 
 class SonosHueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 2
+    # Kept at VERSION=1 to avoid migration issues for existing test installs.
+    VERSION = 1
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
@@ -78,6 +80,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         defaults = {**self.entry.data, **self.entry.options}
-        if "light_entities" not in defaults and defaults.get("light_group"):
-            defaults["light_entities"] = [defaults["light_group"]]
+        if CONF_LIGHT_ENTITIES not in defaults and defaults.get(CONF_LIGHT_GROUP):
+            defaults[CONF_LIGHT_ENTITIES] = [defaults[CONF_LIGHT_GROUP]]
         return self.async_show_form(step_id="init", data_schema=build_schema(defaults))

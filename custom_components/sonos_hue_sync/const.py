@@ -1,7 +1,7 @@
 DOMAIN = "sonos_hue_sync"
 
 CONF_SONOS_ENTITY = "sonos_entity"
-CONF_LIGHT_GROUP = "light_group"  # backward compat
+CONF_LIGHT_GROUP = "light_group"
 CONF_LIGHT_ENTITIES = "light_entities"
 CONF_COLOR_COUNT = "color_count"
 CONF_TRANSITION = "transition"

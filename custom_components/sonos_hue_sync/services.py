@@ -1,6 +1,6 @@
 from __future__ import annotations
+import logging
 import voluptuous as vol
-from homeassistant.helpers import config_validation as cv
 
 from .const import (
     DOMAIN,
@@ -9,6 +9,8 @@ from .const import (
     SERVICE_APPLY_LAST_PALETTE,
     SERVICE_TEST_COLOR,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 TEST_COLOR_SCHEMA = vol.Schema({
     vol.Required("r"): vol.All(int, vol.Range(min=0, max=255)),
@@ -42,3 +44,4 @@ async def async_setup_services(hass):
     hass.services.async_register(DOMAIN, SERVICE_APPLY_LAST_PALETTE, apply_last_palette)
     hass.services.async_register(DOMAIN, SERVICE_TEST_COLOR, test_color, schema=TEST_COLOR_SCHEMA)
     hass.data[f"{DOMAIN}_services_registered"] = True
+    _LOGGER.info("Registered Sonos Hue Sync services")

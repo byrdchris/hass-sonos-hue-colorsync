@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from .palette import luminance
+
+_LOGGER = logging.getLogger(__name__)
 
 def rgb_to_mired(rgb: tuple[int, int, int]) -> int:
     r, _g, b = rgb
@@ -19,6 +22,7 @@ def resolve_light_entities(hass, selected_entities: list[str]) -> list[str]:
     for entity_id in selected_entities:
         state = hass.states.get(entity_id)
         if state is None:
+            _LOGGER.warning("Selected light entity %s does not exist", entity_id)
             continue
         members = state.attributes.get("entity_id")
         if isinstance(members, list) and members:
@@ -63,28 +67,24 @@ def _build_service_data(state, color, transition):
         data["color_temp"] = rgb_to_mired(color)
         return data
 
-    if _supports(state, "rgb"):
+    # HA accepts rgb_color for many color-capable modes and converts for integrations.
+    if (
+        _supports(state, "rgb")
+        or _supports(state, "xy")
+        or _supports(state, "hs")
+        or _supports(state, "rgbw")
+        or _supports(state, "rgbww")
+    ):
         data["rgb_color"] = list(color)
         return data
 
-    if _supports(state, "xy"):
-        # Let HA convert from rgb_color for integrations that accept it.
-        data["rgb_color"] = list(color)
-        return data
-
-    if _supports(state, "hs"):
-        data["rgb_color"] = list(color)
-        return data
-
-    if _supports(state, "white") or _supports(state, "brightness"):
-        return data
-
-    data["rgb_color"] = list(color)
+    # Brightness-only fallback.
     return data
 
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
     resolved = resolve_light_entities(hass, selected_entities)
     if not resolved:
+        _LOGGER.warning("No resolved light entities from selected entities: %s", selected_entities)
         return [], []
 
     effective_palette = palette[:len(resolved)] if len(palette) >= len(resolved) else palette
@@ -102,6 +102,7 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
                 continue
             service_data = _build_service_data(state, color, step_transition)
             last_service_data.append(dict(service_data))
+            _LOGGER.debug("Calling light.turn_on with %s", service_data)
             await hass.services.async_call(
                 "light",
                 "turn_on",

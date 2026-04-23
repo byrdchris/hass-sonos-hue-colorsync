@@ -51,7 +51,6 @@ class SonosHueCoordinator:
     def light_entities(self):
         if CONF_LIGHT_ENTITIES in self.config and self.config[CONF_LIGHT_ENTITIES]:
             return self.config[CONF_LIGHT_ENTITIES]
-        # backward compatibility with old single selector
         legacy = self.config.get(CONF_LIGHT_GROUP)
         return [legacy] if legacy else []
 
@@ -62,7 +61,7 @@ class SonosHueCoordinator:
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
-            ATTR_LAST_SERVICE_DATA: self.last_service_data,
+            ATTR_LAST_SERVICE_DATA: self.last_service_data[-20:],
             "last_error": self.last_error,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
@@ -81,6 +80,7 @@ class SonosHueCoordinator:
             listener()
 
     async def async_setup(self):
+        _LOGGER.info("Setting up Sonos Hue Sync: sonos=%s lights=%s", self.sonos_entity, self.light_entities)
         await self.async_refresh_listener()
 
     async def async_unload(self):
@@ -92,6 +92,7 @@ class SonosHueCoordinator:
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)
         self._remove_listener = async_track_state_change_event(
             self.hass, [self.sonos_entity], self._handle
         )
@@ -110,6 +111,7 @@ class SonosHueCoordinator:
                 base = get_url(self.hass, prefer_external=False)
                 url = f"{base}{signed_path}"
 
+            _LOGGER.debug("Fetching artwork from %s", url)
             session = async_get_clientsession(self.hass)
             async with session.get(url) as resp:
                 resp.raise_for_status()
@@ -153,7 +155,12 @@ class SonosHueCoordinator:
 
     async def _handle(self, event):
         state = event.data.get("new_state")
-        if not state or not self.enabled:
+        if not state:
+            return
+        _LOGGER.debug("Sonos state changed: %s", state.state)
+
+        if not self.enabled:
+            _LOGGER.debug("Ignoring Sonos event because integration is disabled")
             return
 
         if state.state == "playing":
@@ -180,6 +187,7 @@ class SonosHueCoordinator:
                     self.cache.set(art, palette)
 
             self.last_palette = palette
+            _LOGGER.info("Extracted Sonos palette: %s", [rgb_to_hex(c) for c in palette])
             self._notify()
 
             try:
