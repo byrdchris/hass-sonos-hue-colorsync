@@ -123,3 +123,33 @@ Removes hard-coded group-name handling.
 - Uses Hue unique IDs that indicate grouped lights, rooms, or zones
 - Falls back to same-area physical light expansion for Hue aggregate entities
 - Keeps selected physical bulbs from being expanded accidentally where possible
+
+
+## v1.14.0
+
+Fixes recursive group detection in v1.13.
+
+### Changes
+
+- Removes recursive aggregate-light detection
+- Uses non-recursive physical-light candidate filtering
+- Expands Hue group entities by direct members or same-area physical lights
+- Preserves generic group-name handling without relying on entity suffixes
+
+
+## v1.15.0
+
+Restores friendly UI translations while keeping the v1.14 resolver fix.
+
+### Changes
+
+- Restores friendly labels for config/options fields:
+  - Sonos speaker
+  - Hue lights / groups
+  - Color count
+  - Transition time
+  - Filter dull colors
+  - Cache album colors
+  - Expand grouped lights
+- Restores field descriptions where the Home Assistant frontend displays them
+- Adds service translation names/descriptions

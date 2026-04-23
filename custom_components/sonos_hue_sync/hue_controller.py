@@ -50,9 +50,6 @@ def _entry_area_id(hass, entry) -> str | None:
 
     return None
 
-def _is_hue_entity(entry) -> bool:
-    return bool(entry and entry.platform == "hue")
-
 def _unique_id_looks_grouped(entry) -> bool:
     if entry is None or not entry.unique_id:
         return False
@@ -63,6 +60,41 @@ def _unique_id_looks_grouped(entry) -> bool:
 def _has_direct_members(state) -> bool:
     members = state.attributes.get("entity_id")
     return isinstance(members, list) and bool(members)
+
+def _is_hue_group_entity(hass, entity_id: str) -> bool:
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+    state = hass.states.get(entity_id)
+
+    if state is None:
+        return False
+
+    if _has_direct_members(state):
+        return True
+
+    if entry and entry.platform == "hue" and _unique_id_looks_grouped(entry):
+        return True
+
+    return False
+
+def _is_physical_candidate(hass, entity_id: str) -> bool:
+    """Non-recursive check for final light targets."""
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+    state = hass.states.get(entity_id)
+
+    if state is None:
+        return False
+
+    # Avoid direct HA group entities.
+    if _has_direct_members(state):
+        return False
+
+    # Avoid registry-known Hue grouped lights.
+    if entry and entry.platform == "hue" and _unique_id_looks_grouped(entry):
+        return False
+
+    return _supports_any_color(state)
 
 def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
     registry = er.async_get(hass)
@@ -82,64 +114,13 @@ def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
         if entity_id == source_entity_id:
             continue
 
-        state = hass.states.get(entity_id)
-        if state is None:
-            continue
-
-        # Avoid adding other Hue aggregate helpers. We only want final target lights.
-        if _is_probable_aggregate_light(hass, entity_id):
-            continue
-
-        if not _supports_any_color(state):
+        if not _is_physical_candidate(hass, entity_id):
             continue
 
         if _entry_area_id(hass, entry) == source_area and entity_id not in candidates:
             candidates.append(entity_id)
 
     return candidates
-
-def _is_probable_aggregate_light(hass, entity_id: str) -> bool:
-    """Detect aggregate/group light entities without relying on friendly names.
-
-    Order of confidence:
-    1. Direct HA group members in `entity_id` attribute.
-    2. Hue registry unique_id indicating grouped light/room/zone.
-    3. Hue registry entity with same-area physical light children and no direct
-       physical-light characteristics.
-
-    This intentionally avoids hard-coded entity-name suffixes such as
-    `_primary` or `_ambient`.
-    """
-    registry = er.async_get(hass)
-    entry = registry.async_get(entity_id)
-    state = hass.states.get(entity_id)
-
-    if state is None:
-        return False
-
-    if _has_direct_members(state):
-        return True
-
-    if _unique_id_looks_grouped(entry):
-        return True
-
-    # Conservative generic Hue fallback:
-    # If it is a Hue light entity and there are multiple other physical color
-    # lights in the same area, treat it as expandable only when the unique_id
-    # does not look like a normal per-device light.
-    if _is_hue_entity(entry):
-        unique_id = (entry.unique_id or "").lower()
-        physical_tokens = ("light.", "/light/", "zigbee", "light:")
-        looks_physical = any(token in unique_id for token in physical_tokens)
-
-        # We do not expand entities that appear to be normal physical lights.
-        if looks_physical and not _unique_id_looks_grouped(entry):
-            return False
-
-        same_area = _same_area_physical_lights(hass, entity_id)
-        return len(same_area) > 1
-
-    return False
 
 def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> list[str]:
     resolved: list[str] = []
@@ -155,9 +136,16 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
         if expand_groups:
             direct_members = state.attributes.get("entity_id")
             if isinstance(direct_members, list) and direct_members:
-                expanded.extend(direct_members)
+                for member in direct_members:
+                    if _is_physical_candidate(hass, member):
+                        expanded.append(member)
+                    else:
+                        # If a direct member is itself a Hue group helper, expand it by area.
+                        for nested in _same_area_physical_lights(hass, member):
+                            if nested not in expanded:
+                                expanded.append(nested)
 
-            if _is_probable_aggregate_light(hass, entity_id):
+            if _is_hue_group_entity(hass, entity_id):
                 for member in _same_area_physical_lights(hass, entity_id):
                     if member not in expanded:
                         expanded.append(member)

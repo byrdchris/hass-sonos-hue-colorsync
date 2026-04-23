@@ -14,13 +14,13 @@
           "expand_groups": "Expand grouped lights"
         },
         "data_description": {
-          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active playback metadata.",
-          "light_entities": "Choose one or more Home Assistant light entities. You may select individual bulbs, Hue rooms, zones, or groups.",
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
+          "light_entities": "Choose one or more Home Assistant light entities. You can select individual bulbs, Hue rooms, zones, or groups.",
           "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
-          "transition": "Fade time in seconds when changing colors.",
-          "filter_dull": "Remove low-saturation or very dark colors from the extracted palette.",
+          "transition": "Fade time in seconds when applying new colors.",
+          "filter_dull": "Remove low-saturation, gray, black, or very dark colors from the extracted palette.",
           "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When a selected light is a room, zone, or group, try to apply colors to its individual member lights."
+          "expand_groups": "When a selected light is a room, zone, or group, try to distribute colors across its individual member lights instead of applying one color to the whole group."
         }
       }
     }
@@ -40,13 +40,13 @@
           "expand_groups": "Expand grouped lights"
         },
         "data_description": {
-          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active playback metadata.",
-          "light_entities": "Choose one or more Home Assistant light entities. You may select individual bulbs, Hue rooms, zones, or groups.",
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
+          "light_entities": "Choose one or more Home Assistant light entities. You can select individual bulbs, Hue rooms, zones, or groups.",
           "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
-          "transition": "Fade time in seconds when changing colors.",
-          "filter_dull": "Remove low-saturation or very dark colors from the extracted palette.",
+          "transition": "Fade time in seconds when applying new colors.",
+          "filter_dull": "Remove low-saturation, gray, black, or very dark colors from the extracted palette.",
           "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When a selected light is a room, zone, or group, try to apply colors to its individual member lights."
+          "expand_groups": "When a selected light is a room, zone, or group, try to distribute colors across its individual member lights instead of applying one color to the whole group."
         }
       }
     }
@@ -72,6 +72,46 @@
       "enabled": {
         "name": "Enabled"
       }
+    }
+  },
+  "services": {
+    "enable": {
+      "name": "Enable",
+      "description": "Enable Sonos Hue Sync control."
+    },
+    "disable": {
+      "name": "Disable",
+      "description": "Disable Sonos Hue Sync control and restore the prior scene."
+    },
+    "apply_last_palette": {
+      "name": "Apply last palette",
+      "description": "Apply the last extracted palette immediately to the selected lights."
+    },
+    "extract_now": {
+      "name": "Extract now",
+      "description": "Force palette extraction from the currently selected Sonos entity."
+    },
+    "test_color": {
+      "name": "Test color",
+      "description": "Apply a single RGB color immediately to the selected lights.",
+      "fields": {
+        "r": {
+          "name": "Red",
+          "description": "Red value from 0 to 255."
+        },
+        "g": {
+          "name": "Green",
+          "description": "Green value from 0 to 255."
+        },
+        "b": {
+          "name": "Blue",
+          "description": "Blue value from 0 to 255."
+        }
+      }
+    },
+    "test_rainbow": {
+      "name": "Test rainbow",
+      "description": "Apply a built-in rainbow palette immediately to the selected lights."
     }
   }
 }
