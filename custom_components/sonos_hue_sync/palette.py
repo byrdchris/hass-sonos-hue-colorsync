@@ -15,10 +15,13 @@ def luminance(rgb: tuple[int, int, int]) -> float:
 
 def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[int, int, int]]:
     ct = ColorThief(BytesIO(image_bytes))
-    palette = ct.get_palette(color_count=int(config.get("color_count", 3)))
+    # request extra colors so filtering does not empty the list too easily
+    desired = int(config.get("color_count", 3))
+    palette = ct.get_palette(color_count=max(desired * 2, desired))
     if config.get("filter_dull", True):
-        palette = [c for c in palette if not is_dull(c)]
-    return palette or [(255, 255, 255)]
+        filtered = [c for c in palette if not is_dull(c)]
+        palette = filtered or palette
+    return palette[:desired] or [(255, 255, 255)]
 
 def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return "#{:02X}{:02X}{:02X}".format(*rgb)

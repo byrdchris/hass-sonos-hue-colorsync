@@ -39,46 +39,26 @@ async def snapshot_scene(hass, selected_entities: list[str]) -> str:
     await hass.services.async_call(
         "scene",
         "create",
-        {
-            "scene_id": scene_id,
-            "snapshot_entities": selected_entities,
-        },
+        {"scene_id": scene_id, "snapshot_entities": selected_entities},
         blocking=True,
     )
     return f"scene.{scene_id}"
 
 async def restore_scene(hass, scene_entity_id: str) -> None:
-    await hass.services.async_call(
-        "scene",
-        "turn_on",
-        {"entity_id": scene_entity_id},
-        blocking=True,
-    )
+    await hass.services.async_call("scene", "turn_on", {"entity_id": scene_entity_id}, blocking=True)
 
 def _build_service_data(state, color, transition):
     brightness = int(50 + luminance(color) * 205)
-    data = {
-        "entity_id": state.entity_id,
-        "brightness": brightness,
-        "transition": transition,
-    }
+    data = {"entity_id": state.entity_id, "brightness": brightness, "transition": transition}
 
     if _is_neutral(color) and _supports(state, "color_temp"):
         data["color_temp"] = rgb_to_mired(color)
         return data
 
-    # HA accepts rgb_color for many color-capable modes and converts for integrations.
-    if (
-        _supports(state, "rgb")
-        or _supports(state, "xy")
-        or _supports(state, "hs")
-        or _supports(state, "rgbw")
-        or _supports(state, "rgbww")
-    ):
+    if any(_supports(state, mode) for mode in ("rgb", "xy", "hs", "rgbw", "rgbww")):
         data["rgb_color"] = list(color)
         return data
 
-    # Brightness-only fallback.
     return data
 
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
@@ -88,7 +68,6 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
         return [], []
 
     effective_palette = palette[:len(resolved)] if len(palette) >= len(resolved) else palette
-
     steps = 5
     total_transition = float(config.get("transition", 2))
     step_transition = total_transition / steps if steps else total_transition
@@ -103,12 +82,7 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
             service_data = _build_service_data(state, color, step_transition)
             last_service_data.append(dict(service_data))
             _LOGGER.debug("Calling light.turn_on with %s", service_data)
-            await hass.services.async_call(
-                "light",
-                "turn_on",
-                service_data,
-                blocking=True,
-            )
+            await hass.services.async_call("light", "turn_on", service_data, blocking=True)
         if step_transition > 0:
             await asyncio.sleep(step_transition)
 

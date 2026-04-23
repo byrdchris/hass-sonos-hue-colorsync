@@ -38,9 +38,4 @@ class SonosHueSyncPaletteSensor(SensorEntity):
 
     @property
     def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": self._entry.title or "Sonos Hue Sync",
-            "manufacturer": "Custom",
-            "model": "Sonos Hue Sync",
-        }
+        return {"identifiers": {(DOMAIN, self._entry.entry_id)}, "name": self._entry.title or "Sonos Hue Sync"}

@@ -1,29 +1,17 @@
 # Sonos Hue Sync
 
-## v1.6.0
+## v1.7.0
 
-Fixes the setup blocker caused by the accidental config entry version bump in v1.5.
+Fixes palette extraction not triggering when Sonos is already playing.
 
-### Key fixes
+### Key changes
 
-- Adds `async_migrate_entry`
-- Keeps config flow `VERSION = 1`
-- Migrates old `light_group` entries to `light_entities`
-- Adds debug/info logging for:
-  - setup
-  - service registration
-  - Sonos event listening
-  - palette extraction
-  - light service payloads
-
-### Services
-
-- `sonos_hue_sync.enable`
-- `sonos_hue_sync.disable`
-- `sonos_hue_sync.apply_last_palette`
-- `sonos_hue_sync.test_color`
-
-### Entities
-
-- enable switch
-- palette/diagnostics sensor
+- Processes the current Sonos state on setup
+- Processes the current Sonos state when enabled
+- Processes the current Sonos state after options changes
+- Adds `sonos_hue_sync.extract_now`
+- Detects metadata/artwork changes while Sonos remains in `playing`
+- Adds diagnostic attributes:
+  - `last_track_key`
+  - `last_processing_reason`
+- Keeps HA-native light control only

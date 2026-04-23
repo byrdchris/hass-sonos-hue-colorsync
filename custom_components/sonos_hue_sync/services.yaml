@@ -7,6 +7,9 @@ disable:
 apply_last_palette:
   name: Apply last palette
   description: Apply the last extracted palette immediately to the selected lights.
+extract_now:
+  name: Extract now
+  description: Force palette extraction from the currently selected Sonos entity.
 test_color:
   name: Test color
   description: Apply a single RGB color immediately to the selected lights.

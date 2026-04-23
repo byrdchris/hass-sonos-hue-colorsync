@@ -29,12 +29,7 @@ class SonosHueSyncEnableSwitch(SwitchEntity):
 
     @property
     def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": self._entry.title or "Sonos Hue Sync",
-            "manufacturer": "Custom",
-            "model": "Sonos Hue Sync",
-        }
+        return {"identifiers": {(DOMAIN, self._entry.entry_id)}, "name": self._entry.title or "Sonos Hue Sync"}
 
     async def async_turn_on(self, **kwargs):
         await self._coordinator.async_enable()

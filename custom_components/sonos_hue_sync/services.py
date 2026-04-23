@@ -3,11 +3,8 @@ import logging
 import voluptuous as vol
 
 from .const import (
-    DOMAIN,
-    SERVICE_DISABLE,
-    SERVICE_ENABLE,
-    SERVICE_APPLY_LAST_PALETTE,
-    SERVICE_TEST_COLOR,
+    DOMAIN, SERVICE_DISABLE, SERVICE_ENABLE, SERVICE_APPLY_LAST_PALETTE,
+    SERVICE_TEST_COLOR, SERVICE_EXTRACT_NOW,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,9 +36,14 @@ async def async_setup_services(hass):
         for coordinator in hass.data.get(DOMAIN, {}).values():
             await coordinator.async_test_color(rgb)
 
+    async def extract_now(call):
+        for coordinator in hass.data.get(DOMAIN, {}).values():
+            await coordinator.async_process_current_state(reason="extract_now_service")
+
     hass.services.async_register(DOMAIN, SERVICE_ENABLE, enable)
     hass.services.async_register(DOMAIN, SERVICE_DISABLE, disable)
     hass.services.async_register(DOMAIN, SERVICE_APPLY_LAST_PALETTE, apply_last_palette)
     hass.services.async_register(DOMAIN, SERVICE_TEST_COLOR, test_color, schema=TEST_COLOR_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_EXTRACT_NOW, extract_now)
     hass.data[f"{DOMAIN}_services_registered"] = True
     _LOGGER.info("Registered Sonos Hue Sync services")

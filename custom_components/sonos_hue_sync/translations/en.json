@@ -1,18 +1,1 @@
-{
-  "config": {
-    "step": {
-      "user": {
-        "title": "Sonos Hue Sync",
-        "description": "Configure the Sonos speaker and one or more lights."
-      }
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Sonos Hue Sync options",
-        "description": "Update Sonos, lights, and palette settings."
-      }
-    }
-  }
-}
+{"config":{"step":{"user":{"title":"Sonos Hue Sync","description":"Configure the Sonos speaker and one or more lights."}}},"options":{"step":{"init":{"title":"Sonos Hue Sync options","description":"Update Sonos, lights, and palette settings."}}}}
