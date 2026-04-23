@@ -1,20 +1,28 @@
 """Config flow for Sonos Color Sync."""
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    BooleanSelector,
+)
 
 from . import DOMAIN
 from .const import (
     CONF_CACHE_ENABLED,
     CONF_COLOR_COUNT,
     CONF_FILTER_DULL,
-    CONF_HUE_APP_KEY,
-    CONF_HUE_BRIDGE_IP,
-    CONF_LIGHT_GROUP,
+    CONF_HUE_LIGHTS,
     CONF_POLL_INTERVAL,
     CONF_SONOS_ENTITY,
     CONF_TRANSITION_TIME,
@@ -23,67 +31,130 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _get_hue_light_entities(hass) -> List[str]:
+    """Return all light entity IDs from the Hue integration."""
+    hue_lights = []
+    try:
+        entity_registry = hass.helpers.entity_registry.async_get(hass)
+        for entity in entity_registry.entities.values():
+            if (
+                entity.domain == "light"
+                and entity.platform == "hue"
+                and not entity.disabled
+            ):
+                hue_lights.append(entity.entity_id)
+    except Exception as e:
+        _LOGGER.warning("Could not get Hue entities: %s", e)
+    return sorted(hue_lights)
+
+
+def _get_sonos_entities(hass) -> List[str]:
+    """Return all Sonos media_player entity IDs."""
+    sonos = []
+    try:
+        entity_registry = hass.helpers.entity_registry.async_get(hass)
+        for entity in entity_registry.entities.values():
+            if entity.domain == "media_player" and entity.platform == "sonos":
+                sonos.append(entity.entity_id)
+    except Exception as e:
+        _LOGGER.warning("Could not get Sonos entities: %s", e)
+
+    # Fallback: scan states if registry returns nothing
+    if not sonos:
+        for state in hass.states.async_all("media_player"):
+            if "sonos" in state.attributes.get("device_name", "").lower():
+                sonos.append(state.entity_id)
+
+    return sorted(sonos) or ["media_player.sonos"]
+
+
+def _build_schema(hass, defaults: Optional[Dict] = None) -> vol.Schema:
+    """Build the config schema with live entity lists."""
+    d = defaults or {}
+
+    sonos_entities = _get_sonos_entities(hass)
+    hue_lights = _get_hue_light_entities(hass)
+
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_SONOS_ENTITY,
+                default=d.get(CONF_SONOS_ENTITY, sonos_entities[0] if sonos_entities else ""),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=sonos_entities,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(
+                CONF_HUE_LIGHTS,
+                default=d.get(CONF_HUE_LIGHTS, []),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=hue_lights,
+                    multiple=True,
+                    mode=SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Optional(
+                CONF_POLL_INTERVAL,
+                default=d.get(CONF_POLL_INTERVAL, 5),
+            ): NumberSelector(
+                NumberSelectorConfig(min=1, max=60, step=1, mode=NumberSelectorMode.SLIDER)
+            ),
+            vol.Optional(
+                CONF_COLOR_COUNT,
+                default=d.get(CONF_COLOR_COUNT, 3),
+            ): NumberSelector(
+                NumberSelectorConfig(min=1, max=10, step=1, mode=NumberSelectorMode.SLIDER)
+            ),
+            vol.Optional(
+                CONF_TRANSITION_TIME,
+                default=d.get(CONF_TRANSITION_TIME, 2),
+            ): NumberSelector(
+                NumberSelectorConfig(min=0, max=10, step=1, mode=NumberSelectorMode.SLIDER)
+            ),
+            vol.Optional(
+                CONF_FILTER_DULL,
+                default=d.get(CONF_FILTER_DULL, True),
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_CACHE_ENABLED,
+                default=d.get(CONF_CACHE_ENABLED, True),
+            ): BooleanSelector(),
+        }
+    )
+
+
 class SonosColorSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow."""
 
     VERSION = 2
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Return the options flow handler."""
+        return SonosColorSyncOptionsFlow(config_entry)
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> config_entries.FlowResult:
         """Handle the initial step."""
         if user_input is not None:
+            # Coerce number selector values to int
+            user_input[CONF_POLL_INTERVAL] = int(user_input[CONF_POLL_INTERVAL])
+            user_input[CONF_COLOR_COUNT] = int(user_input[CONF_COLOR_COUNT])
+            user_input[CONF_TRANSITION_TIME] = int(user_input[CONF_TRANSITION_TIME])
+
             return self.async_create_entry(
-                title=f"Sonos Color Sync - {user_input.get(CONF_SONOS_ENTITY, 'Sonos')}",
+                title=f"Sonos Color Sync ({user_input.get(CONF_SONOS_ENTITY, '')})",
                 data=user_input,
             )
 
-        # Get available Sonos media players
-        sonos_entities = ["media_player.sonos"]
-        
-        # Try to get entities from HA
-        try:
-            for entity_id, entity in self.hass.states.async_all():
-                if "media_player" in entity_id:
-                    device_name = entity.attributes.get("device_name", "").lower()
-                    if "sonos" in device_name:
-                        sonos_entities.append(entity_id)
-            # Remove duplicate
-            sonos_entities = list(set(sonos_entities))
-        except Exception as e:
-            _LOGGER.warning(f"Could not get Sonos entities: {e}")
-
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_SONOS_ENTITY): vol.In(sonos_entities),
-                    vol.Required(CONF_HUE_BRIDGE_IP): cv.string,
-                    vol.Optional(CONF_HUE_APP_KEY, default=""): cv.string,
-                    vol.Optional(CONF_LIGHT_GROUP, default=""): cv.string,
-                    vol.Optional(CONF_POLL_INTERVAL, default=5): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=60)
-                    ),
-                    vol.Optional(CONF_COLOR_COUNT, default=3): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=10)
-                    ),
-                    vol.Optional(CONF_TRANSITION_TIME, default=2): vol.All(
-                        vol.Coerce(int), vol.Range(min=0, max=10)
-                    ),
-                    vol.Optional(CONF_FILTER_DULL, default=True): cv.boolean,
-                    vol.Optional(CONF_CACHE_ENABLED, default=True): cv.boolean,
-                }
-            ),
-            description_placeholders={
-                "leave_blank": "Leave app key blank to skip pairing for now"
-            },
+            data_schema=_build_schema(self.hass),
         )
-
-    async def async_step_import(
-        self, import_data: Dict[str, Any]
-    ) -> config_entries.FlowResult:
-        """Import config from YAML."""
-        return await self.async_step_user(import_data)
 
 
 class SonosColorSyncOptionsFlow(config_entries.OptionsFlow):
@@ -98,6 +169,10 @@ class SonosColorSyncOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.FlowResult:
         """Manage options."""
         if user_input is not None:
+            user_input[CONF_POLL_INTERVAL] = int(user_input[CONF_POLL_INTERVAL])
+            user_input[CONF_COLOR_COUNT] = int(user_input[CONF_COLOR_COUNT])
+            user_input[CONF_TRANSITION_TIME] = int(user_input[CONF_TRANSITION_TIME])
+
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
                 data={**self.config_entry.data, **user_input},
@@ -105,52 +180,7 @@ class SonosColorSyncOptionsFlow(config_entries.OptionsFlow):
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
             return self.async_abort(reason="reconfigure_successful")
 
-        data = self.config_entry.data
-
-        # Get available Sonos media players
-        sonos_entities = ["media_player.sonos"]
-        
-        try:
-            for entity_id, entity in self.hass.states.async_all():
-                if "media_player" in entity_id:
-                    device_name = entity.attributes.get("device_name", "").lower()
-                    if "sonos" in device_name:
-                        sonos_entities.append(entity_id)
-            sonos_entities = list(set(sonos_entities))
-        except Exception as e:
-            _LOGGER.warning(f"Could not get Sonos entities: {e}")
-
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_SONOS_ENTITY, default=data.get(CONF_SONOS_ENTITY)
-                    ): vol.In(sonos_entities),
-                    vol.Required(
-                        CONF_HUE_BRIDGE_IP, default=data.get(CONF_HUE_BRIDGE_IP, "")
-                    ): cv.string,
-                    vol.Optional(
-                        CONF_HUE_APP_KEY, default=data.get(CONF_HUE_APP_KEY, "")
-                    ): cv.string,
-                    vol.Optional(
-                        CONF_LIGHT_GROUP, default=data.get(CONF_LIGHT_GROUP, "")
-                    ): cv.string,
-                    vol.Optional(
-                        CONF_POLL_INTERVAL, default=data.get(CONF_POLL_INTERVAL, 5)
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
-                    vol.Optional(
-                        CONF_COLOR_COUNT, default=data.get(CONF_COLOR_COUNT, 3)
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=10)),
-                    vol.Optional(
-                        CONF_TRANSITION_TIME, default=data.get(CONF_TRANSITION_TIME, 2)
-                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=10)),
-                    vol.Optional(
-                        CONF_FILTER_DULL, default=data.get(CONF_FILTER_DULL, True)
-                    ): cv.boolean,
-                    vol.Optional(
-                        CONF_CACHE_ENABLED, default=data.get(CONF_CACHE_ENABLED, True)
-                    ): cv.boolean,
-                }
-            ),
+            data_schema=_build_schema(self.hass, dict(self.config_entry.data)),
         )

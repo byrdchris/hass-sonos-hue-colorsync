@@ -1,7 +1,0 @@
-{
-  "name": "Sonos Color Sync",
-  "homeassistant": "2023.12.0",
-  "documentation": "https://github.com/yourusername/ha-sonos-color-sync",
-  "requirements": [],
-  "version": "2.0.0"
-}
