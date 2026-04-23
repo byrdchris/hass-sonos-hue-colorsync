@@ -1,6 +1,7 @@
 {
   "title": "Sonos Hue Sync",
   "config": {
+    "flow_title": "Sonos Hue Sync",
     "step": {
       "user": {
         "title": "Sonos Hue Sync",
@@ -19,9 +20,9 @@
           "light_entities": "Choose one or more Home Assistant light entities. You can select individual bulbs, Hue rooms, zones, or groups.",
           "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
           "transition": "Fade time in seconds when applying new colors.",
-          "filter_dull": "Remove low-saturation, gray, black, or very dark colors from the extracted palette.",
+          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping bright whites and cream tones.",
           "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When a selected light is a room, zone, or group, try to distribute colors across its individual member lights instead of applying one color to the whole group."
+          "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group."
         }
       }
     }
@@ -45,9 +46,9 @@
           "light_entities": "Choose one or more Home Assistant light entities. You can select individual bulbs, Hue rooms, zones, or groups.",
           "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
           "transition": "Fade time in seconds when applying new colors.",
-          "filter_dull": "Remove low-saturation, gray, black, or very dark colors from the extracted palette.",
+          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping bright whites and cream tones.",
           "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When a selected light is a room, zone, or group, try to distribute colors across its individual member lights instead of applying one color to the whole group."
+          "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group."
         }
       }
     }

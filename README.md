@@ -180,3 +180,27 @@ Fixes direct Hue room/group member expansion.
 - No longer filters direct group members through registry/device/area metadata
 - Adds `resolver_source` diagnostic attribute
 - Supports nested group member expansion
+
+
+## v1.18.0
+
+Improves palette quality and restores translation definitions.
+
+### Palette changes
+
+- Keeps bright white/cream/neutral tones instead of filtering them out
+- Filters mostly black, muddy, and dark gray colors
+- Requests more palette candidates from album art
+- Sorts colors by visual usefulness for lighting
+- Deduplicates very similar colors
+
+### UI labels
+
+The translation files include friendly labels and descriptions. If Home Assistant still shows raw option keys after installing:
+
+1. Restart Home Assistant
+2. Hard-refresh the browser
+3. Reload the companion app if using mobile
+4. If still stale, clear frontend cache for the HA site/app
+
+This is a Home Assistant frontend translation cache behavior, not a runtime integration error.
