@@ -1,7 +1,7 @@
 {
   "domain": "sonos_hue_sync",
   "name": "Sonos Hue Sync",
-  "version": "1.11.0",
+  "version": "1.13.0",
   "documentation": "https://github.com/byrdchris/hass-sonos-hue-colorsync",
   "issue_tracker": "https://github.com/byrdchris/hass-sonos-hue-colorsync/issues",
   "codeowners": [

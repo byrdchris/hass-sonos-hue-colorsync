@@ -3,13 +3,22 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .const import CONF_EXPAND_GROUPS
 from .palette import luminance
 
 _LOGGER = logging.getLogger(__name__)
+
+COLOR_MODES = ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")
+GROUP_UNIQUE_ID_TOKENS = (
+    "grouped_light",
+    "grouped-light",
+    "group",
+    "room",
+    "zone",
+)
 
 def rgb_to_mired(rgb: tuple[int, int, int]) -> int:
     r, _g, b = rgb
@@ -19,75 +28,121 @@ def _supports(entity_state, mode: str) -> bool:
     modes = entity_state.attributes.get("supported_color_modes") or []
     return mode in modes
 
+def _supports_any_color(entity_state) -> bool:
+    modes = entity_state.attributes.get("supported_color_modes") or []
+    return any(mode in modes for mode in COLOR_MODES)
+
 def _is_neutral(color: tuple[int, int, int]) -> bool:
     return max(color) - min(color) < 15
 
-def _entity_platform(hass, entity_id: str) -> str | None:
-    registry = er.async_get(hass)
-    entry = registry.async_get(entity_id)
-    return entry.platform if entry else None
+def _entry_area_id(hass, entry) -> str | None:
+    if entry is None:
+        return None
 
-def _device_light_members(hass, entity_id: str) -> list[str]:
-    """Try to expand a Hue room/zone/group light to child light entities.
+    if entry.area_id:
+        return entry.area_id
 
-    Hue room/zone group light entities may not expose an entity_id attribute.
-    In that case, HA's entity/device registries often still contain related
-    individual Hue light entities linked to the same device/config entry.
-    """
-    registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
-    source = registry.async_get(entity_id)
-    if source is None:
+    if entry.device_id:
+        device = device_registry.async_get(entry.device_id)
+        if device and device.area_id:
+            return device.area_id
+
+    return None
+
+def _is_hue_entity(entry) -> bool:
+    return bool(entry and entry.platform == "hue")
+
+def _unique_id_looks_grouped(entry) -> bool:
+    if entry is None or not entry.unique_id:
+        return False
+
+    unique_id = entry.unique_id.lower()
+    return any(token in unique_id for token in GROUP_UNIQUE_ID_TOKENS)
+
+def _has_direct_members(state) -> bool:
+    members = state.attributes.get("entity_id")
+    return isinstance(members, list) and bool(members)
+
+def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
+    registry = er.async_get(hass)
+    source_entry = registry.async_get(source_entity_id)
+    source_area = _entry_area_id(hass, source_entry)
+
+    if not source_area:
         return []
 
-    candidates = []
+    candidates: list[str] = []
 
-    # First try same device_id.
-    if source.device_id:
-        for ent in registry.entities.values():
-            if (
-                ent.entity_id != entity_id
-                and ent.domain == "light"
-                and ent.device_id == source.device_id
-            ):
-                candidates.append(ent.entity_id)
+    for entry in registry.entities.values():
+        if entry.domain != "light":
+            continue
 
-    # Then try area_id matching. This catches many Hue room/zone layouts.
-    source_area_id = source.area_id
-    if not source_area_id and source.device_id:
-        device = device_registry.async_get(source.device_id)
-        source_area_id = device.area_id if device else None
+        entity_id = entry.entity_id
+        if entity_id == source_entity_id:
+            continue
 
-    if source_area_id:
-        for ent in registry.entities.values():
-            if ent.domain != "light" or ent.entity_id == entity_id:
-                continue
-
-            ent_area_id = ent.area_id
-            if not ent_area_id and ent.device_id:
-                device = device_registry.async_get(ent.device_id)
-                ent_area_id = device.area_id if device else None
-
-            if ent_area_id == source_area_id and ent.entity_id not in candidates:
-                candidates.append(ent.entity_id)
-
-    # Keep only loaded light states and exclude other grouped Hue lights to avoid
-    # applying one color to another aggregate entity.
-    loaded = []
-    for candidate in candidates:
-        state = hass.states.get(candidate)
+        state = hass.states.get(entity_id)
         if state is None:
             continue
-        attrs = state.attributes
-        if attrs.get("entity_id"):
-            continue
-        if candidate not in loaded:
-            loaded.append(candidate)
 
-    return loaded
+        # Avoid adding other Hue aggregate helpers. We only want final target lights.
+        if _is_probable_aggregate_light(hass, entity_id):
+            continue
+
+        if not _supports_any_color(state):
+            continue
+
+        if _entry_area_id(hass, entry) == source_area and entity_id not in candidates:
+            candidates.append(entity_id)
+
+    return candidates
+
+def _is_probable_aggregate_light(hass, entity_id: str) -> bool:
+    """Detect aggregate/group light entities without relying on friendly names.
+
+    Order of confidence:
+    1. Direct HA group members in `entity_id` attribute.
+    2. Hue registry unique_id indicating grouped light/room/zone.
+    3. Hue registry entity with same-area physical light children and no direct
+       physical-light characteristics.
+
+    This intentionally avoids hard-coded entity-name suffixes such as
+    `_primary` or `_ambient`.
+    """
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+    state = hass.states.get(entity_id)
+
+    if state is None:
+        return False
+
+    if _has_direct_members(state):
+        return True
+
+    if _unique_id_looks_grouped(entry):
+        return True
+
+    # Conservative generic Hue fallback:
+    # If it is a Hue light entity and there are multiple other physical color
+    # lights in the same area, treat it as expandable only when the unique_id
+    # does not look like a normal per-device light.
+    if _is_hue_entity(entry):
+        unique_id = (entry.unique_id or "").lower()
+        physical_tokens = ("light.", "/light/", "zigbee", "light:")
+        looks_physical = any(token in unique_id for token in physical_tokens)
+
+        # We do not expand entities that appear to be normal physical lights.
+        if looks_physical and not _unique_id_looks_grouped(entry):
+            return False
+
+        same_area = _same_area_physical_lights(hass, entity_id)
+        return len(same_area) > 1
+
+    return False
 
 def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> list[str]:
-    resolved = []
+    resolved: list[str] = []
 
     for entity_id in selected_entities:
         state = hass.states.get(entity_id)
@@ -95,13 +150,17 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
             _LOGGER.warning("Selected light entity %s does not exist", entity_id)
             continue
 
-        members = state.attributes.get("entity_id")
-        expanded = []
+        expanded: list[str] = []
 
-        if expand_groups and isinstance(members, list) and members:
-            expanded = members
-        elif expand_groups:
-            expanded = _device_light_members(hass, entity_id)
+        if expand_groups:
+            direct_members = state.attributes.get("entity_id")
+            if isinstance(direct_members, list) and direct_members:
+                expanded.extend(direct_members)
+
+            if _is_probable_aggregate_light(hass, entity_id):
+                for member in _same_area_physical_lights(hass, entity_id):
+                    if member not in expanded:
+                        expanded.append(member)
 
         if expanded:
             _LOGGER.info("Expanded %s to %s", entity_id, expanded)
@@ -156,9 +215,11 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
     steps = 5
     total_transition = float(config.get("transition", 2))
     step_transition = total_transition / steps if steps else total_transition
-    last_service_data = []
+    last_step_service_data = []
 
-    for _step in range(steps):
+    for step in range(steps):
+        step_service_data = []
+
         for idx, light in enumerate(resolved):
             color = effective_palette[idx % len(effective_palette)]
             state = hass.states.get(light)
@@ -166,12 +227,14 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
                 continue
 
             service_data = _build_service_data(state, color, step_transition)
-            last_service_data.append(dict(service_data))
+            step_service_data.append(dict(service_data))
             _LOGGER.debug("Calling light.turn_on with %s", service_data)
 
             await hass.services.async_call("light", "turn_on", service_data, blocking=True)
 
+        last_step_service_data = step_service_data
+
         if step_transition > 0:
             await asyncio.sleep(step_transition)
 
-    return resolved, last_service_data
+    return resolved, last_step_service_data

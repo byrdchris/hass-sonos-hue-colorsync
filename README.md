@@ -96,3 +96,30 @@ content: |
   No palette extracted yet.
   {% endif %}
 ```
+
+
+## v1.12.0
+
+Fixes group resolution regression introduced during the visual-feedback pass.
+
+### Changes
+
+- More aggressive Hue aggregate detection
+- Expands Hue `*_primary` and `*_ambient` grouped light helpers to physical lights in the same HA area
+- Avoids targeting other aggregate/group helper lights when expansion is enabled
+- `palette_preview` now shows actual final per-light assignments, not every extracted color repeated across a smaller target set
+- `last_service_data` is generated from the final transition pass only
+
+
+## v1.13.0
+
+Removes hard-coded group-name handling.
+
+### Changes
+
+- No longer relies on entity names like `*_primary` or `*_ambient`
+- Detects grouped lights using Home Assistant entity registry metadata first
+- Uses direct `entity_id` group members when available
+- Uses Hue unique IDs that indicate grouped lights, rooms, or zones
+- Falls back to same-area physical light expansion for Hue aggregate entities
+- Keeps selected physical bulbs from being expanded accidentally where possible

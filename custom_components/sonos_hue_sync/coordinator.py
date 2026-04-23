@@ -90,16 +90,31 @@ class SonosHueCoordinator:
         return list(final.values())
 
     def _palette_preview(self):
-        hex_colors = [rgb_to_hex(c) for c in self.last_palette]
         preview = []
+
+        # Prefer the final actual service data, because this reflects what was
+        # sent to each resolved light after group expansion.
+        if self.last_service_data:
+            for idx, item in enumerate(self.last_service_data):
+                rgb = item.get("rgb_color")
+                if not rgb:
+                    continue
+                preview.append({
+                    "index": idx + 1,
+                    "hex": rgb_to_hex(tuple(rgb)),
+                    "rgb": rgb,
+                    "assigned_light": item.get("entity_id"),
+                })
+            return preview
+
+        # Fallback before anything has been applied.
+        hex_colors = [rgb_to_hex(c) for c in self.last_palette]
         for idx, hex_color in enumerate(hex_colors):
-            light = self.last_resolved_lights[idx % len(self.last_resolved_lights)] if self.last_resolved_lights else None
-            rgb = list(self.last_palette[idx])
             preview.append({
                 "index": idx + 1,
                 "hex": hex_color,
-                "rgb": rgb,
-                "assigned_light": light,
+                "rgb": list(self.last_palette[idx]),
+                "assigned_light": None,
             })
         return preview
 
