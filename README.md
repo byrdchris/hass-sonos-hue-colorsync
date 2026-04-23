@@ -41,3 +41,8 @@ Improves color distribution when a selected target is a Hue room/zone/group ligh
 ### Why this matters
 
 If Home Assistant treats `light.living_room` as one aggregate light, one color is applied to the whole group. This build attempts to resolve that group into the actual member lights so each light receives a different palette color.
+
+
+## v1.10.0
+- Clean diagnostics (final light state only)
+- Improved option naming/descriptions (UI friendly)

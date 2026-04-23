@@ -179,7 +179,11 @@ class SonosHueCoordinator:
         try:
             resolved, last_service_data = await apply_palette(self.hass, self.light_entities, self.last_palette, self.config)
             self.last_resolved_lights = resolved
-            self.last_service_data = last_service_data
+            # keep only final service data per entity
+                final = {}
+                for item in last_service_data:
+                    final[item.get("entity_id")] = item
+                self.last_service_data = list(final.values())
             self.last_error = None
         except Exception as err:
             self.last_error = f"light_apply_failed: {err}"
