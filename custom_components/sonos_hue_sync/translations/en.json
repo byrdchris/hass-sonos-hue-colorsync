@@ -3,7 +3,25 @@
     "step": {
       "user": {
         "title": "Sonos Hue Sync",
-        "description": "Configure the Sonos speaker and Hue lights/groups."
+        "description": "Configure the Sonos speaker and Hue lights/groups.",
+        "data": {
+          "sonos_entity": "Sonos speaker",
+          "light_entities": "Hue lights / groups",
+          "color_count": "Color count",
+          "transition": "Transition time",
+          "filter_dull": "Filter dull colors",
+          "cache": "Cache album colors",
+          "expand_groups": "Expand grouped lights"
+        },
+        "data_description": {
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active playback metadata.",
+          "light_entities": "Choose one or more Home Assistant light entities. You may select individual bulbs, Hue rooms, zones, or groups.",
+          "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
+          "transition": "Fade time in seconds when changing colors.",
+          "filter_dull": "Remove low-saturation or very dark colors from the extracted palette.",
+          "cache": "Reuse colors for album art that has already been processed.",
+          "expand_groups": "When a selected light is a room, zone, or group, try to apply colors to its individual member lights."
+        }
       }
     }
   },
@@ -11,7 +29,48 @@
     "step": {
       "init": {
         "title": "Sonos Hue Sync options",
-        "description": "Update the speaker, Hue targets, and palette behavior."
+        "description": "Update the speaker, Hue targets, and palette behavior.",
+        "data": {
+          "sonos_entity": "Sonos speaker",
+          "light_entities": "Hue lights / groups",
+          "color_count": "Color count",
+          "transition": "Transition time",
+          "filter_dull": "Filter dull colors",
+          "cache": "Cache album colors",
+          "expand_groups": "Expand grouped lights"
+        },
+        "data_description": {
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active playback metadata.",
+          "light_entities": "Choose one or more Home Assistant light entities. You may select individual bulbs, Hue rooms, zones, or groups.",
+          "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
+          "transition": "Fade time in seconds when changing colors.",
+          "filter_dull": "Remove low-saturation or very dark colors from the extracted palette.",
+          "cache": "Reuse colors for album art that has already been processed.",
+          "expand_groups": "When a selected light is a room, zone, or group, try to apply colors to its individual member lights."
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "extract_now": {
+        "name": "Extract Now"
+      },
+      "apply_last_palette": {
+        "name": "Apply Last Palette"
+      },
+      "test_rainbow": {
+        "name": "Test Rainbow"
+      }
+    },
+    "sensor": {
+      "palette": {
+        "name": "Palette"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Enabled"
       }
     }
   }

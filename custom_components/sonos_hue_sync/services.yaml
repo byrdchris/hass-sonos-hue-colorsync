@@ -41,3 +41,7 @@ test_color:
           max: 255
           step: 1
           mode: box
+
+test_rainbow:
+  name: Test rainbow
+  description: Apply a built-in rainbow palette immediately to the selected lights.

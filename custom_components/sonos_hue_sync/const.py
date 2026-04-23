@@ -15,15 +15,19 @@ DEFAULT_FILTER_DULL = True
 DEFAULT_CACHE = True
 DEFAULT_EXPAND_GROUPS = True
 
-PLATFORMS = ["switch", "sensor"]
+PLATFORMS = ["switch", "sensor", "button"]
 SERVICE_ENABLE = "enable"
 SERVICE_DISABLE = "disable"
 SERVICE_APPLY_LAST_PALETTE = "apply_last_palette"
 SERVICE_TEST_COLOR = "test_color"
 SERVICE_EXTRACT_NOW = "extract_now"
+SERVICE_TEST_RAINBOW = "test_rainbow"
 
 ATTR_HEX_COLORS = "hex_colors"
 ATTR_RGB_COLORS = "rgb_colors"
 ATTR_SOURCE_IMAGE = "source_image"
 ATTR_RESOLVED_LIGHTS = "resolved_lights"
 ATTR_LAST_SERVICE_DATA = "last_service_data"
+
+ATTR_PALETTE_PREVIEW = "palette_preview"
+ATTR_COLOR_COUNT_ACTUAL = "color_count_actual"

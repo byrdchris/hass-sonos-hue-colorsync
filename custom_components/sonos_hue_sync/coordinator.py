@@ -11,7 +11,7 @@ from homeassistant.helpers.network import get_url
 from .cache import PaletteCache
 from .const import (
     ATTR_HEX_COLORS, ATTR_LAST_SERVICE_DATA, ATTR_RESOLVED_LIGHTS,
-    ATTR_RGB_COLORS, ATTR_SOURCE_IMAGE, CONF_CACHE, CONF_LIGHT_ENTITIES,
+    ATTR_RGB_COLORS, ATTR_SOURCE_IMAGE, ATTR_PALETTE_PREVIEW, ATTR_COLOR_COUNT_ACTUAL, CONF_CACHE, CONF_LIGHT_ENTITIES,
     CONF_LIGHT_GROUP, CONF_SONOS_ENTITY,
 )
 from .hue_controller import apply_palette, restore_scene, snapshot_scene
@@ -53,9 +53,12 @@ class SonosHueCoordinator:
 
     @property
     def palette_attributes(self):
+        hex_colors = [rgb_to_hex(c) for c in self.last_palette]
         return {
-            ATTR_HEX_COLORS: [rgb_to_hex(c) for c in self.last_palette],
+            ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
+            ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
+            ATTR_PALETTE_PREVIEW: self._palette_preview(),
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
             ATTR_LAST_SERVICE_DATA: self.last_service_data[-20:],
@@ -77,6 +80,28 @@ class SonosHueCoordinator:
     def _notify(self):
         for listener in list(self._listeners):
             listener()
+
+    def _final_service_data(self, service_data):
+        final = {}
+        for item in service_data:
+            entity_id = item.get("entity_id")
+            if entity_id:
+                final[entity_id] = item
+        return list(final.values())
+
+    def _palette_preview(self):
+        hex_colors = [rgb_to_hex(c) for c in self.last_palette]
+        preview = []
+        for idx, hex_color in enumerate(hex_colors):
+            light = self.last_resolved_lights[idx % len(self.last_resolved_lights)] if self.last_resolved_lights else None
+            rgb = list(self.last_palette[idx])
+            preview.append({
+                "index": idx + 1,
+                "hex": hex_color,
+                "rgb": rgb,
+                "assigned_light": light,
+            })
+        return preview
 
     async def async_setup(self):
         _LOGGER.info("Setting up Sonos Hue Sync: sonos=%s lights=%s", self.sonos_entity, self.light_entities)
@@ -175,15 +200,24 @@ class SonosHueCoordinator:
         self.last_palette = [tuple(rgb)]
         await self._apply_palette_to_lights()
 
+
+    async def async_test_rainbow(self):
+        self.last_palette = [
+            (255, 0, 0),
+            (255, 127, 0),
+            (255, 255, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (75, 0, 130),
+            (148, 0, 211),
+        ]
+        await self._apply_palette_to_lights()
+
     async def _apply_palette_to_lights(self):
         try:
             resolved, last_service_data = await apply_palette(self.hass, self.light_entities, self.last_palette, self.config)
             self.last_resolved_lights = resolved
-            # keep only final service data per entity
-                final = {}
-                for item in last_service_data:
-                    final[item.get("entity_id")] = item
-                self.last_service_data = list(final.values())
+            self.last_service_data = self._final_service_data(last_service_data)
             self.last_error = None
         except Exception as err:
             self.last_error = f"light_apply_failed: {err}"

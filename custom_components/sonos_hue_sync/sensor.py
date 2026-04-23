@@ -26,7 +26,7 @@ class SonosHueSyncPaletteSensor(SensorEntity):
     @property
     def native_value(self):
         colors = self._coordinator.palette_attributes.get(ATTR_HEX_COLORS, [])
-        return ", ".join(colors) if colors else "unknown"
+        return f"{len(colors)} colors" if colors else "unknown"
 
     @property
     def extra_state_attributes(self):

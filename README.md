@@ -46,3 +46,53 @@ If Home Assistant treats `light.living_room` as one aggregate light, one color i
 ## v1.10.0
 - Clean diagnostics (final light state only)
 - Improved option naming/descriptions (UI friendly)
+
+
+## v1.11.0
+
+Visual feedback improvements:
+
+- Adds button entities:
+  - Extract Now
+  - Apply Last Palette
+  - Test Rainbow
+- Palette sensor state now shows the number of extracted colors
+- Palette sensor attributes now include `palette_preview`
+- Improves config/options field labels and descriptions
+- Adds `sonos_hue_sync.test_rainbow`
+
+## Native dashboard preview card
+
+Add an Entities card with:
+
+- Sonos Hue Sync Enabled
+- Sonos Hue Sync Palette
+- Extract Now
+- Apply Last Palette
+- Test Rainbow
+
+The palette sensor attributes show:
+
+- `hex_colors`
+- `rgb_colors`
+- `palette_preview`
+- `resolved_lights`
+- `last_error`
+
+## Optional Markdown card
+
+Home Assistant's Markdown card can display sensor attributes. Replace the entity id if yours differs.
+
+```yaml
+type: markdown
+title: Sonos Hue Palette
+content: |
+  {% set p = state_attr('sensor.sonos_hue_sync_palette', 'palette_preview') %}
+  {% if p %}
+  {% for c in p %}
+  **{{ c.index }}. {{ c.hex }}** → {{ c.assigned_light }}
+  {% endfor %}
+  {% else %}
+  No palette extracted yet.
+  {% endif %}
+```
