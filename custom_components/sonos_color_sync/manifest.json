@@ -3,7 +3,7 @@
   "domain": "sonos_color_sync",
   "name": "Sonos Color Sync",
   "codeowners": [
-    "@yourusername"
+    "@byrdchris"
   ],
   "config_flow": true,
   "documentation": "https://github.com/yourusername/ha-sonos-color-sync",
