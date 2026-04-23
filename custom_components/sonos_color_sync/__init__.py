@@ -2,91 +2,43 @@
 import logging
 from typing import Final
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_IP_ADDRESS,
-    CONF_NAME,
-    Platform,
-)
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN: Final = "sonos_color_sync"
 VERSION: Final = "2.0.0"
 
-CONF_SONOS_ENTITY = "sonos_entity_id"
-CONF_HUE_BRIDGE_IP = "hue_bridge_ip"
-CONF_HUE_APP_KEY = "hue_app_key"
-CONF_POLL_INTERVAL = "poll_interval"
-CONF_COLOR_COUNT = "color_count"
-CONF_TRANSITION_TIME = "transition_time"
-CONF_FILTER_DULL = "filter_dull_colors"
-CONF_CACHE_ENABLED = "cache_enabled"
-CONF_LIGHT_GROUP = "hue_light_group"
-
-SERVICE_TOGGLE = "toggle"
-SERVICE_RESTORE = "restore_lights"
-
 PLATFORMS: list[Platform] = [Platform.SWITCH]
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.All(
-            cv.ensure_list,
-            [
-                vol.Schema(
-                    {
-                        vol.Required(CONF_SONOS_ENTITY): cv.entity_id,
-                        vol.Required(CONF_HUE_BRIDGE_IP): cv.string,
-                        vol.Optional(CONF_HUE_APP_KEY, default=""): cv.string,
-                        vol.Optional(CONF_POLL_INTERVAL, default=5): cv.positive_int,
-                        vol.Optional(CONF_COLOR_COUNT, default=3): vol.Range(
-                            min=1, max=10
-                        ),
-                        vol.Optional(CONF_TRANSITION_TIME, default=2): vol.Range(
-                            min=0, max=10
-                        ),
-                        vol.Optional(CONF_FILTER_DULL, default=True): cv.boolean,
-                        vol.Optional(CONF_CACHE_ENABLED, default=True): cv.boolean,
-                        vol.Optional(CONF_LIGHT_GROUP, default=""): cv.string,
-                    }
-                )
-            ],
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the integration from YAML (legacy)."""
     hass.data.setdefault(DOMAIN, {})
-    
-    if DOMAIN not in config:
-        return True
-    
-    # Store YAML config for later use
-    hass.data[DOMAIN]["yaml_config"] = config[DOMAIN]
-    
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Sonos Color Sync from config entry."""
     from .coordinator import SonosColorSyncCoordinator
+    from .config_flow import SonosColorSyncOptionsFlow
     
     hass.data.setdefault(DOMAIN, {})
     
     coordinator = SonosColorSyncCoordinator(hass, dict(entry.data))
     await coordinator.async_config_update()
+    await coordinator.async_start()
     
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
-        "unsub_reload": entry.add_update_listener(async_reload_entry),
     }
+    
+    # Register options flow
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -103,7 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     hass.services.async_register(
         DOMAIN,
-        SERVICE_TOGGLE,
+        "toggle",
         toggle_service,
         schema=vol.Schema(
             {
@@ -114,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     hass.services.async_register(
         DOMAIN,
-        SERVICE_RESTORE,
+        "restore_lights",
         restore_service,
     )
     

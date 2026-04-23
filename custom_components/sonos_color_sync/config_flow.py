@@ -4,9 +4,8 @@ from typing import Any, Dict, Optional
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv
 
 from . import DOMAIN
 from .const import (
@@ -35,47 +34,54 @@ class SonosColorSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         if user_input is not None:
             return self.async_create_entry(
-                title=user_input[CONF_SONOS_ENTITY],
+                title=f"Sonos Color Sync - {user_input.get(CONF_SONOS_ENTITY, 'Sonos')}",
                 data=user_input,
             )
 
         # Get available Sonos media players
-        sonos_entities = []
-        for entity_id, entity in self.hass.states.async_all():
-            if "media_player" in entity_id and "sonos" in entity.attributes.get(
-                "device_name", ""
-            ).lower():
-                sonos_entities.append(entity_id)
+        sonos_entities = ["media_player.sonos"]
+        
+        # Try to get entities from HA
+        try:
+            for entity_id, entity in self.hass.states.async_all():
+                if "media_player" in entity_id:
+                    device_name = entity.attributes.get("device_name", "").lower()
+                    if "sonos" in device_name:
+                        sonos_entities.append(entity_id)
+            # Remove duplicate
+            sonos_entities = list(set(sonos_entities))
+        except Exception as e:
+            _LOGGER.warning(f"Could not get Sonos entities: {e}")
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_SONOS_ENTITY): vol.In(
-                        sonos_entities if sonos_entities else ["media_player.sonos"]
+                    vol.Required(CONF_SONOS_ENTITY): vol.In(sonos_entities),
+                    vol.Required(CONF_HUE_BRIDGE_IP): cv.string,
+                    vol.Optional(CONF_HUE_APP_KEY, default=""): cv.string,
+                    vol.Optional(CONF_LIGHT_GROUP, default=""): cv.string,
+                    vol.Optional(CONF_POLL_INTERVAL, default=5): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=60)
                     ),
-                    vol.Required(CONF_HUE_BRIDGE_IP): str,
-                    vol.Optional(CONF_HUE_APP_KEY, default=""): str,
-                    vol.Optional(CONF_LIGHT_GROUP, default=""): str,
-                    vol.Optional(CONF_POLL_INTERVAL, default=5): vol.Range(
-                        min=1, max=60
+                    vol.Optional(CONF_COLOR_COUNT, default=3): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=10)
                     ),
-                    vol.Optional(CONF_COLOR_COUNT, default=3): vol.Range(
-                        min=1, max=10
+                    vol.Optional(CONF_TRANSITION_TIME, default=2): vol.All(
+                        vol.Coerce(int), vol.Range(min=0, max=10)
                     ),
-                    vol.Optional(CONF_TRANSITION_TIME, default=2): vol.Range(
-                        min=0, max=10
-                    ),
-                    vol.Optional(CONF_FILTER_DULL, default=True): bool,
-                    vol.Optional(CONF_CACHE_ENABLED, default=True): bool,
+                    vol.Optional(CONF_FILTER_DULL, default=True): cv.boolean,
+                    vol.Optional(CONF_CACHE_ENABLED, default=True): cv.boolean,
                 }
             ),
             description_placeholders={
-                "leave_blank": "Leave app key blank to start pairing"
+                "leave_blank": "Leave app key blank to skip pairing for now"
             },
         )
 
-    async def async_step_import(self, import_data: Dict[str, Any]) -> config_entries.FlowResult:
+    async def async_step_import(
+        self, import_data: Dict[str, Any]
+    ) -> config_entries.FlowResult:
         """Import config from YAML."""
         return await self.async_step_user(import_data)
 
@@ -102,12 +108,17 @@ class SonosColorSyncOptionsFlow(config_entries.OptionsFlow):
         data = self.config_entry.data
 
         # Get available Sonos media players
-        sonos_entities = []
-        for entity_id, entity in self.hass.states.async_all():
-            if "media_player" in entity_id and "sonos" in entity.attributes.get(
-                "device_name", ""
-            ).lower():
-                sonos_entities.append(entity_id)
+        sonos_entities = ["media_player.sonos"]
+        
+        try:
+            for entity_id, entity in self.hass.states.async_all():
+                if "media_player" in entity_id:
+                    device_name = entity.attributes.get("device_name", "").lower()
+                    if "sonos" in device_name:
+                        sonos_entities.append(entity_id)
+            sonos_entities = list(set(sonos_entities))
+        except Exception as e:
+            _LOGGER.warning(f"Could not get Sonos entities: {e}")
 
         return self.async_show_form(
             step_id="init",
@@ -115,31 +126,31 @@ class SonosColorSyncOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Required(
                         CONF_SONOS_ENTITY, default=data.get(CONF_SONOS_ENTITY)
-                    ): vol.In(sonos_entities if sonos_entities else ["media_player.sonos"]),
+                    ): vol.In(sonos_entities),
                     vol.Required(
                         CONF_HUE_BRIDGE_IP, default=data.get(CONF_HUE_BRIDGE_IP, "")
-                    ): str,
+                    ): cv.string,
                     vol.Optional(
                         CONF_HUE_APP_KEY, default=data.get(CONF_HUE_APP_KEY, "")
-                    ): str,
+                    ): cv.string,
                     vol.Optional(
                         CONF_LIGHT_GROUP, default=data.get(CONF_LIGHT_GROUP, "")
-                    ): str,
+                    ): cv.string,
                     vol.Optional(
                         CONF_POLL_INTERVAL, default=data.get(CONF_POLL_INTERVAL, 5)
-                    ): vol.Range(min=1, max=60),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
                     vol.Optional(
                         CONF_COLOR_COUNT, default=data.get(CONF_COLOR_COUNT, 3)
-                    ): vol.Range(min=1, max=10),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=10)),
                     vol.Optional(
                         CONF_TRANSITION_TIME, default=data.get(CONF_TRANSITION_TIME, 2)
-                    ): vol.Range(min=0, max=10),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=10)),
                     vol.Optional(
                         CONF_FILTER_DULL, default=data.get(CONF_FILTER_DULL, True)
-                    ): bool,
+                    ): cv.boolean,
                     vol.Optional(
                         CONF_CACHE_ENABLED, default=data.get(CONF_CACHE_ENABLED, True)
-                    ): bool,
+                    ): cv.boolean,
                 }
             ),
         )
