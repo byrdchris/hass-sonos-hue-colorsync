@@ -4,3 +4,37 @@ enable:
 disable:
   name: Disable
   description: Disable Sonos Hue Sync control and restore the prior scene.
+apply_last_palette:
+  name: Apply last palette
+  description: Apply the last extracted palette immediately to the selected lights.
+test_color:
+  name: Test color
+  description: Apply a single RGB color immediately to the selected lights.
+  fields:
+    r:
+      required: true
+      example: 255
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
+          mode: box
+    g:
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
+          mode: box
+    b:
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
+          mode: box

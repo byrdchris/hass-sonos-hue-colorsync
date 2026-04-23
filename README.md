@@ -1,26 +1,19 @@
 # Sonos Hue Sync
 
-This build focuses on two issues:
+## v1.5.0 changes
 
-1. Fixing light changes not applying reliably
-2. Exposing the extracted colors in Home Assistant
+- Multiple light selection in setup and options flow
+- Color mapping across multiple lights:
+  - if colors > lights, use the first N colors
+  - if lights > colors, repeat colors
+- Diagnostic palette sensor now includes resolved target lights and last service payload
+- New services:
+  - `sonos_hue_sync.apply_last_palette`
+  - `sonos_hue_sync.test_color`
+- Backward compatible with older single-light config entries
 
-## What changed
+## Gradient-capable Hue devices
 
-- Signed Sonos artwork URLs before fetching them from Home Assistant
-- Added error reporting to the palette sensor
-- Added a palette sensor with:
-  - hex colors
-  - rgb colors
-  - source artwork path
-  - last error
-- Switched the numeric config inputs to slider selectors
+This build treats each selected light entity as a standard Home Assistant light. If a Hue gradient strip is exposed as a single light entity through Home Assistant, this build will control it as a single light color target. True per-segment/multi-color control is not implemented here because that is not exposed as a standard Home Assistant light capability.
 
-## Entities
-
-- Switch: enable/disable sync
-- Sensor: extracted palette
-
-## Important note about slider text values
-
-The selector now uses Home Assistant's number slider control. Whether the frontend shows an always-visible text field next to the slider depends on the current Home Assistant frontend behavior. The integration can request a slider, but it cannot fully control that widget rendering beyond the selector mode.
+For best results with multiple colors, select multiple light entities or Hue room/zone grouped light entities.

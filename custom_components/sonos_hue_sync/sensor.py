@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from homeassistant.components.sensor import SensorEntity
-
 from .const import ATTR_HEX_COLORS, DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -41,7 +39,7 @@ class SonosHueSyncPaletteSensor(SensorEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {("sonos_hue_sync", self._entry.entry_id)},
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
             "name": self._entry.title or "Sonos Hue Sync",
             "manufacturer": "Custom",
             "model": "Sonos Hue Sync",

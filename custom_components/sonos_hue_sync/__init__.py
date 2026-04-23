@@ -11,9 +11,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     coordinator = SonosHueCoordinator(hass, entry)
     await coordinator.async_setup()
     await async_setup_services(hass)
-
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
     entry.async_on_unload(entry.add_update_listener(async_update_options))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

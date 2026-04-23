@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-
 from aiohttp import ClientError
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -11,9 +10,12 @@ from homeassistant.helpers.network import get_url
 from .cache import PaletteCache
 from .const import (
     ATTR_HEX_COLORS,
+    ATTR_LAST_SERVICE_DATA,
+    ATTR_RESOLVED_LIGHTS,
     ATTR_RGB_COLORS,
     ATTR_SOURCE_IMAGE,
     CONF_CACHE,
+    CONF_LIGHT_ENTITIES,
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
@@ -33,6 +35,8 @@ class SonosHueCoordinator:
         self.last_palette = []
         self.last_image = None
         self.last_error = None
+        self.last_resolved_lights = []
+        self.last_service_data = []
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
     @property
@@ -44,8 +48,12 @@ class SonosHueCoordinator:
         return self.config[CONF_SONOS_ENTITY]
 
     @property
-    def light_group(self):
-        return self.config[CONF_LIGHT_GROUP]
+    def light_entities(self):
+        if CONF_LIGHT_ENTITIES in self.config and self.config[CONF_LIGHT_ENTITIES]:
+            return self.config[CONF_LIGHT_ENTITIES]
+        # backward compatibility with old single selector
+        legacy = self.config.get(CONF_LIGHT_GROUP)
+        return [legacy] if legacy else []
 
     @property
     def palette_attributes(self):
@@ -53,10 +61,12 @@ class SonosHueCoordinator:
             ATTR_HEX_COLORS: [rgb_to_hex(c) for c in self.last_palette],
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_SOURCE_IMAGE: self.last_image,
+            ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
+            ATTR_LAST_SERVICE_DATA: self.last_service_data,
             "last_error": self.last_error,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
-            "light_group": self.light_group,
+            "light_entities": self.light_entities,
         }
 
     def async_add_listener(self, update_callback):
@@ -82,7 +92,6 @@ class SonosHueCoordinator:
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
-
         self._remove_listener = async_track_state_change_event(
             self.hass, [self.sonos_entity], self._handle
         )
@@ -92,7 +101,7 @@ class SonosHueCoordinator:
         await self.async_refresh_listener()
         self._notify()
 
-    async def _fetch_image_bytes(self, image_path: str) -> bytes | None:
+    async def _fetch_image_bytes(self, image_path: str):
         try:
             if image_path.startswith("http://") or image_path.startswith("https://"):
                 url = image_path
@@ -111,6 +120,37 @@ class SonosHueCoordinator:
             self._notify()
             return None
 
+    async def async_apply_last_palette(self):
+        if not self.last_palette:
+            self.last_error = "no_palette_available"
+            self._notify()
+            return
+        try:
+            resolved, last_service_data = await apply_palette(
+                self.hass, self.light_entities, self.last_palette, self.config
+            )
+            self.last_resolved_lights = resolved
+            self.last_service_data = last_service_data
+            self.last_error = None
+        except Exception as err:
+            self.last_error = f"light_apply_failed: {err}"
+            _LOGGER.exception("Failed applying last palette")
+        self._notify()
+
+    async def async_test_color(self, rgb):
+        palette = [tuple(rgb)]
+        try:
+            resolved, last_service_data = await apply_palette(
+                self.hass, self.light_entities, palette, self.config
+            )
+            self.last_resolved_lights = resolved
+            self.last_service_data = last_service_data
+            self.last_error = None
+        except Exception as err:
+            self.last_error = f"light_apply_failed: {err}"
+            _LOGGER.exception("Failed applying test color")
+        self._notify()
+
     async def _handle(self, event):
         state = event.data.get("new_state")
         if not state or not self.enabled:
@@ -118,7 +158,7 @@ class SonosHueCoordinator:
 
         if state.state == "playing":
             if not self.scene:
-                self.scene = await snapshot_scene(self.hass, self.light_group)
+                self.scene = await snapshot_scene(self.hass, self.light_entities)
 
             art = state.attributes.get("entity_picture")
             if not art:
@@ -143,11 +183,16 @@ class SonosHueCoordinator:
             self._notify()
 
             try:
-                await apply_palette(self.hass, self.light_group, palette, self.config)
+                resolved, last_service_data = await apply_palette(
+                    self.hass, self.light_entities, palette, self.config
+                )
+                self.last_resolved_lights = resolved
+                self.last_service_data = last_service_data
+                self.last_error = None
             except Exception as err:
                 self.last_error = f"light_apply_failed: {err}"
                 _LOGGER.exception("Failed applying palette")
-                self._notify()
+            self._notify()
 
         elif state.state in ["paused", "idle", "off"]:
             await self._handle_stop()

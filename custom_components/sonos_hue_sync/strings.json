@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Sonos Hue Sync",
-        "description": "Configure the Sonos speaker and Hue light target."
+        "description": "Configure the Sonos speaker and one or more lights."
       }
     }
   },

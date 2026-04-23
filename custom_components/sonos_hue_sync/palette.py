@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import colorsys
 from io import BytesIO
-
 from colorthief import ColorThief
 
 def is_dull(rgb: tuple[int, int, int]) -> bool:
@@ -16,7 +15,7 @@ def luminance(rgb: tuple[int, int, int]) -> float:
 
 def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[int, int, int]]:
     ct = ColorThief(BytesIO(image_bytes))
-    palette = ct.get_palette(color_count=config.get("color_count", 3))
+    palette = ct.get_palette(color_count=int(config.get("color_count", 3)))
     if config.get("filter_dull", True):
         palette = [c for c in palette if not is_dull(c)]
     return palette or [(255, 255, 255)]
