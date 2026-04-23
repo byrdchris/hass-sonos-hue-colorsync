@@ -8,12 +8,7 @@
   "config_flow": true,
   "documentation": "https://github.com/yourusername/ha-sonos-color-sync",
   "issues": "https://github.com/yourusername/ha-sonos-color-sync/issues",
-  "requirements": [
-    "Pillow>=9.0.0",
-    "scikit-learn>=1.0.0",
-    "numpy>=1.21.0",
-    "aiofiles>=23.0.0"
-  ],
-  "version": "2.0.1",
+  "requirements": [],
+  "version": "2.0.2",
   "min_home_assistant_version": "2023.12.0"
 }
