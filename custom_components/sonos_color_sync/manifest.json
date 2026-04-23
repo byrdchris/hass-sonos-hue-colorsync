@@ -1,0 +1,15 @@
+{
+  "manifest_version": 1,
+  "domain": "sonos_color_sync",
+  "name": "Sonos Color Sync",
+  "codeowners": ["@yourusername"],
+  "config_flow": true,
+  "documentation": "https://github.com/yourusername/ha-sonos-color-sync",
+  "issues": "https://github.com/yourusername/ha-sonos-color-sync/issues",
+  "requirements": [
+    "Pillow==10.1.0",
+    "scikit-learn==1.3.2",
+    "numpy==1.24.3"
+  ],
+  "version": "2.0.0"
+}
