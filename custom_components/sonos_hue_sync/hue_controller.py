@@ -12,13 +12,7 @@ from .palette import luminance
 _LOGGER = logging.getLogger(__name__)
 
 COLOR_MODES = ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")
-GROUP_UNIQUE_ID_TOKENS = (
-    "grouped_light",
-    "grouped-light",
-    "group",
-    "room",
-    "zone",
-)
+GROUP_UNIQUE_ID_TOKENS = ("grouped_light", "grouped-light", "group", "room", "zone")
 
 def rgb_to_mired(rgb: tuple[int, int, int]) -> int:
     r, _g, b = rgb
@@ -38,92 +32,98 @@ def _is_neutral(color: tuple[int, int, int]) -> bool:
 def _entry_area_id(hass, entry) -> str | None:
     if entry is None:
         return None
-
     if entry.area_id:
         return entry.area_id
-
     device_registry = dr.async_get(hass)
     if entry.device_id:
         device = device_registry.async_get(entry.device_id)
         if device and device.area_id:
             return device.area_id
-
     return None
 
 def _unique_id_looks_grouped(entry) -> bool:
     if entry is None or not entry.unique_id:
         return False
-
     unique_id = entry.unique_id.lower()
     return any(token in unique_id for token in GROUP_UNIQUE_ID_TOKENS)
-
-def _has_direct_members(state) -> bool:
-    members = state.attributes.get("entity_id")
-    return isinstance(members, list) and bool(members)
 
 def _is_hue_group_entity(hass, entity_id: str) -> bool:
     registry = er.async_get(hass)
     entry = registry.async_get(entity_id)
     state = hass.states.get(entity_id)
-
     if state is None:
         return False
-
-    if _has_direct_members(state):
+    if state.attributes.get("is_hue_group") is True:
         return True
-
+    if state.attributes.get("hue_type") in ("room", "zone", "group"):
+        return True
+    members = state.attributes.get("entity_id")
+    if isinstance(members, list) and members:
+        return True
     if entry and entry.platform == "hue" and _unique_id_looks_grouped(entry):
         return True
-
     return False
-
-def _is_physical_candidate(hass, entity_id: str) -> bool:
-    """Non-recursive check for final light targets."""
-    registry = er.async_get(hass)
-    entry = registry.async_get(entity_id)
-    state = hass.states.get(entity_id)
-
-    if state is None:
-        return False
-
-    # Avoid direct HA group entities.
-    if _has_direct_members(state):
-        return False
-
-    # Avoid registry-known Hue grouped lights.
-    if entry and entry.platform == "hue" and _unique_id_looks_grouped(entry):
-        return False
-
-    return _supports_any_color(state)
 
 def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
     registry = er.async_get(hass)
     source_entry = registry.async_get(source_entity_id)
     source_area = _entry_area_id(hass, source_entry)
-
     if not source_area:
         return []
 
-    candidates: list[str] = []
-
+    candidates = []
     for entry in registry.entities.values():
-        if entry.domain != "light":
+        if entry.domain != "light" or entry.entity_id == source_entity_id:
             continue
-
-        entity_id = entry.entity_id
-        if entity_id == source_entity_id:
+        state = hass.states.get(entry.entity_id)
+        if state is None:
             continue
-
-        if not _is_physical_candidate(hass, entity_id):
+        if state.attributes.get("is_hue_group") is True:
             continue
-
-        if _entry_area_id(hass, entry) == source_area and entity_id not in candidates:
-            candidates.append(entity_id)
-
+        if state.attributes.get("hue_type") in ("room", "zone", "group"):
+            continue
+        if state.attributes.get("entity_id"):
+            continue
+        if not _supports_any_color(state):
+            continue
+        if _entry_area_id(hass, entry) == source_area and entry.entity_id not in candidates:
+            candidates.append(entry.entity_id)
     return candidates
 
-def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> list[str]:
+def _direct_member_lights(hass, entity_id: str) -> list[str]:
+    """Return direct light members from a HA/Hue group entity.
+
+    This intentionally trusts the group's `entity_id` attribute. Your Hue room
+    exposes the exact physical member list here, and filtering it through the
+    registry was too brittle because Hue entities can have null device/area IDs.
+    """
+    state = hass.states.get(entity_id)
+    if state is None:
+        return []
+
+    members = state.attributes.get("entity_id")
+    if not isinstance(members, list):
+        return []
+
+    resolved = []
+    for member in members:
+        member_state = hass.states.get(member)
+        if member_state is None:
+            continue
+
+        nested = member_state.attributes.get("entity_id")
+        if isinstance(nested, list) and nested:
+            for nested_member in nested:
+                if nested_member not in resolved:
+                    resolved.append(nested_member)
+        elif member not in resolved:
+            resolved.append(member)
+
+    return resolved
+
+def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> tuple[list[str], str]:
     resolved: list[str] = []
+    resolver_source = "selected_entities"
 
     for entity_id in selected_entities:
         state = hass.states.get(entity_id)
@@ -134,24 +134,18 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
         expanded: list[str] = []
 
         if expand_groups:
-            direct_members = state.attributes.get("entity_id")
-            if isinstance(direct_members, list) and direct_members:
-                for member in direct_members:
-                    if _is_physical_candidate(hass, member):
-                        expanded.append(member)
-                    else:
-                        # If a direct member is itself a Hue group helper, expand it by area.
-                        for nested in _same_area_physical_lights(hass, member):
-                            if nested not in expanded:
-                                expanded.append(nested)
-
-            if _is_hue_group_entity(hass, entity_id):
-                for member in _same_area_physical_lights(hass, entity_id):
-                    if member not in expanded:
-                        expanded.append(member)
+            direct = _direct_member_lights(hass, entity_id)
+            if direct:
+                expanded = direct
+                resolver_source = "direct_entity_id_members"
+            elif _is_hue_group_entity(hass, entity_id):
+                area_members = _same_area_physical_lights(hass, entity_id)
+                if area_members:
+                    expanded = area_members
+                    resolver_source = "same_area_hue_group_fallback"
 
         if expanded:
-            _LOGGER.info("Expanded %s to %s", entity_id, expanded)
+            _LOGGER.info("Expanded %s to %s via %s", entity_id, expanded, resolver_source)
             for member in expanded:
                 if member not in resolved:
                     resolved.append(member)
@@ -159,7 +153,7 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
             if entity_id not in resolved:
                 resolved.append(entity_id)
 
-    return resolved
+    return resolved, resolver_source
 
 async def snapshot_scene(hass, selected_entities: list[str]) -> str:
     scene_id = "sonos_hue_sync_snapshot"
@@ -189,7 +183,7 @@ def _build_service_data(state, color, transition):
     return data
 
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
-    resolved = resolve_light_entities(
+    resolved, resolver_source = resolve_light_entities(
         hass,
         selected_entities,
         expand_groups=config.get(CONF_EXPAND_GROUPS, True),
@@ -197,7 +191,7 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
 
     if not resolved:
         _LOGGER.warning("No resolved light entities from selected entities: %s", selected_entities)
-        return [], []
+        return [], [], resolver_source
 
     effective_palette = palette[:len(resolved)] if len(palette) >= len(resolved) else palette
     steps = 5
@@ -205,7 +199,7 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
     step_transition = total_transition / steps if steps else total_transition
     last_step_service_data = []
 
-    for step in range(steps):
+    for _step in range(steps):
         step_service_data = []
 
         for idx, light in enumerate(resolved):
@@ -217,7 +211,6 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
             service_data = _build_service_data(state, color, step_transition)
             step_service_data.append(dict(service_data))
             _LOGGER.debug("Calling light.turn_on with %s", service_data)
-
             await hass.services.async_call("light", "turn_on", service_data, blocking=True)
 
         last_step_service_data = step_service_data
@@ -225,4 +218,4 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
         if step_transition > 0:
             await asyncio.sleep(step_transition)
 
-    return resolved, last_step_service_data
+    return resolved, last_step_service_data, resolver_source

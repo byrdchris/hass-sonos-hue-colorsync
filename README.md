@@ -153,3 +153,30 @@ Restores friendly UI translations while keeping the v1.14 resolver fix.
   - Expand grouped lights
 - Restores field descriptions where the Home Assistant frontend displays them
 - Adds service translation names/descriptions
+
+
+## v1.16.0
+
+Fixes unresolved generic group entities and restores complete translations.
+
+### Resolver changes
+
+- Adds a same-area fallback when a selected light entity does not expose group members
+- If the selected entity would otherwise resolve only to itself, and the same HA area contains multiple physical color lights, it expands to those lights
+- Adds `selected_light_count` and `resolved_light_count` to the palette sensor
+
+### UI label note
+
+Home Assistant may cache custom integration translations in the frontend. After installing this version, restart Home Assistant and hard-refresh the browser/app if option labels still appear as raw keys.
+
+
+## v1.17.0
+
+Fixes direct Hue room/group member expansion.
+
+### Changes
+
+- Trusts a selected group's `entity_id` attribute directly
+- No longer filters direct group members through registry/device/area metadata
+- Adds `resolver_source` diagnostic attribute
+- Supports nested group member expansion

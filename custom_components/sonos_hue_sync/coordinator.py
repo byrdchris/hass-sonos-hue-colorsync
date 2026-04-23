@@ -32,6 +32,7 @@ class SonosHueCoordinator:
         self.last_error = None
         self.last_resolved_lights = []
         self.last_service_data = []
+        self.last_resolver_source = None
         self.last_track_key = None
         self.last_processing_reason = None
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
@@ -68,6 +69,9 @@ class SonosHueCoordinator:
             "light_entities": self.light_entities,
             "last_track_key": self.last_track_key,
             "last_processing_reason": self.last_processing_reason,
+"selected_light_count": len(self.light_entities),
+"resolved_light_count": len(self.last_resolved_lights),
+"resolver_source": self.last_resolver_source,
         }
 
     def async_add_listener(self, update_callback):
@@ -230,8 +234,9 @@ class SonosHueCoordinator:
 
     async def _apply_palette_to_lights(self):
         try:
-            resolved, last_service_data = await apply_palette(self.hass, self.light_entities, self.last_palette, self.config)
+            resolved, last_service_data, resolver_source = await apply_palette(self.hass, self.light_entities, self.last_palette, self.config)
             self.last_resolved_lights = resolved
+            self.last_resolver_source = resolver_source
             self.last_service_data = self._final_service_data(last_service_data)
             self.last_error = None
         except Exception as err:
