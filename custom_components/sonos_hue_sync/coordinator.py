@@ -24,7 +24,7 @@ from .const import (
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
-from .hue_controller import apply_palette, async_resolve_direct_group_members, restore_scene, snapshot_scene
+from .hue_controller import apply_palette, async_resolve_direct_group_members, get_group_member_cache, restore_scene, snapshot_scene, update_group_member_cache
 from .palette import extract_palette_from_bytes, rgb_to_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class SonosHueCoordinator:
         self.scene = None
         self.enabled = True
         self._remove_listener = None
+        self._remove_light_listener = None
         self._listeners = []
         self.last_palette = []
         self.last_image = None
@@ -108,9 +109,17 @@ class SonosHueCoordinator:
         members = {}
         for entity_id in self.light_entities:
             state = self.hass.states.get(entity_id)
+            live = []
             if state is not None:
                 value = state.attributes.get("entity_id")
-                members[entity_id] = value if isinstance(value, list) else []
+                live = value if isinstance(value, list) else []
+
+            cached = get_group_member_cache(entity_id)
+            members[entity_id] = {
+                "live_entity_id": live,
+                "cached_entity_id": cached,
+                "effective_entity_id": live or cached,
+            }
         return members
 
 
@@ -144,6 +153,8 @@ class SonosHueCoordinator:
     async def async_setup(self):
         _LOGGER.info("Setting up Sonos Hue Sync: sonos=%s lights=%s", self.sonos_entity, self.light_entities)
         await self.async_refresh_listener()
+        await self.async_refresh_light_listener()
+        self._scan_selected_light_members()
         # Do not process immediately on setup. Hue group attributes may not be populated yet.
         self.last_processing_reason = "setup_waiting_for_event_or_button"
         self._notify()
@@ -155,17 +166,25 @@ class SonosHueCoordinator:
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        if self._remove_light_listener:
+            self._remove_light_listener()
+            self._remove_light_listener = None
 
     async def async_refresh_listener(self):
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        if self._remove_light_listener:
+            self._remove_light_listener()
+            self._remove_light_listener = None
         _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)
         self._remove_listener = async_track_state_change_event(self.hass, [self.sonos_entity], self._handle)
 
     async def async_update_config(self):
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
         await self.async_refresh_listener()
+        await self.async_refresh_light_listener()
+        self._scan_selected_light_members()
         self._notify()
         await self.async_process_current_state(reason="options_update")
 

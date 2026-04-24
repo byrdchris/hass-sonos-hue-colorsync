@@ -22,6 +22,13 @@ _LOGGER = logging.getLogger(__name__)
 
 _LAST_GROUP_MEMBERS: dict[str, list[str]] = {}
 
+def update_group_member_cache(entity_id: str, members: list[str]) -> None:
+    if members:
+        _LAST_GROUP_MEMBERS[entity_id] = list(dict.fromkeys(members))
+
+def get_group_member_cache(entity_id: str) -> list[str]:
+    return _LAST_GROUP_MEMBERS.get(entity_id, [])
+
 COLOR_MODES = ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")
 GROUP_UNIQUE_ID_TOKENS = ("grouped_light", "grouped-light", "group", "room", "zone")
 GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
@@ -144,6 +151,7 @@ def _direct_member_lights(hass, entity_id: str) -> list[str]:
                 resolved.append(member)
 
         if resolved:
+            update_group_member_cache(entity_id, resolved)
             return resolved
 
     # Second, ask Home Assistant's light target resolver. This handles some

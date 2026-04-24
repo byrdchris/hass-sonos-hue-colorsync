@@ -117,3 +117,25 @@ Diagnostics now include:
 ```yaml
 delayed_retry_pending:
 ```
+
+
+## v1.26.0
+
+### Group member cache from live group state
+
+The integration now listens to selected Hue group/light entities and caches their
+direct `entity_id` members whenever Home Assistant publishes them.
+
+This means a full group member list can be captured before a Sonos track change,
+then reused if the group briefly reports an empty member list during palette
+application.
+
+Diagnostics now show:
+
+```yaml
+selected_entity_members:
+  light.living_room:
+    live_entity_id: [...]
+    cached_entity_id: [...]
+    effective_entity_id: [...]
+```
