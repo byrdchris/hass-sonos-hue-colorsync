@@ -6,6 +6,7 @@ import math
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_component
 
 from .const import (
     ASSIGNMENT_STRATEGY_ALTERNATING,
@@ -99,30 +100,57 @@ def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
             candidates.append(entry.entity_id)
     return candidates
 
+
+def _ha_expand_entity_ids(hass, entity_ids: list[str]) -> list[str]:
+    """Use Home Assistant's own group expansion helper where available."""
+    try:
+        expanded = entity_component.async_extract_from_target(
+            hass,
+            "light",
+            {"entity_id": entity_ids},
+        )
+        result = []
+        for entity_id in expanded:
+            if entity_id not in result:
+                result.append(entity_id)
+        return result
+    except Exception:
+        _LOGGER.debug("HA entity expansion failed for %s", entity_ids, exc_info=True)
+        return []
+
 def _direct_member_lights(hass, entity_id: str) -> list[str]:
     state = hass.states.get(entity_id)
     if state is None:
         return []
 
+    # First, trust the entity's own `entity_id` attribute. Hue room/group
+    # entities expose their physical members here in current HA.
     members = state.attributes.get("entity_id")
-    if not isinstance(members, list):
-        return []
+    if isinstance(members, list) and members:
+        resolved = []
+        for member in members:
+            member_state = hass.states.get(member)
+            if member_state is None:
+                continue
 
-    resolved = []
-    for member in members:
-        member_state = hass.states.get(member)
-        if member_state is None:
-            continue
+            nested = member_state.attributes.get("entity_id")
+            if isinstance(nested, list) and nested:
+                for nested_member in nested:
+                    if nested_member not in resolved:
+                        resolved.append(nested_member)
+            elif member not in resolved:
+                resolved.append(member)
 
-        nested = member_state.attributes.get("entity_id")
-        if isinstance(nested, list) and nested:
-            for nested_member in nested:
-                if nested_member not in resolved:
-                    resolved.append(nested_member)
-        elif member not in resolved:
-            resolved.append(member)
+        if resolved:
+            return resolved
 
-    return resolved
+    # Second, ask Home Assistant's light target resolver. This handles some
+    # internally grouped targets that do not expose `entity_id` consistently.
+    expanded = _ha_expand_entity_ids(hass, [entity_id])
+    if expanded and expanded != [entity_id]:
+        return expanded
+
+    return []
 
 def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> tuple[list[str], str]:
     resolved: list[str] = []

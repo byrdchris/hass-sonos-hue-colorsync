@@ -45,3 +45,13 @@ The palette sensor now includes:
 - `selected_entity_members`
 
 This shows the direct `entity_id` member list exposed by selected Hue room/group entities, making it easier to confirm whether Home Assistant is exposing all bulbs in the group.
+
+
+## v1.21.0
+
+### Group resolution fix
+
+- Uses Home Assistant's own light target expansion helper
+- Still prefers the Hue group's live `entity_id` member attribute
+- Improves `selected_entity_members` diagnostics so selected groups show an empty list instead of disappearing when no members are read
+- Falls back to same-area Hue expansion only if direct members cannot be read

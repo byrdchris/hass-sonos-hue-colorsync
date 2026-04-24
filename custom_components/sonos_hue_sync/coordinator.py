@@ -109,7 +109,10 @@ class SonosHueCoordinator:
                 value = state.attributes.get("entity_id")
                 if isinstance(value, list):
                     members[entity_id] = value
+                else:
+                    members[entity_id] = []
         return members
+
 
     def _palette_preview(self):
         preview = []
