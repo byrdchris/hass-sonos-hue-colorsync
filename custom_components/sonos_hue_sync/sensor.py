@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from homeassistant.components.sensor import SensorEntity
+
 from .const import ATTR_HEX_COLORS, DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):

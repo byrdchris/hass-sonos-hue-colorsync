@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+
 from aiohttp import ClientError
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -10,9 +11,17 @@ from homeassistant.helpers.network import get_url
 
 from .cache import PaletteCache
 from .const import (
-    ATTR_HEX_COLORS, ATTR_LAST_SERVICE_DATA, ATTR_RESOLVED_LIGHTS,
-    ATTR_RGB_COLORS, ATTR_SOURCE_IMAGE, ATTR_PALETTE_PREVIEW, ATTR_COLOR_COUNT_ACTUAL, CONF_CACHE, CONF_LIGHT_ENTITIES,
-    CONF_LIGHT_GROUP, CONF_SONOS_ENTITY,
+    ATTR_COLOR_COUNT_ACTUAL,
+    ATTR_HEX_COLORS,
+    ATTR_LAST_SERVICE_DATA,
+    ATTR_PALETTE_PREVIEW,
+    ATTR_RESOLVED_LIGHTS,
+    ATTR_RGB_COLORS,
+    ATTR_SOURCE_IMAGE,
+    CONF_CACHE,
+    CONF_LIGHT_ENTITIES,
+    CONF_LIGHT_GROUP,
+    CONF_SONOS_ENTITY,
 )
 from .hue_controller import apply_palette, restore_scene, snapshot_scene
 from .palette import extract_palette_from_bytes, rgb_to_hex
@@ -69,9 +78,10 @@ class SonosHueCoordinator:
             "light_entities": self.light_entities,
             "last_track_key": self.last_track_key,
             "last_processing_reason": self.last_processing_reason,
-"selected_light_count": len(self.light_entities),
-"resolved_light_count": len(self.last_resolved_lights),
-"resolver_source": self.last_resolver_source,
+            "selected_light_count": len(self.light_entities),
+            "resolved_light_count": len(self.last_resolved_lights),
+            "resolver_source": self.last_resolver_source,
+            "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
         }
 
     def async_add_listener(self, update_callback):
@@ -85,19 +95,8 @@ class SonosHueCoordinator:
         for listener in list(self._listeners):
             listener()
 
-    def _final_service_data(self, service_data):
-        final = {}
-        for item in service_data:
-            entity_id = item.get("entity_id")
-            if entity_id:
-                final[entity_id] = item
-        return list(final.values())
-
     def _palette_preview(self):
         preview = []
-
-        # Prefer the final actual service data, because this reflects what was
-        # sent to each resolved light after group expansion.
         if self.last_service_data:
             for idx, item in enumerate(self.last_service_data):
                 rgb = item.get("rgb_color")
@@ -108,10 +107,11 @@ class SonosHueCoordinator:
                     "hex": rgb_to_hex(tuple(rgb)),
                     "rgb": rgb,
                     "assigned_light": item.get("entity_id"),
+                    "gradient_aware": item.get("gradient_aware", False),
+                    "assignment_strategy": item.get("assignment_strategy"),
                 })
             return preview
 
-        # Fallback before anything has been applied.
         hex_colors = [rgb_to_hex(c) for c in self.last_palette]
         for idx, hex_color in enumerate(hex_colors):
             preview.append({
@@ -151,9 +151,6 @@ class SonosHueCoordinator:
                 url = image_path
             else:
                 base = get_url(self.hass, prefer_external=False)
-
-                # Sonos/media_player_proxy entity_picture URLs commonly already include
-                # a media proxy token. Re-signing those paths can produce invalid URLs.
                 if "token=" in image_path:
                     url = f"{base}{image_path}"
                 else:
@@ -170,24 +167,13 @@ class SonosHueCoordinator:
                 data = await resp.read()
                 if resp.status >= 400:
                     self.last_error = f"image_fetch_failed:http_{resp.status}: {data[:120]!r}"
-                    _LOGGER.warning(
-                        "Unable to fetch Sonos artwork from %s; status=%s body=%r",
-                        image_path,
-                        resp.status,
-                        data[:120],
-                    )
                     self._notify()
                     return None
-
                 if not data:
                     self.last_error = "image_fetch_failed:empty_response"
-                    _LOGGER.warning("Fetched zero bytes for Sonos artwork from %s via %s", image_path, url)
                     self._notify()
                     return None
-
-                _LOGGER.debug("Fetched artwork bytes: %s", len(data))
                 return data
-
         except Exception as err:
             self.last_error = f"image_fetch_failed:{type(err).__name__}: {err}"
             _LOGGER.exception("Unable to fetch Sonos artwork from %s", image_path)
@@ -219,7 +205,6 @@ class SonosHueCoordinator:
         self.last_palette = [tuple(rgb)]
         await self._apply_palette_to_lights()
 
-
     async def async_test_rainbow(self):
         self.last_palette = [
             (255, 0, 0),
@@ -234,10 +219,12 @@ class SonosHueCoordinator:
 
     async def _apply_palette_to_lights(self):
         try:
-            resolved, last_service_data, resolver_source = await apply_palette(self.hass, self.light_entities, self.last_palette, self.config)
+            resolved, last_service_data, resolver_source = await apply_palette(
+                self.hass, self.light_entities, self.last_palette, self.config
+            )
             self.last_resolved_lights = resolved
             self.last_resolver_source = resolver_source
-            self.last_service_data = self._final_service_data(last_service_data)
+            self.last_service_data = last_service_data
             self.last_error = None
         except Exception as err:
             self.last_error = f"light_apply_failed: {err}"
@@ -253,7 +240,6 @@ class SonosHueCoordinator:
         old_key = self._track_key(old_state) if old_state else None
         new_key = self._track_key(new_state)
 
-        # Process if state becomes playing OR metadata/art changes while already playing.
         if new_state.state == "playing" and (old_state is None or old_state.state != "playing" or old_key != new_key):
             await self._process_state(new_state, reason="state_or_metadata_change", force=False)
         elif new_state.state in ["paused", "idle", "off"]:
@@ -261,7 +247,6 @@ class SonosHueCoordinator:
 
     async def _process_state(self, state, reason="event", force=False):
         self.last_processing_reason = reason
-        _LOGGER.debug("Processing Sonos state reason=%s state=%s force=%s", reason, state.state, force)
 
         if not self.enabled:
             self.last_error = "disabled"
@@ -275,7 +260,6 @@ class SonosHueCoordinator:
 
         track_key = self._track_key(state)
         if not force and track_key == self.last_track_key:
-            _LOGGER.debug("Skipping duplicate Sonos track metadata")
             return
         self.last_track_key = track_key
 
@@ -303,7 +287,6 @@ class SonosHueCoordinator:
                     self.cache.set(art, palette)
 
             self.last_palette = palette
-            _LOGGER.info("Extracted Sonos palette: %s", [rgb_to_hex(c) for c in palette])
             self._notify()
             await self._apply_palette_to_lights()
         except Exception as err:

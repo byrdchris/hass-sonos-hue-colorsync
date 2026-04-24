@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .const import CONF_EXPAND_GROUPS
+from .const import (
+    ASSIGNMENT_STRATEGY_ALTERNATING,
+    ASSIGNMENT_STRATEGY_BALANCED,
+    ASSIGNMENT_STRATEGY_BRIGHTNESS,
+    ASSIGNMENT_STRATEGY_SEQUENTIAL,
+    CONF_ASSIGNMENT_STRATEGY,
+    CONF_EXPAND_GROUPS,
+)
 from .palette import luminance
 
 _LOGGER = logging.getLogger(__name__)
 
 COLOR_MODES = ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")
 GROUP_UNIQUE_ID_TOKENS = ("grouped_light", "grouped-light", "group", "room", "zone")
+GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
 
 def rgb_to_mired(rgb: tuple[int, int, int]) -> int:
     r, _g, b = rgb
@@ -91,12 +100,6 @@ def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
     return candidates
 
 def _direct_member_lights(hass, entity_id: str) -> list[str]:
-    """Return direct light members from a HA/Hue group entity.
-
-    This intentionally trusts the group's `entity_id` attribute. Your Hue room
-    exposes the exact physical member list here, and filtering it through the
-    registry was too brittle because Hue entities can have null device/area IDs.
-    """
     state = hass.states.get(entity_id)
     if state is None:
         return []
@@ -155,6 +158,98 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
 
     return resolved, resolver_source
 
+def _is_gradient_entity(hass, entity_id: str) -> bool:
+    state = hass.states.get(entity_id)
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+
+    haystack = " ".join(
+        str(x or "").lower()
+        for x in (
+            entity_id,
+            state.attributes.get("friendly_name") if state else "",
+            entry.name if entry else "",
+            entry.original_name if entry else "",
+            entry.unique_id if entry else "",
+            state.attributes.get("model") if state else "",
+        )
+    )
+
+    effects = state.attributes.get("effect_list") if state else []
+    if isinstance(effects, list):
+        haystack += " " + " ".join(str(e).lower() for e in effects)
+
+    return any(hint in haystack for hint in GRADIENT_HINTS)
+
+def _color_score(color: tuple[int, int, int]) -> float:
+    r, g, b = [x / 255 for x in color]
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    saturation = 0 if mx == 0 else (mx - mn) / mx
+    return saturation * 0.65 + luminance(color) * 0.35
+
+def _reorder_palette_for_strategy(
+    palette: list[tuple[int, int, int]],
+    strategy: str,
+) -> list[tuple[int, int, int]]:
+    if not palette:
+        return palette
+
+    if strategy == ASSIGNMENT_STRATEGY_SEQUENTIAL:
+        return palette
+
+    if strategy == ASSIGNMENT_STRATEGY_BRIGHTNESS:
+        return sorted(palette, key=luminance, reverse=True)
+
+    if strategy == ASSIGNMENT_STRATEGY_ALTERNATING:
+        bright = sorted(palette, key=luminance, reverse=True)
+        output = []
+        left = 0
+        right = len(bright) - 1
+        while left <= right:
+            output.append(bright[left])
+            if left != right:
+                output.append(bright[right])
+            left += 1
+            right -= 1
+        return output
+
+    return sorted(palette, key=_color_score, reverse=True)
+
+def _assign_colors(
+    hass,
+    resolved_lights: list[str],
+    palette: list[tuple[int, int, int]],
+    strategy: str,
+) -> dict[str, tuple[int, int, int]]:
+    ordered_palette = _reorder_palette_for_strategy(palette, strategy)
+
+    if not ordered_palette:
+        return {}
+
+    assignments: dict[str, tuple[int, int, int]] = {}
+
+    gradient_lights = [light for light in resolved_lights if _is_gradient_entity(hass, light)]
+    normal_lights = [light for light in resolved_lights if light not in gradient_lights]
+
+    accent_palette = sorted(ordered_palette, key=_color_score, reverse=True)
+
+    idx = 0
+    for light in gradient_lights:
+        assignments[light] = accent_palette[idx % len(accent_palette)]
+        idx += 1
+
+    if strategy == ASSIGNMENT_STRATEGY_BALANCED and normal_lights:
+        step = max(1, math.floor(len(ordered_palette) / max(1, min(len(normal_lights), len(ordered_palette)))))
+        color_indexes = [(i * step) % len(ordered_palette) for i in range(len(normal_lights))]
+    else:
+        color_indexes = list(range(len(normal_lights)))
+
+    for idx, light in enumerate(normal_lights):
+        assignments[light] = ordered_palette[color_indexes[idx] % len(ordered_palette)]
+
+    return assignments
+
 async def snapshot_scene(hass, selected_entities: list[str]) -> str:
     scene_id = "sonos_hue_sync_snapshot"
     await hass.services.async_call(
@@ -193,7 +288,9 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
         _LOGGER.warning("No resolved light entities from selected entities: %s", selected_entities)
         return [], [], resolver_source
 
-    effective_palette = palette[:len(resolved)] if len(palette) >= len(resolved) else palette
+    strategy = config.get(CONF_ASSIGNMENT_STRATEGY, ASSIGNMENT_STRATEGY_BALANCED)
+    assignments = _assign_colors(hass, resolved, palette, strategy)
+
     steps = 5
     total_transition = float(config.get("transition", 2))
     step_transition = total_transition / steps if steps else total_transition
@@ -202,16 +299,25 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
     for _step in range(steps):
         step_service_data = []
 
-        for idx, light in enumerate(resolved):
-            color = effective_palette[idx % len(effective_palette)]
+        for light in resolved:
+            color = assignments.get(light)
+            if color is None:
+                continue
+
             state = hass.states.get(light)
             if state is None:
                 continue
 
             service_data = _build_service_data(state, color, step_transition)
+            service_data["assignment_strategy"] = strategy
+            service_data["gradient_aware"] = _is_gradient_entity(hass, light)
             step_service_data.append(dict(service_data))
-            _LOGGER.debug("Calling light.turn_on with %s", service_data)
-            await hass.services.async_call("light", "turn_on", service_data, blocking=True)
+
+            call_data = dict(service_data)
+            call_data.pop("assignment_strategy", None)
+            call_data.pop("gradient_aware", None)
+            _LOGGER.debug("Calling light.turn_on with %s", call_data)
+            await hass.services.async_call("light", "turn_on", call_data, blocking=True)
 
         last_step_service_data = step_service_data
 

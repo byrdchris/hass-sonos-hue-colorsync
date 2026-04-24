@@ -1,10 +1,16 @@
 from __future__ import annotations
+
 import logging
 import voluptuous as vol
 
 from .const import (
-    DOMAIN, SERVICE_DISABLE, SERVICE_ENABLE, SERVICE_APPLY_LAST_PALETTE,
-    SERVICE_TEST_COLOR, SERVICE_EXTRACT_NOW, SERVICE_TEST_RAINBOW,
+    DOMAIN,
+    SERVICE_APPLY_LAST_PALETTE,
+    SERVICE_DISABLE,
+    SERVICE_ENABLE,
+    SERVICE_EXTRACT_NOW,
+    SERVICE_TEST_COLOR,
+    SERVICE_TEST_RAINBOW,
 )
 
 _LOGGER = logging.getLogger(__name__)

@@ -5,10 +5,26 @@ from homeassistant import config_entries
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_CACHE, CONF_COLOR_COUNT, CONF_EXPAND_GROUPS, CONF_FILTER_DULL, CONF_LIGHT_ENTITIES,
-    CONF_LIGHT_GROUP, CONF_SONOS_ENTITY, CONF_TRANSITION, DEFAULT_CACHE,
+    ASSIGNMENT_STRATEGY_ALTERNATING,
+    ASSIGNMENT_STRATEGY_BALANCED,
+    ASSIGNMENT_STRATEGY_BRIGHTNESS,
+    ASSIGNMENT_STRATEGY_SEQUENTIAL,
+    CONF_ASSIGNMENT_STRATEGY,
+    CONF_CACHE,
+    CONF_COLOR_COUNT,
+    CONF_EXPAND_GROUPS,
+    CONF_FILTER_DULL,
+    CONF_LIGHT_ENTITIES,
+    CONF_LIGHT_GROUP,
+    CONF_SONOS_ENTITY,
+    CONF_TRANSITION,
+    DEFAULT_ASSIGNMENT_STRATEGY,
+    DEFAULT_CACHE,
+    DEFAULT_COLOR_COUNT,
     DEFAULT_EXPAND_GROUPS,
-    DEFAULT_COLOR_COUNT, DEFAULT_FILTER_DULL, DEFAULT_TRANSITION, DOMAIN,
+    DEFAULT_FILTER_DULL,
+    DEFAULT_TRANSITION,
+    DOMAIN,
 )
 
 def build_schema(defaults: dict):
@@ -24,6 +40,18 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
         vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
+        vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BALANCED, label="Balanced"),
+                        selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_SEQUENTIAL, label="Sequential"),
+                        selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright/dim"),
+                        selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BRIGHTNESS, label="Brightness order"),
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
     })
 
 class SonosHueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

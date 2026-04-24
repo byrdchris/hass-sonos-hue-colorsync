@@ -1,36 +1,24 @@
 from __future__ import annotations
 
 import colorsys
+import math
 from io import BytesIO
+
 from colorthief import ColorThief
 
-def is_dull(rgb: tuple[int, int, int]) -> bool:
-    """Filter colors that are visually unhelpful for lights.
-
-    The old filter removed any low-saturation color. That was too aggressive
-    because album art often uses bright whites, creams, and pale neutrals that
-    should influence the room. This version removes mostly:
-      - near-black colors
-      - dark low-saturation grays/browns
-      - mid gray colors
-
-    It intentionally keeps bright neutral/cream tones.
-    """
+def _hsv(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
     r, g, b = [x / 255 for x in rgb]
-    _h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    return colorsys.rgb_to_hsv(r, g, b)
 
-    # Very dark colors usually make poor lighting colors.
+def is_dull(rgb: tuple[int, int, int]) -> bool:
+    """Filter visually unhelpful colors while keeping bright whites/creams."""
+    _h, s, v = _hsv(rgb)
     if v < 0.18:
         return True
-
-    # Dark, low-saturation colors read muddy on lights.
     if s < 0.18 and v < 0.62:
         return True
-
-    # Mid grays, but keep light creams/whites.
     if s < 0.08 and v < 0.82:
         return True
-
     return False
 
 def luminance(rgb: tuple[int, int, int]) -> float:
@@ -38,42 +26,61 @@ def luminance(rgb: tuple[int, int, int]) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 def _visual_score(rgb: tuple[int, int, int]) -> float:
-    """Rank colors for light usefulness while keeping bright neutrals."""
-    r, g, b = [x / 255 for x in rgb]
-    _h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    _h, s, v = _hsv(rgb)
     lum = luminance(rgb)
+    bright_neutral_bonus = 0.32 if s < 0.20 and v > 0.78 else 0.0
+    accent_bonus = 0.18 if s > 0.45 and v > 0.35 else 0.0
+    too_dark_penalty = -0.35 if v < 0.28 else 0.0
+    return (s * 0.42) + (v * 0.30) + (lum * 0.20) + bright_neutral_bonus + accent_bonus + too_dark_penalty
 
-    # Prefer visible, usable light colors. Bright neutrals get a boost,
-    # saturated colors get a boost, very dark colors fall away.
-    bright_neutral_bonus = 0.30 if s < 0.20 and v > 0.78 else 0.0
-    return (s * 0.45) + (v * 0.35) + (lum * 0.20) + bright_neutral_bonus
+def _rgb_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
+    return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(3)))
 
-def _dedupe_similar(colors: list[tuple[int, int, int]], min_distance: int = 28) -> list[tuple[int, int, int]]:
-    kept: list[tuple[int, int, int]] = []
-    for color in colors:
-        if all(
-            sum((color[i] - existing[i]) ** 2 for i in range(3)) ** 0.5 >= min_distance
-            for existing in kept
-        ):
-            kept.append(color)
-    return kept
+def _hue_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
+    ha, sa, _va = _hsv(a)
+    hb, sb, _vb = _hsv(b)
+    if sa < 0.18 or sb < 0.18:
+        return abs(luminance(a) - luminance(b)) * 180
+    diff = abs(ha - hb)
+    return min(diff, 1 - diff) * 360
+
+def _clustered_select(
+    candidates: list[tuple[int, int, int]],
+    desired: int,
+) -> list[tuple[int, int, int]]:
+    if not candidates:
+        return []
+
+    ordered = sorted(candidates, key=_visual_score, reverse=True)
+    selected: list[tuple[int, int, int]] = []
+
+    for rgb_min, hue_min in [(55, 42), (42, 30), (30, 18), (18, 8), (0, 0)]:
+        for color in ordered:
+            if color in selected:
+                continue
+            if all(
+                _rgb_distance(color, existing) >= rgb_min
+                and _hue_distance(color, existing) >= hue_min
+                for existing in selected
+            ):
+                selected.append(color)
+            if len(selected) >= desired:
+                return selected[:desired]
+
+    return selected[:desired]
 
 def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[int, int, int]]:
     desired = int(config.get("color_count", 3))
 
-    # Request more candidates than needed. This helps keep whites/creams and
-    # avoid near-duplicate reddish/pink tones dominating the output.
     ct = ColorThief(BytesIO(image_bytes))
-    candidates = ct.get_palette(color_count=max(desired * 4, 12), quality=5)
+    candidates = ct.get_palette(color_count=max(desired * 6, 20), quality=3)
 
     if config.get("filter_dull", True):
         filtered = [c for c in candidates if not is_dull(c)]
         candidates = filtered or candidates
 
-    candidates = sorted(candidates, key=_visual_score, reverse=True)
-    candidates = _dedupe_similar(candidates)
-
-    return candidates[:desired] or [(255, 255, 255)]
+    clustered = _clustered_select(candidates, desired)
+    return clustered[:desired] or [(255, 255, 255)]
 
 def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return "#{:02X}{:02X}{:02X}".format(*rgb)

@@ -10,6 +10,9 @@ apply_last_palette:
 extract_now:
   name: Extract now
   description: Force palette extraction from the currently selected Sonos entity.
+test_rainbow:
+  name: Test rainbow
+  description: Apply a built-in rainbow palette immediately to the selected lights.
 test_color:
   name: Test color
   description: Apply a single RGB color immediately to the selected lights.
@@ -41,7 +44,3 @@ test_color:
           max: 255
           step: 1
           mode: box
-
-test_rainbow:
-  name: Test rainbow
-  description: Apply a built-in rainbow palette immediately to the selected lights.
