@@ -134,3 +134,17 @@ v1.28 replaces the resolver with one clean path:
 3. Fall back to same-area Hue scan only if direct/cached members are unavailable
 
 It does not filter Hue Play entities out of direct group members.
+
+
+## v1.29.0
+
+### Flicker reduction
+
+Removes stepped crossfade.
+
+Previous versions issued 5 repeated `light.turn_on` calls per light during one
+album change. Hue/HA already supports transitions, so v1.29 now sends one
+`light.turn_on` call per resolved light using the configured transition value.
+
+This should reduce visible flicker during album changes and reduce service-call
+chatter.

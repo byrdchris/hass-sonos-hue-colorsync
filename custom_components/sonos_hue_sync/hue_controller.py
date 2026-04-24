@@ -274,6 +274,7 @@ def _build_service_data(state, color, transition):
 
     return data
 
+
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
     resolved, resolver_source = resolve_light_entities(
         hass,
@@ -288,37 +289,31 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
     strategy = config.get(CONF_ASSIGNMENT_STRATEGY, ASSIGNMENT_STRATEGY_BALANCED)
     assignments = _assign_colors(hass, resolved, palette, strategy)
 
-    steps = 5
-    total_transition = float(config.get("transition", 2))
-    step_transition = total_transition / steps if steps else total_transition
-    last_step_service_data = []
+    # Use Home Assistant/Hue native transition smoothing. The older stepped
+    # crossfade issued repeated commands during one album change and could
+    # produce visible flicker on Hue groups.
+    transition = float(config.get("transition", 2))
+    service_data_sent = []
 
-    for _step in range(steps):
-        step_service_data = []
+    for light in resolved:
+        color = assignments.get(light)
+        if color is None:
+            continue
 
-        for light in resolved:
-            color = assignments.get(light)
-            if color is None:
-                continue
-            state = hass.states.get(light)
-            if state is None:
-                continue
+        state = hass.states.get(light)
+        if state is None:
+            continue
 
-            service_data = _build_service_data(state, color, step_transition)
-            service_data["assignment_strategy"] = strategy
-            service_data["gradient_aware"] = _is_gradient_entity(hass, light)
-            step_service_data.append(dict(service_data))
+        service_data = _build_service_data(state, color, transition)
+        service_data["assignment_strategy"] = strategy
+        service_data["gradient_aware"] = _is_gradient_entity(hass, light)
+        service_data_sent.append(dict(service_data))
 
-            call_data = dict(service_data)
-            call_data.pop("assignment_strategy", None)
-            call_data.pop("gradient_aware", None)
+        call_data = dict(service_data)
+        call_data.pop("assignment_strategy", None)
+        call_data.pop("gradient_aware", None)
 
-            _LOGGER.debug("Calling light.turn_on with %s", call_data)
-            await hass.services.async_call("light", "turn_on", call_data, blocking=True)
+        _LOGGER.debug("Calling light.turn_on with %s", call_data)
+        await hass.services.async_call("light", "turn_on", call_data, blocking=True)
 
-        last_step_service_data = step_service_data
-
-        if step_transition > 0:
-            await asyncio.sleep(step_transition)
-
-    return resolved, last_step_service_data, resolver_source
+    return resolved, service_data_sent, resolver_source
