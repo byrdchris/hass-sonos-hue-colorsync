@@ -99,43 +99,19 @@ Resolver order:
 This keeps all Hue room members instead of falling back to a partial area scan.
 
 
-## v1.25.0
+## v1.27.0
 
-### Delayed group retry
+### Resolver reset
 
-Adds a one-time delayed retry after fallback/cached group resolution.
+v1.26 failed to load because of a missing method. v1.27 is built from the last
+stable resolver base and applies a simpler deterministic rule:
 
-When the integration has to use fallback group resolution, it now:
+- If the selected Hue room/group exposes `entity_id`, use that list exactly.
+- Do not filter direct group members through area/device metadata.
+- This preserves Hue Play entities and any other valid members exposed by the group.
+- Retry direct member reads for up to ~3 seconds before falling back.
 
-1. Applies the palette immediately using the best available members
-2. Waits about 3 seconds
-3. Re-checks the selected Hue group for direct `entity_id` members
-4. Reapplies the same palette once if it finds a larger/better member list
+### Important
 
-Diagnostics now include:
-
-```yaml
-delayed_retry_pending:
-```
-
-
-## v1.26.0
-
-### Group member cache from live group state
-
-The integration now listens to selected Hue group/light entities and caches their
-direct `entity_id` members whenever Home Assistant publishes them.
-
-This means a full group member list can be captured before a Sonos track change,
-then reused if the group briefly reports an empty member list during palette
-application.
-
-Diagnostics now show:
-
-```yaml
-selected_entity_members:
-  light.living_room:
-    live_entity_id: [...]
-    cached_entity_id: [...]
-    effective_entity_id: [...]
-```
+If `light.living_room.entity_id` contains 9 lights, `resolved_lights` should
+contain those same 9 lights.

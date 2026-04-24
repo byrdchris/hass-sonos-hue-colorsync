@@ -22,13 +22,6 @@ _LOGGER = logging.getLogger(__name__)
 
 _LAST_GROUP_MEMBERS: dict[str, list[str]] = {}
 
-def update_group_member_cache(entity_id: str, members: list[str]) -> None:
-    if members:
-        _LAST_GROUP_MEMBERS[entity_id] = list(dict.fromkeys(members))
-
-def get_group_member_cache(entity_id: str) -> list[str]:
-    return _LAST_GROUP_MEMBERS.get(entity_id, [])
-
 COLOR_MODES = ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")
 GROUP_UNIQUE_ID_TOKENS = ("grouped_light", "grouped-light", "group", "room", "zone")
 GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
@@ -128,39 +121,40 @@ def _ha_expand_entity_ids(hass, entity_ids: list[str]) -> list[str]:
         return []
 
 def _direct_member_lights(hass, entity_id: str) -> list[str]:
+    """Return direct members from a HA/Hue group exactly as HA exposes them.
+
+    Important: do not filter these through area/device metadata. Hue Play and
+    some other Hue entities may not share registry area/device data reliably,
+    but if the Hue room/group exposes them under `entity_id`, they are valid
+    members and should be used.
+    """
     state = hass.states.get(entity_id)
     if state is None:
         return []
 
-    # First, trust the entity's own `entity_id` attribute. Hue room/group
-    # entities expose their physical members here in current HA.
     members = state.attributes.get("entity_id")
-    if isinstance(members, list) and members:
-        resolved = []
-        for member in members:
-            member_state = hass.states.get(member)
-            if member_state is None:
-                continue
+    if not isinstance(members, list) or not members:
+        return []
 
-            nested = member_state.attributes.get("entity_id")
-            if isinstance(nested, list) and nested:
-                for nested_member in nested:
-                    if nested_member not in resolved:
-                        resolved.append(nested_member)
-            elif member not in resolved:
-                resolved.append(member)
+    resolved = []
+    for member in members:
+        member_state = hass.states.get(member)
+        if member_state is None:
+            continue
 
-        if resolved:
-            update_group_member_cache(entity_id, resolved)
-            return resolved
+        nested = member_state.attributes.get("entity_id")
+        if isinstance(nested, list) and nested:
+            for nested_member in nested:
+                if nested_member not in resolved:
+                    resolved.append(nested_member)
+        elif member not in resolved:
+            resolved.append(member)
 
-    # Second, ask Home Assistant's light target resolver. This handles some
-    # internally grouped targets that do not expose `entity_id` consistently.
-    expanded = _ha_expand_entity_ids(hass, [entity_id])
-    if expanded and expanded != [entity_id]:
-        return expanded
+    if resolved:
+        _LAST_GROUP_MEMBERS[entity_id] = resolved
 
-    return []
+    return resolved
+
 
 def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> tuple[list[str], str]:
     resolved: list[str] = []
@@ -305,102 +299,14 @@ def _build_service_data(state, color, transition):
     brightness = int(50 + luminance(color) * 205)
     data = {"entity_id": state.entity_id, "brightness": brightness, "transition": transition}
 
-    # Use rgb_color for both saturated and neutral colors. Some recent HA
-    # service schemas reject the legacy color_temp key, and Hue can convert
-    # rgb_color for xy-capable lights.
+    # Always use rgb_color for color-capable lights. This avoids HA service
+    # schema issues with color_temp and works for Hue xy-capable lights.
     if any(_supports(state, mode) for mode in ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")):
         data["rgb_color"] = list(color)
         return data
 
     return data
 
-
-
-async def _stabilized_resolve_light_entities(
-    hass,
-    selected_entities: list[str],
-    expand_groups: bool = True,
-    attempts: int = 5,
-    delay: float = 0.20,
-) -> tuple[list[str], str]:
-    """Resolve light entities with retries for Hue group attribute timing.
-
-    Hue room/group entities can briefly expose no `entity_id` members even
-    though the state later contains them. This waits briefly for direct members
-    before falling back to area/registry resolution. It also caches the last
-    valid direct member list per selected group.
-    """
-    if not expand_groups:
-        return resolve_light_entities(hass, selected_entities, expand_groups=False)
-
-    for attempt in range(attempts):
-        resolved: list[str] = []
-        all_groups_had_members = True
-
-        for entity_id in selected_entities:
-            direct = _direct_member_lights(hass, entity_id)
-
-            if direct:
-                _LAST_GROUP_MEMBERS[entity_id] = direct
-                for member in direct:
-                    if member not in resolved:
-                        resolved.append(member)
-            else:
-                state = hass.states.get(entity_id)
-                is_group = False
-                if state is not None:
-                    is_group = (
-                        state.attributes.get("is_hue_group") is True
-                        or state.attributes.get("hue_type") in ("room", "zone", "group")
-                        or isinstance(state.attributes.get("entity_id"), list)
-                    )
-
-                if is_group:
-                    all_groups_had_members = False
-                else:
-                    if entity_id not in resolved:
-                        resolved.append(entity_id)
-
-        if resolved and all_groups_had_members:
-            return resolved, "direct_entity_id_members_stabilized"
-
-        if attempt < attempts - 1:
-            await asyncio.sleep(delay)
-
-    # If live direct members never appeared, use cached direct members before
-    # falling back to the less complete same-area resolver.
-    cached: list[str] = []
-    for entity_id in selected_entities:
-        for member in _LAST_GROUP_MEMBERS.get(entity_id, []):
-            if member not in cached:
-                cached.append(member)
-
-    if cached:
-        return cached, "cached_direct_entity_id_members"
-
-    return resolve_light_entities(hass, selected_entities, expand_groups=True)
-
-
-async def async_resolve_direct_group_members(hass, selected_entities: list[str]) -> tuple[list[str], str]:
-    """Resolve only direct group members without cached/area fallback."""
-    resolved: list[str] = []
-    for entity_id in selected_entities:
-        direct = _direct_member_lights(hass, entity_id)
-        if direct:
-            _LAST_GROUP_MEMBERS[entity_id] = direct
-            for member in direct:
-                if member not in resolved:
-                    resolved.append(member)
-        else:
-            state = hass.states.get(entity_id)
-            if state is not None and not (
-                state.attributes.get("is_hue_group") is True
-                or state.attributes.get("hue_type") in ("room", "zone", "group")
-                or isinstance(state.attributes.get("entity_id"), list)
-            ):
-                if entity_id not in resolved:
-                    resolved.append(entity_id)
-    return resolved, "direct_entity_id_members_delayed_retry"
 
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
     resolved, resolver_source = await _stabilized_resolve_light_entities(
