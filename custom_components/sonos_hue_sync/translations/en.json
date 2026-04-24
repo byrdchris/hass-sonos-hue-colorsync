@@ -78,6 +78,11 @@
       "enabled": {
         "name": "Enabled"
       }
+    },
+    "select": {
+      "assignment_strategy": {
+        "name": "Assignment Strategy"
+      }
     }
   }
 }

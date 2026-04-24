@@ -24,3 +24,24 @@ Home Assistant custom integration that extracts colors from Sonos album art and 
 Gradient awareness does not create a true multi-segment gradient. It still uses Home Assistant `light.turn_on` and assigns one color per gradient entity.
 
 For Home Assistant translation cache issues: restart HA and hard-refresh the frontend.
+
+
+## v1.20.0
+
+### Controls
+
+Adds a Home Assistant select entity:
+
+- **Assignment Strategy**
+
+This appears on the integration device page alongside Extract Now, Apply Last Palette, Test Rainbow, and Enabled.
+
+Changing the select immediately reapplies the last palette if one exists.
+
+### Group diagnostics
+
+The palette sensor now includes:
+
+- `selected_entity_members`
+
+This shows the direct `entity_id` member list exposed by selected Hue room/group entities, making it easier to confirm whether Home Assistant is exposing all bulbs in the group.

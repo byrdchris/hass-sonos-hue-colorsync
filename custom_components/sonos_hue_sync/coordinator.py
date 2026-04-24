@@ -44,11 +44,15 @@ class SonosHueCoordinator:
         self.last_resolver_source = None
         self.last_track_key = None
         self.last_processing_reason = None
+        self.runtime_assignment_strategy = None
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
     @property
     def config(self):
-        return {**self.entry.data, **self.entry.options}
+        config = {**self.entry.data, **self.entry.options}
+        if self.runtime_assignment_strategy:
+            config["assignment_strategy"] = self.runtime_assignment_strategy
+        return config
 
     @property
     def sonos_entity(self):
@@ -76,12 +80,14 @@ class SonosHueCoordinator:
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
             "light_entities": self.light_entities,
+            "selected_entity_members": self._selected_entity_members(),
             "last_track_key": self.last_track_key,
             "last_processing_reason": self.last_processing_reason,
             "selected_light_count": len(self.light_entities),
             "resolved_light_count": len(self.last_resolved_lights),
             "resolver_source": self.last_resolver_source,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
+            "runtime_assignment_strategy": self.runtime_assignment_strategy,
         }
 
     def async_add_listener(self, update_callback):
@@ -94,6 +100,16 @@ class SonosHueCoordinator:
     def _notify(self):
         for listener in list(self._listeners):
             listener()
+
+    def _selected_entity_members(self):
+        members = {}
+        for entity_id in self.light_entities:
+            state = self.hass.states.get(entity_id)
+            if state is not None:
+                value = state.attributes.get("entity_id")
+                if isinstance(value, list):
+                    members[entity_id] = value
+        return members
 
     def _palette_preview(self):
         preview = []
@@ -193,6 +209,12 @@ class SonosHueCoordinator:
             self._notify()
             return
         await self._process_state(state, reason=reason, force=True)
+
+    async def async_set_assignment_strategy(self, strategy: str):
+        self.runtime_assignment_strategy = strategy
+        self._notify()
+        if self.last_palette:
+            await self._apply_palette_to_lights()
 
     async def async_apply_last_palette(self):
         if not self.last_palette:
