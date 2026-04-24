@@ -118,6 +118,44 @@ def _ha_expand_entity_ids(hass, entity_ids: list[str]) -> list[str]:
         _LOGGER.debug("HA entity expansion failed for %s", entity_ids, exc_info=True)
         return []
 
+
+def _hue_named_member_lights(hass, entity_id: str) -> list[str]:
+    """Resolve Hue room member names to light entity IDs.
+
+    Hue room/group entities expose a `lights` attribute with Hue display names.
+    This is often stable even when the `entity_id` member attribute is not
+    populated at the exact moment the integration reads state.
+    """
+    state = hass.states.get(entity_id)
+    if state is None:
+        return []
+
+    names = state.attributes.get("lights")
+    if not isinstance(names, list) or not names:
+        return []
+
+    wanted = {str(name).strip().casefold() for name in names}
+    resolved = []
+
+    for candidate in hass.states.async_entity_ids("light"):
+        candidate_state = hass.states.get(candidate)
+        if candidate_state is None:
+            continue
+
+        # Avoid adding group/room entities as final targets.
+        if candidate_state.attributes.get("is_hue_group") is True:
+            continue
+        if candidate_state.attributes.get("hue_type") in ("room", "zone", "group"):
+            continue
+        if candidate_state.attributes.get("entity_id"):
+            continue
+
+        friendly = str(candidate_state.attributes.get("friendly_name", "")).strip().casefold()
+        if friendly in wanted and candidate not in resolved:
+            resolved.append(candidate)
+
+    return resolved
+
 def _direct_member_lights(hass, entity_id: str) -> list[str]:
     state = hass.states.get(entity_id)
     if state is None:
@@ -144,7 +182,13 @@ def _direct_member_lights(hass, entity_id: str) -> list[str]:
         if resolved:
             return resolved
 
-    # Second, ask Home Assistant's light target resolver. This handles some
+    # Second, resolve Hue room member display names to entity IDs.
+    # This handles timing cases where `lights` exists but `entity_id` is empty.
+    named = _hue_named_member_lights(hass, entity_id)
+    if named:
+        return named
+
+    # Third, ask Home Assistant's light target resolver. This handles some
     # internally grouped targets that do not expose `entity_id` consistently.
     expanded = _ha_expand_entity_ids(hass, [entity_id])
     if expanded and expanded != [entity_id]:
@@ -168,7 +212,7 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
             direct = _direct_member_lights(hass, entity_id)
             if direct:
                 expanded = direct
-                resolver_source = "direct_entity_id_members"
+                resolver_source = "direct_or_named_group_members"
             elif _is_hue_group_entity(hass, entity_id):
                 area_members = _same_area_physical_lights(hass, entity_id)
                 if area_members:

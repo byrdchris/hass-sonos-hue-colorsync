@@ -106,11 +106,12 @@ class SonosHueCoordinator:
         for entity_id in self.light_entities:
             state = self.hass.states.get(entity_id)
             if state is not None:
-                value = state.attributes.get("entity_id")
-                if isinstance(value, list):
-                    members[entity_id] = value
-                else:
-                    members[entity_id] = []
+                entity_members = state.attributes.get("entity_id")
+                hue_names = state.attributes.get("lights")
+                members[entity_id] = {
+                    "entity_id": entity_members if isinstance(entity_members, list) else [],
+                    "lights": hue_names if isinstance(hue_names, list) else [],
+                }
         return members
 
 

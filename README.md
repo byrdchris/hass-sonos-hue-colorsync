@@ -55,3 +55,26 @@ This shows the direct `entity_id` member list exposed by selected Hue room/group
 - Still prefers the Hue group's live `entity_id` member attribute
 - Improves `selected_entity_members` diagnostics so selected groups show an empty list instead of disappearing when no members are read
 - Falls back to same-area Hue expansion only if direct members cannot be read
+
+
+## v1.22.0
+
+### Hue room/group resolution
+
+Adds a third resolver path for Hue rooms/groups:
+
+1. Use direct `entity_id` member list
+2. Use Hue `lights` display-name list and map names to light entities by `friendly_name`
+3. Use Home Assistant light target expansion helper
+4. Fall back to same-area Hue expansion
+
+This addresses timing cases where the Hue room state shows `lights` but the integration sees `entity_id` as empty during processing.
+
+Diagnostics now show both:
+
+```yaml
+selected_entity_members:
+  light.living_room:
+    entity_id: [...]
+    lights: [...]
+```
