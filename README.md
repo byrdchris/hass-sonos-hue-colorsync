@@ -115,3 +115,22 @@ stable resolver base and applies a simpler deterministic rule:
 
 If `light.living_room.entity_id` contains 9 lights, `resolved_lights` should
 contain those same 9 lights.
+
+
+## v1.28.0
+
+### Resolver repair
+
+Fixes v1.27 packaging error:
+
+```text
+name '_stabilized_resolve_light_entities' is not defined
+```
+
+v1.28 replaces the resolver with one clean path:
+
+1. Use selected Hue group's live `entity_id` members exactly as exposed
+2. Use cached direct members if available
+3. Fall back to same-area Hue scan only if direct/cached members are unavailable
+
+It does not filter Hue Play entities out of direct group members.

@@ -6,7 +6,6 @@ import math
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers import entity_component
 
 from .const import (
     ASSIGNMENT_STRATEGY_ALTERNATING,
@@ -20,11 +19,10 @@ from .palette import luminance
 
 _LOGGER = logging.getLogger(__name__)
 
-_LAST_GROUP_MEMBERS: dict[str, list[str]] = {}
-
 COLOR_MODES = ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")
 GROUP_UNIQUE_ID_TOKENS = ("grouped_light", "grouped-light", "group", "room", "zone")
 GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
+_LAST_GROUP_MEMBERS: dict[str, list[str]] = {}
 
 def rgb_to_mired(rgb: tuple[int, int, int]) -> int:
     r, _g, b = rgb
@@ -37,9 +35,6 @@ def _supports(entity_state, mode: str) -> bool:
 def _supports_any_color(entity_state) -> bool:
     modes = entity_state.attributes.get("supported_color_modes") or []
     return any(mode in modes for mode in COLOR_MODES)
-
-def _is_neutral(color: tuple[int, int, int]) -> bool:
-    return max(color) - min(color) < 15
 
 def _entry_area_id(hass, entry) -> str | None:
     if entry is None:
@@ -76,58 +71,8 @@ def _is_hue_group_entity(hass, entity_id: str) -> bool:
         return True
     return False
 
-def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
-    registry = er.async_get(hass)
-    source_entry = registry.async_get(source_entity_id)
-    source_area = _entry_area_id(hass, source_entry)
-    if not source_area:
-        return []
-
-    candidates = []
-    for entry in registry.entities.values():
-        if entry.domain != "light" or entry.entity_id == source_entity_id:
-            continue
-        state = hass.states.get(entry.entity_id)
-        if state is None:
-            continue
-        if state.attributes.get("is_hue_group") is True:
-            continue
-        if state.attributes.get("hue_type") in ("room", "zone", "group"):
-            continue
-        if state.attributes.get("entity_id"):
-            continue
-        if not _supports_any_color(state):
-            continue
-        if _entry_area_id(hass, entry) == source_area and entry.entity_id not in candidates:
-            candidates.append(entry.entity_id)
-    return candidates
-
-
-def _ha_expand_entity_ids(hass, entity_ids: list[str]) -> list[str]:
-    """Use Home Assistant's own group expansion helper where available."""
-    try:
-        expanded = entity_component.async_extract_from_target(
-            hass,
-            "light",
-            {"entity_id": entity_ids},
-        )
-        result = []
-        for entity_id in expanded:
-            if entity_id not in result:
-                result.append(entity_id)
-        return result
-    except Exception:
-        _LOGGER.debug("HA entity expansion failed for %s", entity_ids, exc_info=True)
-        return []
-
 def _direct_member_lights(hass, entity_id: str) -> list[str]:
-    """Return direct members from a HA/Hue group exactly as HA exposes them.
-
-    Important: do not filter these through area/device metadata. Hue Play and
-    some other Hue entities may not share registry area/device data reliably,
-    but if the Hue room/group exposes them under `entity_id`, they are valid
-    members and should be used.
-    """
+    """Return direct members from a HA/Hue group exactly as HA exposes them."""
     state = hass.states.get(entity_id)
     if state is None:
         return []
@@ -155,6 +100,31 @@ def _direct_member_lights(hass, entity_id: str) -> list[str]:
 
     return resolved
 
+def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
+    registry = er.async_get(hass)
+    source_entry = registry.async_get(source_entity_id)
+    source_area = _entry_area_id(hass, source_entry)
+    if not source_area:
+        return []
+
+    candidates = []
+    for entry in registry.entities.values():
+        if entry.domain != "light" or entry.entity_id == source_entity_id:
+            continue
+        state = hass.states.get(entry.entity_id)
+        if state is None:
+            continue
+        if state.attributes.get("is_hue_group") is True:
+            continue
+        if state.attributes.get("hue_type") in ("room", "zone", "group"):
+            continue
+        if state.attributes.get("entity_id"):
+            continue
+        if not _supports_any_color(state):
+            continue
+        if _entry_area_id(hass, entry) == source_area and entry.entity_id not in candidates:
+            candidates.append(entry.entity_id)
+    return candidates
 
 def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> tuple[list[str], str]:
     resolved: list[str] = []
@@ -169,10 +139,18 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
         expanded: list[str] = []
 
         if expand_groups:
+            # Primary: live direct group member list.
             direct = _direct_member_lights(hass, entity_id)
             if direct:
                 expanded = direct
                 resolver_source = "direct_entity_id_members"
+
+            # Secondary: last known valid direct members.
+            elif _LAST_GROUP_MEMBERS.get(entity_id):
+                expanded = _LAST_GROUP_MEMBERS[entity_id]
+                resolver_source = "cached_direct_entity_id_members"
+
+            # Last resort: same-area physical lights.
             elif _is_hue_group_entity(hass, entity_id):
                 area_members = _same_area_physical_lights(hass, entity_id)
                 if area_members:
@@ -226,13 +204,10 @@ def _reorder_palette_for_strategy(
 ) -> list[tuple[int, int, int]]:
     if not palette:
         return palette
-
     if strategy == ASSIGNMENT_STRATEGY_SEQUENTIAL:
         return palette
-
     if strategy == ASSIGNMENT_STRATEGY_BRIGHTNESS:
         return sorted(palette, key=luminance, reverse=True)
-
     if strategy == ASSIGNMENT_STRATEGY_ALTERNATING:
         bright = sorted(palette, key=luminance, reverse=True)
         output = []
@@ -245,7 +220,6 @@ def _reorder_palette_for_strategy(
             left += 1
             right -= 1
         return output
-
     return sorted(palette, key=_color_score, reverse=True)
 
 def _assign_colors(
@@ -255,21 +229,16 @@ def _assign_colors(
     strategy: str,
 ) -> dict[str, tuple[int, int, int]]:
     ordered_palette = _reorder_palette_for_strategy(palette, strategy)
-
     if not ordered_palette:
         return {}
 
     assignments: dict[str, tuple[int, int, int]] = {}
-
     gradient_lights = [light for light in resolved_lights if _is_gradient_entity(hass, light)]
     normal_lights = [light for light in resolved_lights if light not in gradient_lights]
 
     accent_palette = sorted(ordered_palette, key=_color_score, reverse=True)
-
-    idx = 0
-    for light in gradient_lights:
+    for idx, light in enumerate(gradient_lights):
         assignments[light] = accent_palette[idx % len(accent_palette)]
-        idx += 1
 
     if strategy == ASSIGNMENT_STRATEGY_BALANCED and normal_lights:
         step = max(1, math.floor(len(ordered_palette) / max(1, min(len(normal_lights), len(ordered_palette)))))
@@ -299,17 +268,14 @@ def _build_service_data(state, color, transition):
     brightness = int(50 + luminance(color) * 205)
     data = {"entity_id": state.entity_id, "brightness": brightness, "transition": transition}
 
-    # Always use rgb_color for color-capable lights. This avoids HA service
-    # schema issues with color_temp and works for Hue xy-capable lights.
     if any(_supports(state, mode) for mode in ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")):
         data["rgb_color"] = list(color)
         return data
 
     return data
 
-
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
-    resolved, resolver_source = await _stabilized_resolve_light_entities(
+    resolved, resolver_source = resolve_light_entities(
         hass,
         selected_entities,
         expand_groups=config.get(CONF_EXPAND_GROUPS, True),
@@ -334,7 +300,6 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
             color = assignments.get(light)
             if color is None:
                 continue
-
             state = hass.states.get(light)
             if state is None:
                 continue
@@ -347,6 +312,7 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
             call_data = dict(service_data)
             call_data.pop("assignment_strategy", None)
             call_data.pop("gradient_aware", None)
+
             _LOGGER.debug("Calling light.turn_on with %s", call_data)
             await hass.services.async_call("light", "turn_on", call_data, blocking=True)
 
