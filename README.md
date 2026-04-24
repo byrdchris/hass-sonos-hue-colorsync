@@ -57,24 +57,63 @@ This shows the direct `entity_id` member list exposed by selected Hue room/group
 - Falls back to same-area Hue expansion only if direct members cannot be read
 
 
-## v1.22.0
+## v1.23.0
 
-### Hue room/group resolution
+Regression fix after v1.22.
 
-Adds a third resolver path for Hue rooms/groups:
+### Changes
 
-1. Use direct `entity_id` member list
-2. Use Hue `lights` display-name list and map names to light entities by `friendly_name`
-3. Use Home Assistant light target expansion helper
-4. Fall back to same-area Hue expansion
+- Does not process album art immediately during integration setup
+  - avoids Hue group attributes being read before they are populated
+- Removes `color_temp` service calls
+  - uses `rgb_color` for neutral colors too
+  - avoids `extra keys not allowed @ data['color_temp']`
+- Reverts group resolver behavior to the last stable direct `entity_id` member path
+- Keeps Assignment Strategy select entity from v1.20/v1.21
 
-This addresses timing cases where the Hue room state shows `lights` but the integration sees `entity_id` as empty during processing.
+### Recommended test
 
-Diagnostics now show both:
+After restart:
+1. Wait for the Hue group state to show `entity_id`
+2. Press **Extract Now**
+3. Check:
+   - `selected_entity_members`
+   - `resolved_lights`
+   - `last_error`
+
+
+## v1.24.0
+
+### Stabilized Hue group resolver
+
+Fixes timing cases where a Hue room/group temporarily exposes an empty
+`entity_id` member list.
+
+Resolver order:
+
+1. Retry direct group members briefly
+2. Cache the last valid full direct member list
+3. Use cached direct members if live members are temporarily empty
+4. Fall back to area-based resolver only if no direct/cached members exist
+
+This keeps all Hue room members instead of falling back to a partial area scan.
+
+
+## v1.25.0
+
+### Delayed group retry
+
+Adds a one-time delayed retry after fallback/cached group resolution.
+
+When the integration has to use fallback group resolution, it now:
+
+1. Applies the palette immediately using the best available members
+2. Waits about 3 seconds
+3. Re-checks the selected Hue group for direct `entity_id` members
+4. Reapplies the same palette once if it finds a larger/better member list
+
+Diagnostics now include:
 
 ```yaml
-selected_entity_members:
-  light.living_room:
-    entity_id: [...]
-    lights: [...]
+delayed_retry_pending:
 ```

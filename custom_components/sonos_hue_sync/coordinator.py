@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 
@@ -23,7 +24,7 @@ from .const import (
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
-from .hue_controller import apply_palette, restore_scene, snapshot_scene
+from .hue_controller import apply_palette, async_resolve_direct_group_members, restore_scene, snapshot_scene
 from .palette import extract_palette_from_bytes, rgb_to_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class SonosHueCoordinator:
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
+        self._delayed_retry_task = None
         self.last_track_key = None
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
@@ -88,6 +90,7 @@ class SonosHueCoordinator:
             "resolver_source": self.last_resolver_source,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
+            "delayed_retry_pending": bool(self._delayed_retry_task and not self._delayed_retry_task.done()),
         }
 
     def async_add_listener(self, update_callback):
@@ -106,12 +109,8 @@ class SonosHueCoordinator:
         for entity_id in self.light_entities:
             state = self.hass.states.get(entity_id)
             if state is not None:
-                entity_members = state.attributes.get("entity_id")
-                hue_names = state.attributes.get("lights")
-                members[entity_id] = {
-                    "entity_id": entity_members if isinstance(entity_members, list) else [],
-                    "lights": hue_names if isinstance(hue_names, list) else [],
-                }
+                value = state.attributes.get("entity_id")
+                members[entity_id] = value if isinstance(value, list) else []
         return members
 
 
@@ -145,9 +144,14 @@ class SonosHueCoordinator:
     async def async_setup(self):
         _LOGGER.info("Setting up Sonos Hue Sync: sonos=%s lights=%s", self.sonos_entity, self.light_entities)
         await self.async_refresh_listener()
-        await self.async_process_current_state(reason="setup")
+        # Do not process immediately on setup. Hue group attributes may not be populated yet.
+        self.last_processing_reason = "setup_waiting_for_event_or_button"
+        self._notify()
 
     async def async_unload(self):
+        if self._delayed_retry_task:
+            self._delayed_retry_task.cancel()
+            self._delayed_retry_task = None
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
@@ -220,6 +224,66 @@ class SonosHueCoordinator:
         if self.last_palette:
             await self._apply_palette_to_lights()
 
+
+    def _needs_delayed_group_retry(self) -> bool:
+        return self.last_resolver_source in {
+            "cached_direct_entity_id_members",
+            "same_area_hue_group_fallback",
+            "selected_entities",
+        }
+
+    def _schedule_delayed_group_retry(self):
+        if not self.last_palette:
+            return
+        if not self._needs_delayed_group_retry():
+            return
+        if self._delayed_retry_task and not self._delayed_retry_task.done():
+            return
+        self._delayed_retry_task = self.hass.async_create_task(self._delayed_group_retry())
+
+    async def _delayed_group_retry(self):
+        await asyncio.sleep(3)
+
+        try:
+            resolved, resolver_source = await async_resolve_direct_group_members(
+                self.hass,
+                self.light_entities,
+            )
+
+            if not resolved:
+                return
+
+            # Reapply only if the delayed direct resolution is meaningfully better.
+            if set(resolved) == set(self.last_resolved_lights):
+                return
+
+            if len(resolved) <= len(self.last_resolved_lights):
+                return
+
+            self.last_processing_reason = "delayed_group_resolution_retry"
+            self.last_resolved_lights = resolved
+            self.last_resolver_source = resolver_source
+
+            resolved_applied, last_service_data, applied_source = await apply_palette(
+                self.hass,
+                self.light_entities,
+                self.last_palette,
+                self.config,
+            )
+
+            self.last_resolved_lights = resolved_applied
+            self.last_resolver_source = applied_source
+            self.last_service_data = last_service_data
+            self.last_error = None
+            self._notify()
+
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:
+            self.last_error = f"delayed_retry_failed: {err}"
+            _LOGGER.exception("Delayed group resolution retry failed")
+            self._notify()
+
     async def async_apply_last_palette(self):
         if not self.last_palette:
             self.last_error = "no_palette_available"
@@ -252,6 +316,7 @@ class SonosHueCoordinator:
             self.last_resolver_source = resolver_source
             self.last_service_data = last_service_data
             self.last_error = None
+            self._schedule_delayed_group_retry()
         except Exception as err:
             self.last_error = f"light_apply_failed: {err}"
             _LOGGER.exception("Failed applying palette/test color")
