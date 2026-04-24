@@ -148,3 +148,24 @@ album change. Hue/HA already supports transitions, so v1.29 now sends one
 
 This should reduce visible flicker during album changes and reduce service-call
 chatter.
+
+
+## v1.30.0
+
+### Helper group resolution
+
+If a selected Hue helper entity such as `light.living_room_primary` or
+`light.living_room_ambient` has no direct members, the resolver now searches
+for a parent light group with direct members.
+
+Example:
+
+- selected: `light.living_room_primary`
+- parent found: `light.living_room`
+- resolved targets: all members exposed by `light.living_room.entity_id`
+
+The search is generic and is not hard-coded to Living Room.
+
+### Transition
+
+Ensures one `light.turn_on` call per resolved light.

@@ -111,6 +111,7 @@ class SonosHueCoordinator:
                 live = value if isinstance(value, list) else []
             members[entity_id] = {
                 "live_entity_id": live,
+                "friendly_name": state.attributes.get("friendly_name") if state is not None else None,
             }
         return members
 
