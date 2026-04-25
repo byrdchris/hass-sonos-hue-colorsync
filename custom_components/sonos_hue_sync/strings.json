@@ -17,7 +17,9 @@
           "filter_bright_white": "Filter bright whites",
           "cache": "Cache album colors",
           "expand_groups": "Distribute colors across group members",
-          "assignment_strategy": "Light assignment strategy"
+          "assignment_strategy": "Light assignment strategy",
+          "monochrome_mode": "Black-and-white album handling",
+          "low_color_handling": "Handle low-color album art"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
@@ -30,7 +32,9 @@
           "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
           "cache": "Reuse colors for album art that has already been processed.",
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups instead of one color for the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark."
+          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark.",
+          "monochrome_mode": "Controls what happens when album art is mostly black, white, or grayscale. Warm neutral avoids random colors and harsh white; Preserve grayscale keeps soft grays; Muted accent adds restrained color.",
+          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated."
         }
       }
     }
@@ -51,7 +55,9 @@
           "filter_bright_white": "Filter bright whites",
           "cache": "Cache album colors",
           "expand_groups": "Distribute colors across group members",
-          "assignment_strategy": "Light assignment strategy"
+          "assignment_strategy": "Light assignment strategy",
+          "monochrome_mode": "Black-and-white album handling",
+          "low_color_handling": "Handle low-color album art"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
@@ -64,7 +70,9 @@
           "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
           "cache": "Reuse colors for album art that has already been processed.",
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups instead of one color for the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark."
+          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark.",
+          "monochrome_mode": "Controls what happens when album art is mostly black, white, or grayscale. Warm neutral avoids random colors and harsh white; Preserve grayscale keeps soft grays; Muted accent adds restrained color.",
+          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated."
         }
       }
     }
@@ -107,6 +115,14 @@
         "sequential": "Sequential",
         "alternating": "Alternating bright / dim",
         "brightness": "Brightness order"
+      }
+    },
+    "monochrome_mode": {
+      "options": {
+        "warm_neutral": "Warm neutral",
+        "grayscale": "Preserve grayscale",
+        "muted_accent": "Muted accent",
+        "disabled": "Disabled"
       }
     }
   }

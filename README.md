@@ -303,3 +303,39 @@ This previews the currently resolved targets before palette application and expo
 - configured target sources
 
 This helps debug target selection without waiting for a song change.
+
+
+## v1.37.0
+
+### Black-and-white album handling
+
+Adds a new option:
+
+- **Black-and-white album handling**
+
+Modes:
+
+- **Warm neutral**: default; cream/warm gray palette, avoids harsh white
+- **Preserve grayscale**: soft grayscale palette
+- **Muted accent**: restrained accent tones
+- **Disabled**: use normal extraction behavior
+
+This prevents black-and-white album art from producing random saturated colors
+from JPEG/compression artifacts or palette quantization noise.
+
+
+## v1.38.0
+
+### Low-color album handling
+
+Adds a middle path between full-color and black-and-white album art:
+
+- **Full color**: normal palette extraction
+- **Low color**: restrained muted palette based on the art's subtle hues
+- **Black-and-white**: black-and-white handling mode
+
+New option:
+
+- **Handle low-color album art**
+
+This prevents nearly monochrome album art from producing exaggerated saturated colors.

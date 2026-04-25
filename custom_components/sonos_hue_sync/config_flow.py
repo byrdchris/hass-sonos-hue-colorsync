@@ -15,6 +15,8 @@ from .const import (
     CONF_EXPAND_GROUPS,
     CONF_FILTER_DULL,
     CONF_FILTER_BRIGHT_WHITE,
+    CONF_MONOCHROME_MODE,
+    CONF_LOW_COLOR_HANDLING,
     CONF_LIGHT_ENTITIES,
     CONF_GROUP_ENTITIES,
     CONF_MEMBER_LIGHT_ENTITIES,
@@ -27,8 +29,14 @@ from .const import (
     DEFAULT_EXPAND_GROUPS,
     DEFAULT_FILTER_DULL,
     DEFAULT_FILTER_BRIGHT_WHITE,
+    DEFAULT_MONOCHROME_MODE,
+    DEFAULT_LOW_COLOR_HANDLING,
     DEFAULT_TRANSITION,
     DOMAIN,
+    MONOCHROME_MODE_WARM_NEUTRAL,
+    MONOCHROME_MODE_GRAYSCALE,
+    MONOCHROME_MODE_MUTED_ACCENT,
+    MONOCHROME_MODE_DISABLED,
 )
 
 def build_schema(defaults: dict):
@@ -47,6 +55,19 @@ def build_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
+        vol.Optional(CONF_MONOCHROME_MODE, default=defaults.get(CONF_MONOCHROME_MODE, DEFAULT_MONOCHROME_MODE)):
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=MONOCHROME_MODE_WARM_NEUTRAL, label="Warm neutral"),
+                        selector.SelectOptionDict(value=MONOCHROME_MODE_GRAYSCALE, label="Preserve grayscale"),
+                        selector.SelectOptionDict(value=MONOCHROME_MODE_MUTED_ACCENT, label="Muted accent"),
+                        selector.SelectOptionDict(value=MONOCHROME_MODE_DISABLED, label="Disabled"),
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        vol.Optional(CONF_LOW_COLOR_HANDLING, default=defaults.get(CONF_LOW_COLOR_HANDLING, DEFAULT_LOW_COLOR_HANDLING)): bool,
         vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
         vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
         vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):
