@@ -430,3 +430,33 @@ hue_controller.py
 ```
 
 This reduces regression risk and makes future development easier.
+
+
+## v2.0.1
+
+### Runtime control force-refresh fix
+
+- Changing palette-affecting controls now forces a fresh album-art extraction:
+  - Color Count
+  - Filter Dull Colors
+  - Filter Bright Whites
+  - Black-and-White Album Handling
+  - Handle Low-Color Album Art
+- **Extract Now** now bypasses the palette cache.
+- **Extract Now**, test buttons, and palette-affecting changes force a light apply even when state diffing would otherwise skip unchanged lights.
+
+
+## v2.0.2
+
+### Help and control descriptions
+
+Adds a **Show Help** button and `sonos_hue_sync.show_help` service.
+
+Pressing **Show Help** creates a Home Assistant persistent notification with a concise guide covering:
+
+- target selection
+- palette controls
+- assignment strategy
+- troubleshooting
+
+Entity descriptions were also expanded where Home Assistant supports them. The standard Home Assistant hover tooltip still shows entity names only; the help button is the supported way to provide richer inline guidance.

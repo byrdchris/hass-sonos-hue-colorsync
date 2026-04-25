@@ -38,6 +38,7 @@ SERVICE_APPLY_LAST_PALETTE = "apply_last_palette"
 SERVICE_TEST_COLOR = "test_color"
 SERVICE_EXTRACT_NOW = "extract_now"
 SERVICE_TEST_RAINBOW = "test_rainbow"
+SERVICE_SHOW_HELP = "show_help"
 
 ATTR_HEX_COLORS = "hex_colors"
 ATTR_RGB_COLORS = "rgb_colors"

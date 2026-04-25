@@ -11,6 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             SonosHueSyncButton(coordinator, entry, "Extract Now", "extract_now", "mdi:image-sync"),
             SonosHueSyncButton(coordinator, entry, "Apply Last Palette", "apply_last_palette", "mdi:palette"),
             SonosHueSyncButton(coordinator, entry, "Test Rainbow", "test_rainbow", "mdi:rainbow"),
+            SonosHueSyncButton(coordinator, entry, "Show Help", "show_help", "mdi:help-circle-outline"),
         ],
         True,
     )
@@ -32,8 +33,10 @@ class SonosHueSyncButton(ButtonEntity):
 
     async def async_press(self):
         if self._action == "extract_now":
-            await self._coordinator.async_process_current_state(reason="button_extract_now")
+            await self._coordinator.async_process_current_state(reason="button_extract_now", bypass_cache=True, force_apply=True)
         elif self._action == "apply_last_palette":
             await self._coordinator.async_apply_last_palette()
         elif self._action == "test_rainbow":
             await self._coordinator.async_test_rainbow()
+        elif self._action == "show_help":
+            await self._coordinator.async_show_help()

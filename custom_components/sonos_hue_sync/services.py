@@ -11,6 +11,7 @@ from .const import (
     SERVICE_EXTRACT_NOW,
     SERVICE_TEST_COLOR,
     SERVICE_TEST_RAINBOW,
+    SERVICE_SHOW_HELP,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,7 +45,12 @@ async def async_setup_services(hass):
 
     async def extract_now(call):
         for coordinator in hass.data.get(DOMAIN, {}).values():
-            await coordinator.async_process_current_state(reason="extract_now_service")
+            await coordinator.async_process_current_state(reason="extract_now_service", bypass_cache=True, force_apply=True)
+
+
+    async def show_help(call):
+        for coordinator in hass.data.get(DOMAIN, {}).values():
+            await coordinator.async_show_help()
 
     async def test_rainbow(call):
         for coordinator in hass.data.get(DOMAIN, {}).values():
@@ -55,6 +61,7 @@ async def async_setup_services(hass):
     hass.services.async_register(DOMAIN, SERVICE_APPLY_LAST_PALETTE, apply_last_palette)
     hass.services.async_register(DOMAIN, SERVICE_TEST_COLOR, test_color, schema=TEST_COLOR_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_EXTRACT_NOW, extract_now)
-    hass.services.async_register(DOMAIN, SERVICE_TEST_RAINBOW, test_rainbow)
+    hass.services.async_register(DOMAIN, SERVICE_TEST_RAINBOW,
+    SERVICE_SHOW_HELP, test_rainbow)
     hass.data[f"{DOMAIN}_services_registered"] = True
     _LOGGER.info("Registered Sonos Hue Sync services")

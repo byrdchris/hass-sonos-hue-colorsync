@@ -80,13 +80,20 @@
   "entity": {
     "button": {
       "extract_now": {
-        "name": "Extract Now"
+        "name": "Extract Now",
+        "description": "Force a fresh album-art extraction and apply colors immediately."
       },
       "apply_last_palette": {
-        "name": "Apply Last Palette"
+        "name": "Apply Last Palette",
+        "description": "Apply the most recently extracted palette again."
       },
       "test_rainbow": {
-        "name": "Test Rainbow"
+        "name": "Test Rainbow",
+        "description": "Apply a test rainbow palette to verify target light distribution."
+      },
+      "show_help": {
+        "name": "Show Help",
+        "description": "Open a quick Sonos Hue Sync guide in Home Assistant notifications."
       }
     },
     "sensor": {
@@ -99,38 +106,48 @@
     },
     "switch": {
       "enabled": {
-        "name": "Enabled"
+        "name": "Enabled",
+        "description": "Enable or disable Sonos Hue Sync. Turning off restores the previous scene."
       },
       "filter_dull": {
-        "name": "Filter Dull Colors"
+        "name": "Filter Dull Colors",
+        "description": "Remove dark, gray, muddy, or low-saturation tones from extracted album-art palettes."
       },
       "filter_bright_white": {
-        "name": "Filter Bright Whites"
+        "name": "Filter Bright Whites",
+        "description": "Remove harsh pure/cool whites while keeping warmer cream and soft white tones."
       },
       "low_color_handling": {
-        "name": "Handle Low-Color Album Art"
+        "name": "Handle Low-Color Album Art",
+        "description": "Keep nearly monochrome album art restrained instead of over-saturating tiny color noise."
       },
       "cache": {
-        "name": "Cache Album Colors"
+        "name": "Cache Album Colors",
+        "description": "Reuse processed album-art palettes for faster updates."
       },
       "expand_groups": {
-        "name": "Distribute Colors Across Group Members"
+        "name": "Distribute Colors Across Group Members",
+        "description": "Apply colors to individual lights inside selected groups when Home Assistant exposes group members."
       }
     },
     "select": {
       "assignment_strategy": {
-        "name": "Assignment Strategy"
+        "name": "Assignment Strategy",
+        "description": "Choose how extracted colors are distributed across resolved lights."
       },
       "monochrome_mode": {
-        "name": "Black-and-White Album Handling"
+        "name": "Black-and-White Album Handling",
+        "description": "Choose how black-and-white or grayscale album art is converted into lighting colors."
       }
     },
     "number": {
       "color_count": {
-        "name": "Color Count"
+        "name": "Color Count",
+        "description": "Set the number of colors extracted from album art."
       },
       "transition": {
-        "name": "Transition Time"
+        "name": "Transition Time",
+        "description": "Set the fade duration for light changes."
       }
     }
   },

@@ -31,6 +31,14 @@ from .palette import extract_palette_from_bytes, rgb_to_hex
 
 _LOGGER = logging.getLogger(__name__)
 
+PALETTE_AFFECTING_OPTIONS = {
+    "color_count",
+    "filter_dull",
+    "filter_bright_white",
+    "monochrome_mode",
+    "low_color_handling",
+}
+
 class SonosHueCoordinator:
     def __init__(self, hass, entry):
         self.hass = hass
@@ -286,13 +294,13 @@ class SonosHueCoordinator:
             "media_content_id", "entity_picture", "media_title", "media_artist", "media_album_name"
         ))
 
-    async def async_process_current_state(self, reason="manual"):
+    async def async_process_current_state(self, reason="manual", bypass_cache=False, force_apply=False):
         state = self.hass.states.get(self.sonos_entity)
         if state is None:
             self.last_error = "sonos_entity_not_found"
             self._notify()
             return
-        await self._process_state(state, reason=reason, force=True)
+        await self._process_state(state, reason=reason, force=True, bypass_cache=bypass_cache, force_apply=force_apply)
 
     async def async_set_runtime_option(self, key: str, value, reapply: bool = True):
         self.runtime_options[key] = value
@@ -301,9 +309,22 @@ class SonosHueCoordinator:
         if key == "cache":
             from .cache import PaletteCache
             self.cache = PaletteCache() if value else None
+
         self._notify()
-        if reapply and self.last_palette:
-            await self._apply_palette_to_lights()
+
+        if not reapply:
+            return
+
+        if key in PALETTE_AFFECTING_OPTIONS:
+            await self.async_process_current_state(
+                reason=f"runtime_option_changed:{key}",
+                bypass_cache=True,
+                force_apply=True,
+            )
+            return
+
+        if self.last_palette:
+            await self._apply_palette_to_lights(force_apply=True)
 
     async def async_set_assignment_strategy(self, strategy: str):
         self.runtime_assignment_strategy = strategy
@@ -312,16 +333,58 @@ class SonosHueCoordinator:
         if self.last_palette:
             await self._apply_palette_to_lights()
 
+
+    async def async_show_help(self):
+        message = """## Sonos Hue Sync quick guide
+
+### Targets
+- **Hue lights / groups**: your main lights, room, zone, or group.
+- **Additional Hue groups to expand**: add real Hue rooms/zones/groups when the main selection misses members. These are additive.
+- **Additional member lights**: add specific individual lights that should always be controlled directly.
+
+### Palette controls
+- **Color Count**: number of album-art colors to extract. If there are more lights than colors, colors repeat.
+- **Filter Dull Colors**: removes dark, gray, muddy, or low-saturation tones.
+- **Filter Bright Whites**: removes harsh pure/cool whites while keeping cream and soft warm whites.
+- **Black-and-White Album Handling**: controls grayscale covers so they do not produce random neon colors.
+- **Handle Low-Color Album Art**: keeps nearly monochrome covers restrained instead of over-saturating tiny color noise.
+
+### Light behavior
+- **Assignment Strategy**:
+  - **Balanced**: best default for visible color variety.
+  - **Sequential**: applies colors in palette order.
+  - **Alternating bright / dim**: alternates light and dark tones.
+  - **Brightness order**: sorts colors by lightness; can make similar hues dominate.
+- **Transition Time**: fade duration for light changes.
+- **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
+
+### Troubleshooting
+- Use **Target Preview** to check which lights will be controlled before a song changes.
+- If lights are missing, add them under **Additional member lights**.
+- If everything looks like one color, try **Balanced** assignment.
+- If black-and-white art looks too colorful, use **Warm neutral** or **Preserve grayscale**.
+"""
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "Sonos Hue Sync Help",
+                "message": message,
+                "notification_id": "sonos_hue_sync_help",
+            },
+            blocking=False,
+        )
+
     async def async_apply_last_palette(self):
         if not self.last_palette:
             self.last_error = "no_palette_available"
             self._notify()
             return
-        await self._apply_palette_to_lights()
+        await self._apply_palette_to_lights(force_apply=True)
 
     async def async_test_color(self, rgb):
         self.last_palette = [tuple(rgb)]
-        await self._apply_palette_to_lights()
+        await self._apply_palette_to_lights(force_apply=True)
 
     async def async_test_rainbow(self):
         self.last_palette = [
@@ -350,8 +413,10 @@ class SonosHueCoordinator:
         self._frozen_resolve_result = result
         return result
 
-    async def _apply_palette_to_lights(self):
+    async def _apply_palette_to_lights(self, force_apply=False):
         try:
+            if force_apply:
+                clear_apply_cache()
             frozen = self._resolve_for_track()
             apply_config = dict(self.config)
             apply_config["_frozen_resolved_lights"] = frozen.lights
@@ -386,8 +451,12 @@ class SonosHueCoordinator:
         elif new_state.state in ["paused", "idle", "off"]:
             await self._handle_stop()
 
-    async def _process_state(self, state, reason="event", force=False):
+    async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False):
         self.last_processing_reason = reason
+
+        if reason in ("button_extract_now", "extract_now_service"):
+            bypass_cache = True
+            force_apply = True
 
         if not self.enabled:
             self.last_error = "disabled"
@@ -419,7 +488,7 @@ class SonosHueCoordinator:
         self.last_error = None
 
         try:
-            if self.cache and self.cache.exists(art):
+            if self.cache and not bypass_cache and self.cache.exists(art):
                 palette = self.cache.get(art)
             else:
                 image_bytes = await self._fetch_image_bytes(art)
@@ -431,7 +500,7 @@ class SonosHueCoordinator:
 
             self.last_palette = palette
             self._notify()
-            await self._apply_palette_to_lights()
+            await self._apply_palette_to_lights(force_apply=force_apply)
         except Exception as err:
             self.last_error = f"palette_extract_failed: {err}"
             _LOGGER.exception("Failed extracting/applying palette")

@@ -44,3 +44,7 @@ test_color:
           max: 255
           step: 1
           mode: box
+
+show_help:
+  name: Show help
+  description: Show a Sonos Hue Sync quick guide as a Home Assistant notification.
