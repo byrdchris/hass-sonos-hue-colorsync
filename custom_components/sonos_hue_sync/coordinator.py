@@ -25,7 +25,8 @@ from .const import (
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
-from .hue_controller import apply_palette, resolve_light_entities, restore_scene, snapshot_scene
+from .applier import clear_apply_cache
+from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
 from .palette import extract_palette_from_bytes, rgb_to_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,7 +45,10 @@ class SonosHueCoordinator:
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
+        self.last_resolver_source_map = {}
         self.last_skipped_lights = []
+        self._frozen_track_key = None
+        self._frozen_resolve_result = None
         self.last_track_key = None
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
@@ -118,6 +122,7 @@ class SonosHueCoordinator:
             "resolved_light_count": len(self.last_resolved_lights),
             "expansion_entity_count": len(self.expansion_entities),
             "resolver_source": self.last_resolver_source,
+            "resolver_source_map": self.last_resolver_source_map,
             "skipped_lights": self.last_skipped_lights,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
@@ -127,11 +132,14 @@ class SonosHueCoordinator:
     @property
     def target_preview_attributes(self):
         try:
-            preview_targets, resolver_source, skipped = resolve_light_entities(
+            preview = resolve_light_entities_detailed(
                 self.hass,
                 self.expansion_entities,
                 expand_groups=self.config.get("expand_groups", True),
             )
+            preview_targets = preview.lights
+            resolver_source = preview.source
+            skipped = preview.skipped
         except Exception as err:
             return {
                 "preview_error": str(err),
@@ -146,6 +154,7 @@ class SonosHueCoordinator:
             "preview_target_count": len(preview_targets),
             "preview_resolver_source": resolver_source,
             "preview_skipped_lights": skipped,
+            "preview_source_map": preview.source_map,
             "expansion_entities": self.expansion_entities,
             "light_targets": self.light_entities,
             "additional_hue_groups": self.group_entities,
@@ -287,6 +296,8 @@ class SonosHueCoordinator:
 
     async def async_set_runtime_option(self, key: str, value, reapply: bool = True):
         self.runtime_options[key] = value
+        self._frozen_track_key = None
+        self._frozen_resolve_result = None
         if key == "cache":
             from .cache import PaletteCache
             self.cache = PaletteCache() if value else None
@@ -324,13 +335,35 @@ class SonosHueCoordinator:
         ]
         await self._apply_palette_to_lights()
 
+
+    def _resolve_for_track(self):
+        """Resolve once per track and freeze targets for the current track."""
+        if self._frozen_track_key == self.last_track_key and self._frozen_resolve_result is not None:
+            return self._frozen_resolve_result
+
+        result = resolve_light_entities_detailed(
+            self.hass,
+            self.expansion_entities,
+            expand_groups=self.config.get("expand_groups", True),
+        )
+        self._frozen_track_key = self.last_track_key
+        self._frozen_resolve_result = result
+        return result
+
     async def _apply_palette_to_lights(self):
         try:
+            frozen = self._resolve_for_track()
+            apply_config = dict(self.config)
+            apply_config["_frozen_resolved_lights"] = frozen.lights
+            apply_config["_frozen_resolver_source"] = frozen.source
+            apply_config["_frozen_skipped_lights"] = frozen.skipped
+
             resolved, last_service_data, resolver_source, skipped_lights = await apply_palette(
-                self.hass, self.expansion_entities, self.last_palette, self.config
+                self.hass, self.expansion_entities, self.last_palette, apply_config
             )
             self.last_resolved_lights = resolved
             self.last_resolver_source = resolver_source
+            self.last_resolver_source_map = frozen.source_map
             self.last_skipped_lights = skipped_lights
             self.last_service_data = last_service_data
             self.last_error = None
@@ -370,6 +403,8 @@ class SonosHueCoordinator:
         if not force and track_key == self.last_track_key:
             return
         self.last_track_key = track_key
+        self._frozen_track_key = None
+        self._frozen_resolve_result = None
 
         if not self.scene:
             self.scene = await snapshot_scene(self.hass, self.expansion_entities)
@@ -406,6 +441,7 @@ class SonosHueCoordinator:
         if self.scene:
             await restore_scene(self.hass, self.scene)
             self.scene = None
+        clear_apply_cache()
         self._notify()
 
     async def async_enable(self):

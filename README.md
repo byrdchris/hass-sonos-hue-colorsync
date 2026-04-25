@@ -378,3 +378,55 @@ Adds device-page controls for common tuning options:
 - Distribute Colors Across Group Members
 
 The options dialog remains the full configuration surface. Device controls are runtime overrides and reapply the last palette when possible.
+
+
+## v2.0.0
+
+### Stabilization architecture
+
+v2.0.0 keeps the v1.40 feature set and adds the first v2 stabilization pass.
+
+#### Resolver freeze per track
+
+Targets are resolved once per track and then frozen for that track. This prevents target membership from changing mid-song if Home Assistant briefly changes group attributes.
+
+#### Target source map
+
+The Palette and Target Preview diagnostics now expose a source map so each resolved target can be traced back to the input that produced it.
+
+Example:
+
+```yaml
+resolver_source_map:
+  light.hue_color_lamp_1: light.living_room:direct_entity_id_members
+  light.game_hue_play_1: light.game_hue_play_1:selected_entity
+```
+
+#### State diffing
+
+The light applier now skips lights whose target color/brightness/transition are effectively unchanged. This reduces unnecessary Home Assistant service calls and helps avoid visible flicker.
+
+Skipped unchanged lights appear in diagnostics:
+
+```yaml
+skipped_lights:
+  - entity_id: light.example
+    reason: unchanged
+```
+
+#### Capability-aware application
+
+The apply layer now centralizes light capability handling and avoids unsupported service keys such as `color_temp`.
+
+#### Module split
+
+The previous large light controller has been split into focused modules:
+
+```text
+resolver.py
+assignment.py
+applier.py
+hue_controller.py
+```
+
+This reduces regression risk and makes future development easier.
