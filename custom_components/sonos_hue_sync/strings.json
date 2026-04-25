@@ -247,5 +247,12 @@
       "name": "Health check",
       "description": "Run a Sonos Hue Sync health check and show the result as a Home Assistant notification."
     }
+  },
+  "common": {
+    "min_brightness": "Minimum Brightness",
+    "max_brightness": "Maximum Brightness",
+    "gradient_brightness": "Gradient Brightness",
+    "exclude_light_entities": "Excluded Lights",
+    "restore_delay": "Restore Delay"
   }
 }

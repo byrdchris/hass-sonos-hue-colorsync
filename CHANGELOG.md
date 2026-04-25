@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.2
+
+### Fixed
+- Prevented empty Sonos artwork responses from stopping all light updates.
+- Added fallback palette generation from track metadata when album art is unavailable.
+- Reuses the previous palette when artwork fetch fails and a previous palette exists.
+- Added image fetch diagnostics:
+  - `last_image_fetch_status`
+  - `last_image_fetch_candidates`
+
+### Notes
+- This addresses `last_palette_error: image_fetch_empty` and `last_error: no_palette_available`.
+
 ## v2.3.1
 
 ### Fixed

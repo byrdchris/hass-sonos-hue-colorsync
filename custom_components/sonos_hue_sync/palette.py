@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import colorsys
 import math
+import hashlib
 from io import BytesIO
 
 from colorthief import ColorThief
@@ -278,3 +279,25 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[i
 
 def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return "#{:02X}{:02X}{:02X}".format(*rgb)
+
+
+def fallback_palette_from_metadata(metadata: str, desired: int) -> list[tuple[int, int, int]]:
+    """Generate a stable fallback palette when album art is temporarily unavailable.
+
+    The palette is deterministic per track/artist/album and intentionally muted
+    enough for room lighting.
+    """
+    desired = max(1, int(desired or 3))
+    digest = hashlib.sha256((metadata or "sonos-hue-sync").encode("utf-8")).digest()
+    colors = []
+
+    for idx in range(max(desired, 3)):
+        h = digest[idx] / 255.0
+        s = 0.36 + (digest[idx + 8] / 255.0) * 0.34
+        v = 0.42 + (digest[idx + 16] / 255.0) * 0.34
+        r, g, b = colorsys.hsv_to_rgb(h, s, v)
+        color = (int(r * 255), int(g * 255), int(b * 255))
+        if color not in colors:
+            colors.append(color)
+
+    return _repeat_to_count(colors, desired)[:desired]

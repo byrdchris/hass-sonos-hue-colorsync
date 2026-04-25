@@ -29,7 +29,7 @@ from .const import (
 )
 from .applier import clear_apply_cache
 from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
-from .palette import extract_palette_from_bytes, rgb_to_hex
+from .palette import extract_palette_from_bytes, rgb_to_hex, fallback_palette_from_metadata
 from .health import build_health_report, format_health_message
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,6 +55,8 @@ class SonosHueCoordinator:
         self.last_image = None
         self.last_error = None
         self.last_palette_error = None
+        self.last_image_fetch_status = None
+        self.last_image_fetch_candidates = []
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
@@ -127,6 +129,8 @@ class SonosHueCoordinator:
             ATTR_LAST_SERVICE_DATA: self.last_service_data[-20:],
             "last_error": self.last_error,
             "last_palette_error": self.last_palette_error,
+            "last_image_fetch_status": self.last_image_fetch_status,
+            "last_image_fetch_candidates": self.last_image_fetch_candidates,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
             "light_entities": self.light_entities,
@@ -274,6 +278,26 @@ class SonosHueCoordinator:
         self._notify()
         await self.async_process_current_state(reason="options_update")
 
+
+    def _art_candidates(self, state):
+        attrs = state.attributes
+        candidates = []
+        for key in ("entity_picture", "media_image_url", "media_image_proxy", "thumbnail"):
+            value = attrs.get(key)
+            if value and value not in candidates:
+                candidates.append(value)
+        return candidates
+
+    def _metadata_fallback_palette(self, state):
+        attrs = state.attributes
+        metadata = "|".join(str(attrs.get(key, "")) for key in (
+            "media_title",
+            "media_artist",
+            "media_album_name",
+            "media_content_id",
+        ))
+        return fallback_palette_from_metadata(metadata, int(self.config.get("color_count", 3)))
+
     async def _fetch_image_bytes(self, image_path: str):
         try:
             if image_path.startswith("http://") or image_path.startswith("https://"):
@@ -295,15 +319,19 @@ class SonosHueCoordinator:
             async with session.get(url) as resp:
                 data = await resp.read()
                 if resp.status >= 400:
+                    self.last_image_fetch_status = f"http_{resp.status}"
                     self.last_error = f"image_fetch_failed:http_{resp.status}: {data[:120]!r}"
                     self._notify()
                     return None
                 if not data:
+                    self.last_image_fetch_status = "empty_response"
                     self.last_error = "image_fetch_failed:empty_response"
                     self._notify()
                     return None
+                self.last_image_fetch_status = f"ok:{len(data)}_bytes"
                 return data
         except Exception as err:
+            self.last_image_fetch_status = f"exception:{type(err).__name__}"
             self.last_error = f"image_fetch_failed:{type(err).__name__}: {err}"
             _LOGGER.exception("Unable to fetch Sonos artwork from %s", image_path)
             self._notify()
@@ -414,9 +442,14 @@ Tokens and artwork URLs are redacted.
 
     async def async_apply_last_palette(self):
         if not self.last_palette:
-            self.last_error = "no_palette_available"
-            self._notify()
-            return
+            state = self.hass.states.get(self.sonos_entity)
+            if state is not None:
+                self.last_palette = self._metadata_fallback_palette(state)
+                self.last_palette_error = "apply_last_metadata_fallback"
+            else:
+                self.last_error = "no_palette_available"
+                self._notify()
+                return
         await self._apply_palette_to_lights(force_apply=True)
 
     async def async_test_color(self, rgb):
@@ -522,10 +555,18 @@ Tokens and artwork URLs are redacted.
         if not self.scene:
             self.scene = await snapshot_scene(self.hass, self.expansion_entities)
 
-        art = state.attributes.get("entity_picture")
+        art_candidates = self._art_candidates(state)
+        self.last_image_fetch_candidates = art_candidates
+        art = art_candidates[0] if art_candidates else None
         if not art:
-            self.last_error = "no_entity_picture"
+            self.last_palette_error = "no_artwork_metadata_fallback"
+            palette = self._metadata_fallback_palette(state)
+            self.last_palette = palette
+            self.last_image = None
+            self.last_error = None
             self._notify()
+            await self._apply_palette_to_lights(force_apply=True)
+            self.last_timings["total_processing_ms"] = round((time.perf_counter() - process_started) * 1000, 1)
             return
 
         self.last_image = art
@@ -538,21 +579,30 @@ Tokens and artwork URLs are redacted.
             else:
                 self.last_cache_result = 'disabled' if not self.cache else 'miss'
                 fetch_started = time.perf_counter()
-                image_bytes = await self._fetch_image_bytes(art)
+                image_bytes = None
+                used_art = None
+                for candidate in art_candidates:
+                    image_bytes = await self._fetch_image_bytes(candidate)
+                    if image_bytes:
+                        used_art = candidate
+                        break
                 self.last_timings['album_art_fetch_ms'] = round((time.perf_counter() - fetch_started) * 1000, 1)
                 extract_started = time.perf_counter()
                 if not image_bytes:
-                    self.last_palette_error = "image_fetch_empty"
                     if self.last_palette:
                         palette = self.last_palette
                         self.last_palette_error = "image_fetch_empty_fallback_previous"
                         self.last_error = None
-                        self._notify()
-                        await self._apply_palette_to_lights(force_apply=True)
                     else:
-                        self.last_error = "no_palette_available"
-                        self._notify()
+                        palette = self._metadata_fallback_palette(state)
+                        self.last_palette_error = "image_fetch_empty_metadata_fallback"
+                        self.last_error = None
+                    self.last_palette = palette
+                    self._notify()
+                    await self._apply_palette_to_lights(force_apply=True)
+                    self.last_timings["total_processing_ms"] = round((time.perf_counter() - process_started) * 1000, 1)
                     return
+                self.last_image = used_art or art
                 palette = extract_palette_from_bytes(image_bytes, self.config)
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:

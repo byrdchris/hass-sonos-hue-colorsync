@@ -783,3 +783,21 @@ Fixes v2.3.0 regressions:
 - Empty palette extraction now falls back to the previous palette when available.
 - Adds `last_palette_error` diagnostics.
 - Keeps target/gradient behavior unchanged.
+
+
+## v2.3.2
+
+### Album art fetch fallback
+
+Fixes cases where Home Assistant's Sonos media proxy returns an empty artwork response.
+
+Behavior:
+
+- Tries all available artwork URL candidates.
+- If artwork is unavailable but a previous palette exists, reuses the previous palette.
+- If artwork is unavailable and no previous palette exists, generates a stable fallback palette from track metadata.
+- Adds image fetch diagnostics:
+  - `last_image_fetch_status`
+  - `last_image_fetch_candidates`
+
+This prevents the integration from aborting with `no_palette_available` when Sonos artwork temporarily fails.
