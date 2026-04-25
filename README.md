@@ -571,3 +571,109 @@ New diagnostic:
 ```yaml
 hue_bridge_count:
 ```
+
+
+## v2.1.4
+
+### True Gradient payload fix
+
+Fixes Hue gradient payload construction for Home Assistant/aiohue versions where
+`GradientFeatureBase` does not accept a `mode` argument.
+
+This should resolve diagnostics like:
+
+```yaml
+gradient_error: GradientFeatureBase.__init__() got an unexpected keyword argument 'mode'
+```
+
+
+## v2.1.5
+
+### Download Diagnostics
+
+Adds native Home Assistant diagnostics support.
+
+Use:
+
+```text
+Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics
+```
+
+Diagnostics include runtime state, target resolution, entity/device registry data, light capabilities, Hue bridge runtime summary, and gradient troubleshooting fields. Tokens and volatile artwork URLs are redacted.
+
+
+## Troubleshooting and diagnostics
+
+For most issues, start with the **Status** and **Targets** entities.
+
+### Status
+
+The **Status** entity shows the current palette, resolved lights, last service calls, skipped lights, and gradient diagnostics.
+
+Useful fields:
+
+```yaml
+last_service_data:
+skipped_lights:
+last_error:
+resolver_source:
+resolver_source_map:
+runtime_options:
+```
+
+For True Gradient Mode, check:
+
+```yaml
+gradient_requested:
+gradient_applied:
+gradient_error:
+gradient_payload_kind:
+hue_resource_id:
+hue_resource_name:
+gradient_colors:
+```
+
+### Targets
+
+The **Targets** entity shows which lights will be controlled before colors are applied.
+
+Useful fields:
+
+```yaml
+preview_targets:
+preview_source_map:
+preview_skipped_lights:
+selected_entity_members:
+```
+
+### Download diagnostics
+
+For deeper troubleshooting, use Home Assistant's native diagnostics download:
+
+```text
+Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics
+```
+
+Diagnostics include:
+
+- current configuration and runtime options
+- resolved light targets and source mapping
+- selected/resolved entity states
+- entity and device registry metadata
+- light capability attributes
+- Hue bridge runtime summary
+- gradient troubleshooting fields
+- last service data and skipped-light reasons
+
+Tokens and artwork URLs are redacted before export.
+
+
+## v2.1.6
+
+### Diagnostics help documentation
+
+Adds Download Diagnostics instructions to:
+
+- Help & Guide notification
+- README troubleshooting section
+- service/entity descriptions where Home Assistant supports them

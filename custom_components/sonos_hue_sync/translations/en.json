@@ -101,7 +101,7 @@
       },
       "show_help": {
         "name": "Help & Guide",
-        "description": "Open a quick Sonos Hue Sync guide."
+        "description": "Open a quick guide with setup, troubleshooting, and diagnostics instructions."
       }
     },
     "sensor": {
@@ -183,6 +183,12 @@
         "muted_accent": "Muted accent",
         "disabled": "Disabled"
       }
+    }
+  },
+  "services": {
+    "show_help": {
+      "name": "Show help",
+      "description": "Show a Sonos Hue Sync guide, including diagnostics instructions."
     }
   }
 }

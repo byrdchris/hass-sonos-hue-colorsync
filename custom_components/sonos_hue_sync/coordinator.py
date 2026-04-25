@@ -359,10 +359,25 @@ class SonosHueCoordinator:
 - **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
 
 ### Troubleshooting
-- Use **Target Preview** to check which lights will be controlled before a song changes.
+- Use **Targets** to check which lights will be controlled before a song changes.
 - If lights are missing, add them under **Additional member lights**.
 - If everything looks like one color, try **Balanced** assignment.
 - If black-and-white art looks too colorful, use **Warm neutral** or **Preserve grayscale**.
+
+### Download diagnostics
+For deeper troubleshooting, download diagnostics from:
+
+**Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics**
+
+Diagnostics include:
+- current configuration and runtime options
+- resolved light targets and source mapping
+- light capabilities and registry metadata
+- Hue bridge runtime summary
+- gradient troubleshooting fields
+- last service data and skipped-light reasons
+
+Tokens and artwork URLs are redacted.
 """
         await self.hass.services.async_call(
             "persistent_notification",

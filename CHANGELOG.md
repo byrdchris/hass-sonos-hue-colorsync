@@ -1,5 +1,43 @@
 # Changelog
 
+## v2.1.6
+
+### Changed
+- Added Download Diagnostics instructions to the in-app Help & Guide notification.
+- Added diagnostics guidance to README troubleshooting documentation.
+- Updated Help & Guide descriptions to mention diagnostics.
+
+### Notes
+- Diagnostics are available from Home Assistant's Devices & Services menu for the Sonos Hue Sync config entry.
+
+## v2.1.5
+
+### Added
+- Added Home Assistant diagnostics support.
+- Diagnostics can be downloaded from the Sonos Hue Sync config entry in Devices & Services.
+- Diagnostics include:
+  - integration config/options
+  - runtime coordinator state
+  - selected/resolved target entities
+  - light state and capability attributes
+  - entity/device registry metadata
+  - Hue bridge runtime summary
+  - gradient diagnostics and last service data
+
+### Notes
+- Sensitive fields such as tokens and source artwork URLs are redacted.
+
+## v2.1.4
+
+### Fixed
+- True Gradient Mode now builds the Hue gradient payload without the unsupported `mode` argument for this Home Assistant/aiohue version.
+- Removed the raw dictionary fallback through `controller.update`, because this aiohue path expects dataclass model payloads.
+
+### Notes
+- This addresses:
+  - `GradientFeatureBase.__init__() got an unexpected keyword argument 'mode'`
+  - `asdict() should be called on dataclass instances`
+
 ## v2.1.3
 
 ### Fixed

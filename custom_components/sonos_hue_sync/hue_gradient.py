@@ -268,8 +268,7 @@ def _model_gradient_payload(points: list[tuple[int, int, int]], transition_secon
         points=[
             GradientPoint(color=ColorFeaturePut(xy=ColorPoint(*rgb_to_xy(color))))
             for color in points
-        ],
-        mode="interpolated_palette",
+        ]
     )
     return update
 
@@ -326,20 +325,17 @@ async def try_apply_gradient(
 
     errors = []
 
-    for payload_kind, builder in (
-        ("aiohue_model", _model_gradient_payload),
-        ("raw_dict", _raw_gradient_payload),
-    ):
-        try:
-            payload = builder(points, transition)
-            await _try_update(bridge, controller, resource_id, payload)
-            diagnostics["gradient_applied"] = True
-            diagnostics["gradient_payload_kind"] = payload_kind
-            _LOGGER.debug("[gradient] %s applied via %s", entity_id, payload_kind)
-            return True, diagnostics
-        except Exception as err:
-            errors.append(f"{payload_kind}: {type(err).__name__}: {err}")
-            _LOGGER.debug("[gradient] %s %s failed: %s", entity_id, payload_kind, err, exc_info=True)
+    payload_kind = "aiohue_model"
+    try:
+        payload = _model_gradient_payload(points, transition)
+        await _try_update(bridge, controller, resource_id, payload)
+        diagnostics["gradient_applied"] = True
+        diagnostics["gradient_payload_kind"] = payload_kind
+        _LOGGER.debug("[gradient] %s applied via %s", entity_id, payload_kind)
+        return True, diagnostics
+    except Exception as err:
+        errors.append(f"{payload_kind}: {type(err).__name__}: {err}")
+        _LOGGER.debug("[gradient] %s %s failed: %s", entity_id, payload_kind, err, exc_info=True)
 
     diagnostics["gradient_error"] = " | ".join(errors)
     return False, diagnostics
