@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.3.9
+
+### Fixed
+- Fixed **Album Art** image entity not being created.
+- Added `image` to integration `PLATFORMS`.
+
 ## v2.3.8
 
 ### Added

@@ -906,3 +906,18 @@ show_state: false
 ```
 
 Also includes the v2.3.7 Reapply Colors standard-light rotation fix.
+
+
+## v2.3.9
+
+### Album Art image entity setup fix
+
+Fixes v2.3.8 where `image.py` was included but the image platform was not listed in `PLATFORMS`, so Home Assistant did not create the entity.
+
+After restart, look for:
+
+```text
+image.sonos_hue_sync_album_art
+```
+
+If Home Assistant assigns a suffix, search Entities for **Album Art**.
