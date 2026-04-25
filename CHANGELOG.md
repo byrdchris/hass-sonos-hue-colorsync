@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.3
+
+### Fixed
+- True Gradient Mode now discovers Home Assistant Hue bridge runtime objects through Hue config entry `runtime_data`.
+- Uses the Home Assistant HueBridge request wrapper when available.
+- Adds `hue_bridge_count` to gradient diagnostics when no matching Hue resource is found.
+
+### Notes
+- This addresses cases where `gradient_match_attempts` was empty because the integration was looking in `hass.data["hue"]` instead of the Hue config entry runtime data.
+
 ## v2.1.2
 
 ### Added

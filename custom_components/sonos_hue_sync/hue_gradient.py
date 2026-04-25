@@ -63,26 +63,49 @@ def _entity_looks_gradient(hass, entity_id: str) -> bool:
     return any(hint in haystack for hint in GRADIENT_HINTS)
 
 def _walk_bridge_candidates(hass):
-    hue_data = hass.data.get("hue")
-    if not hue_data:
-        return []
+    """Find Home Assistant Hue bridge runtime objects.
 
-    values = hue_data.values() if isinstance(hue_data, dict) else [hue_data]
+    Modern Home Assistant stores the HueBridge object on the config entry's
+    runtime_data. Older/alternate layouts may also expose bridge-ish objects in
+    hass.data["hue"]. Return pairs of (bridge_or_owner, api).
+    """
     results = []
 
-    for value in values:
-        if value is None:
-            continue
-        if hasattr(value, "api"):
-            results.append((value, getattr(value, "api")))
-        if hasattr(value, "bridge") and hasattr(value.bridge, "api"):
-            results.append((value.bridge, value.bridge.api))
-        if isinstance(value, dict):
-            for sub in value.values():
-                if hasattr(sub, "api"):
-                    results.append((sub, sub.api))
+    # Current HA path: ConfigEntry.runtime_data is HueBridge and has .api.
+    try:
+        for entry in hass.config_entries.async_entries("hue"):
+            bridge = getattr(entry, "runtime_data", None)
+            if bridge is not None and hasattr(bridge, "api"):
+                results.append((bridge, bridge.api))
+    except Exception:
+        pass
 
-    return results
+    # Older/fallback discovery through hass.data.
+    hue_data = hass.data.get("hue")
+    if hue_data:
+        values = hue_data.values() if isinstance(hue_data, dict) else [hue_data]
+        for value in values:
+            if value is None:
+                continue
+            if hasattr(value, "api"):
+                results.append((value, getattr(value, "api")))
+            if hasattr(value, "bridge") and hasattr(value.bridge, "api"):
+                results.append((value.bridge, value.bridge.api))
+            if isinstance(value, dict):
+                for sub in value.values():
+                    if hasattr(sub, "api"):
+                        results.append((sub, sub.api))
+
+    # Deduplicate by object id.
+    seen = set()
+    unique = []
+    for bridge, api in results:
+        key = (id(bridge), id(api))
+        if key not in seen:
+            seen.add(key)
+            unique.append((bridge, api))
+
+    return unique
 
 def _iter_lights_controller(api):
     candidates = [
@@ -172,7 +195,7 @@ def _match_hue_resource(hass, entity_id: str):
 
     attempted = []
 
-    for _bridge, api in _walk_bridge_candidates(hass):
+    for bridge, api in _walk_bridge_candidates(hass):
         for controller in _iter_lights_controller(api):
             for resource in _controller_values(controller):
                 rid = _resource_id(resource)
@@ -199,17 +222,17 @@ def _match_hue_resource(hass, entity_id: str):
                 for resource_frag in resource_fragments:
                     for entity_frag in entity_fragments:
                         if resource_frag and resource_frag in entity_frag:
-                            return controller, rid, resource, attempted
+                            return bridge, controller, rid, resource, attempted
                         if entity_frag and entity_frag in resource_frag:
-                            return controller, rid, resource, attempted
+                            return bridge, controller, rid, resource, attempted
 
                 # Friendly name matching with normalized punctuation.
                 norm_entity_name = "".join(ch for ch in friendly_name.casefold() if ch.isalnum())
                 norm_resource_name = "".join(ch for ch in name.casefold() if ch.isalnum())
                 if norm_entity_name and norm_resource_name and norm_entity_name == norm_resource_name:
-                    return controller, rid, resource, attempted
+                    return bridge, controller, rid, resource, attempted
 
-    return None, None, None, attempted
+    return None, None, None, None, attempted
 
 def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float):
     return {
@@ -250,8 +273,13 @@ def _model_gradient_payload(points: list[tuple[int, int, int]], transition_secon
     )
     return update
 
-async def _try_update(controller, resource_id: str, payload):
-    await controller.update(resource_id, payload)
+async def _try_update(bridge, controller, resource_id: str, payload):
+    # Prefer Home Assistant HueBridge wrapper when available because it applies
+    # HA's expected error handling.
+    if bridge is not None and hasattr(bridge, "async_request_call"):
+        await bridge.async_request_call(controller.update, resource_id, payload)
+    else:
+        await controller.update(resource_id, payload)
 
 async def try_apply_gradient(
     hass,
@@ -267,11 +295,12 @@ async def try_apply_gradient(
         "gradient_applied": False,
     }
 
-    controller, resource_id, resource, attempted = _match_hue_resource(hass, entity_id)
+    bridge, controller, resource_id, resource, attempted = _match_hue_resource(hass, entity_id)
 
     if controller is None or not resource_id:
         diagnostics["gradient_error"] = "hue_resource_not_found"
-        diagnostics["gradient_match_attempts"] = attempted[:10]
+        diagnostics["gradient_match_attempts"] = attempted[:20]
+        diagnostics["hue_bridge_count"] = len(_walk_bridge_candidates(hass))
         _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
         return False, diagnostics
 
@@ -303,7 +332,7 @@ async def try_apply_gradient(
     ):
         try:
             payload = builder(points, transition)
-            await _try_update(controller, resource_id, payload)
+            await _try_update(bridge, controller, resource_id, payload)
             diagnostics["gradient_applied"] = True
             diagnostics["gradient_payload_kind"] = payload_kind
             _LOGGER.debug("[gradient] %s applied via %s", entity_id, payload_kind)

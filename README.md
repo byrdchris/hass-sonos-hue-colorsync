@@ -551,3 +551,23 @@ UI naming has also been standardized:
 - Color Distribution Mode
 - Enable True Gradient
 - Gradient Detail Level
+
+
+## v2.1.3
+
+### Hue bridge discovery fix
+
+True Gradient Mode now discovers Hue bridge runtime data through Home Assistant's Hue config entries.
+
+This should fix cases where diagnostics showed:
+
+```yaml
+gradient_error: hue_resource_not_found
+gradient_match_attempts: []
+```
+
+New diagnostic:
+
+```yaml
+hue_bridge_count:
+```
