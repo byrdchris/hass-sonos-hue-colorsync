@@ -199,19 +199,19 @@
       },
       "min_brightness": {
         "name": "Minimum Brightness",
-        "description": "Lowest brightness Sonos Hue Sync may apply."
+        "description": "Lowest brightness Sonos Hue Sync may apply to standard lights."
       },
       "max_brightness": {
         "name": "Maximum Brightness",
-        "description": "Highest brightness Sonos Hue Sync may apply."
+        "description": "Highest brightness Sonos Hue Sync may apply to standard lights."
       },
       "gradient_brightness": {
         "name": "Gradient Brightness",
-        "description": "Maximum brightness used for supported gradient lights."
+        "description": "Maximum brightness used for supported gradient lights when True Gradient is enabled."
       },
       "restore_delay": {
         "name": "Restore Delay",
-        "description": "Seconds to wait before restoring lights after playback stops."
+        "description": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled."
       }
     }
   },
@@ -231,7 +231,12 @@
         "muted_accent": "Muted accent",
         "disabled": "Disabled"
       }
-    }
+    },
+    "min_brightness": "Minimum Brightness",
+    "max_brightness": "Maximum Brightness",
+    "gradient_brightness": "Gradient Brightness",
+    "exclude_light_entities": "Excluded Lights",
+    "restore_delay": "Restore Delay"
   },
   "services": {
     "show_help": {

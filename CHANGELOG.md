@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.3.1
+
+### Fixed
+- Fixed raw option names appearing in the options flow for v2.3.0 controls.
+- Added missing descriptions/help text for new brightness, exclusion, and restore-delay options.
+- Runtime option changes now force reprocessing/reapply.
+- Empty palette extraction falls back to the previous palette when available instead of leaving lights stale.
+- Added `last_palette_error` diagnostic field.
+
+### Notes
+- This is a corrective patch for v2.3.0.
+
 ## v2.3.0
 
 ### Added

@@ -54,6 +54,7 @@ class SonosHueCoordinator:
         self.last_palette = []
         self.last_image = None
         self.last_error = None
+        self.last_palette_error = None
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
@@ -125,6 +126,7 @@ class SonosHueCoordinator:
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
             ATTR_LAST_SERVICE_DATA: self.last_service_data[-20:],
             "last_error": self.last_error,
+            "last_palette_error": self.last_palette_error,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
             "light_entities": self.light_entities,
@@ -496,7 +498,7 @@ Tokens and artwork URLs are redacted.
         self.last_cache_result = None
         self.last_processing_reason = reason
 
-        if reason in ("button_extract_now", "extract_now_service"):
+        if reason in ("button_extract_now", "extract_now_service") or reason.startswith("runtime_option_changed") or reason == "options_update":
             bypass_cache = True
             force_apply = True
 
@@ -540,11 +542,34 @@ Tokens and artwork URLs are redacted.
                 self.last_timings['album_art_fetch_ms'] = round((time.perf_counter() - fetch_started) * 1000, 1)
                 extract_started = time.perf_counter()
                 if not image_bytes:
+                    self.last_palette_error = "image_fetch_empty"
+                    if self.last_palette:
+                        palette = self.last_palette
+                        self.last_palette_error = "image_fetch_empty_fallback_previous"
+                        self.last_error = None
+                        self._notify()
+                        await self._apply_palette_to_lights(force_apply=True)
+                    else:
+                        self.last_error = "no_palette_available"
+                        self._notify()
                     return
                 palette = extract_palette_from_bytes(image_bytes, self.config)
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
                     self.cache.set(art, palette)
+
+            if not palette:
+                self.last_palette_error = "palette_empty"
+                if self.last_palette:
+                    palette = self.last_palette
+                    self.last_error = None
+                    self.last_palette_error = "palette_fallback_previous"
+                else:
+                    self.last_error = "no_palette_available"
+                    self._notify()
+                    return
+            else:
+                self.last_palette_error = None
 
             self.last_palette = palette
             self._notify()

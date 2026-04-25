@@ -765,3 +765,21 @@ Behavior:
 - True Gradient lights use Gradient Brightness as their maximum.
 - Excluded Lights are removed after group expansion, so they are not controlled even if they belong to a selected room/group.
 - Restore Delay waits after playback stops before restoring the previous light state. If playback resumes during the delay, restore is cancelled.
+
+
+## v2.3.1
+
+### Corrective patch
+
+Fixes v2.3.0 regressions:
+
+- Restores friendly labels/descriptions for new options:
+  - Minimum Brightness
+  - Maximum Brightness
+  - Gradient Brightness
+  - Excluded Lights
+  - Restore Delay
+- Runtime option changes now force a fresh apply.
+- Empty palette extraction now falls back to the previous palette when available.
+- Adds `last_palette_error` diagnostics.
+- Keeps target/gradient behavior unchanged.
