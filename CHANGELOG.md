@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.3.11
+
+### Fixed
+- Fixed refresh error caused by invalid `async_set_updated_data()` call.
+- Fixed Album Art image setup error caused by using `CoordinatorEntity` with a custom coordinator.
+- Album Art now uses the integration's existing listener mechanism.
+
 ## v2.3.10
 
 ### Fixed

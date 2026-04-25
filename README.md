@@ -934,3 +934,14 @@ Changes:
 - Album Art is now coordinator-backed.
 - Entity remains available while Sonos Hue Sync is enabled.
 - Image entity refreshes when artwork metadata or artwork bytes update.
+
+
+## v2.3.11
+
+### Album Art refresh error fix
+
+Fixes v2.3.10 errors:
+
+- Removed `CoordinatorEntity` usage from Album Art because Sonos Hue Sync uses a custom coordinator.
+- Removed invalid `async_set_updated_data()` calls.
+- Album Art now refreshes using the integration's existing listener/notify mechanism.

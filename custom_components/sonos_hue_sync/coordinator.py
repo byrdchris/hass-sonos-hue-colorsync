@@ -329,7 +329,7 @@ class SonosHueCoordinator:
             "media_image_url_present": bool(attrs.get("media_image_url")),
             "media_image_url": attrs.get("media_image_url"),
         }
-        self.async_set_updated_data({})  # artwork metadata refresh
+        self._notify()  # artwork metadata refresh
 
     def _art_candidates(self, state):
         attrs = state.attributes
@@ -418,7 +418,7 @@ class SonosHueCoordinator:
                 self.last_image_fetch_status = f"ok:{len(data)}_bytes"
                 self.current_artwork_bytes = data
                 self.current_artwork_content_type = resp.headers.get("Content-Type", "image/jpeg")
-                self.async_set_updated_data({})
+                self._notify()
                 return data
         except Exception as err:
             self.last_image_fetch_status = f"exception:{type(err).__name__}"
