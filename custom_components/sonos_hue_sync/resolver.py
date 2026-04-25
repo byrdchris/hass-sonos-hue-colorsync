@@ -19,6 +19,7 @@ class ResolveResult:
     source: str
     skipped: list[dict] = field(default_factory=list)
     source_map: dict[str, str] = field(default_factory=dict)
+    group_diagnostics: dict = field(default_factory=dict)
 
 def _unique(items: list[str]) -> list[str]:
     out: list[str] = []
@@ -64,35 +65,68 @@ def is_group_entity(hass, entity_id: str) -> bool:
         return True
     return bool(entry and entry.platform == "hue" and _unique_id_looks_grouped(entry))
 
-def direct_member_lights(hass, entity_id: str) -> list[str]:
+def direct_member_lights(hass, entity_id: str, diagnostics: dict | None = None) -> list[str]:
     """Use direct members exactly as Home Assistant exposes them.
 
-    This intentionally avoids area/device filtering because Hue Play and helper
-    entities can have inconsistent registry metadata.
+    Hue room/zone entities commonly expose the real member lights in their
+    ``entity_id`` attribute. That list is more authoritative than registry area
+    fallback and should be preferred whenever present.
     """
     state = hass.states.get(entity_id)
     if state is None:
+        if diagnostics is not None:
+            diagnostics[entity_id] = {
+                "member_source": "selected_missing",
+                "declared_members": [],
+                "resolved_members": [],
+                "missing_members": [],
+                "skipped_members": [{"entity_id": entity_id, "reason": "selected_missing"}],
+            }
         return []
 
     members = state.attributes.get("entity_id")
-    if not isinstance(members, list) or not members:
+    if not isinstance(members, (list, tuple, set)) or not members:
+        if diagnostics is not None:
+            diagnostics[entity_id] = {
+                "member_source": "no_entity_id_attribute",
+                "declared_members": [],
+                "resolved_members": [],
+                "missing_members": [],
+                "skipped_members": [],
+            }
         return []
 
+    declared = list(members)
     resolved: list[str] = []
-    for member in members:
+    missing: list[str] = []
+    skipped: list[dict] = []
+
+    for member in declared:
         member_state = hass.states.get(member)
         if member_state is None:
+            missing.append(member)
+            skipped.append({"entity_id": member, "reason": "member_missing"})
             continue
 
         nested = member_state.attributes.get("entity_id")
-        if isinstance(nested, list) and nested:
-            resolved.extend(nested)
+        if isinstance(nested, (list, tuple, set)) and nested:
+            resolved.extend(list(nested))
         else:
             resolved.append(member)
 
     resolved = _unique(resolved)
     if resolved:
         _LAST_GROUP_MEMBERS[entity_id] = resolved
+
+    if diagnostics is not None:
+        diagnostics[entity_id] = {
+            "member_source": "entity_id_attribute",
+            "declared_members": declared,
+            "resolved_members": resolved,
+            "missing_members": missing,
+            "skipped_members": skipped,
+        }
+
     return resolved
 
 def _find_parent_group_for_helper(hass, entity_id: str) -> tuple[str | None, list[str]]:
@@ -178,6 +212,7 @@ def resolve_targets(hass, selected_entities: list[str], expand_groups: bool = Tr
     source_parts: list[str] = []
     source_map: dict[str, str] = {}
     skipped: list[dict] = []
+    group_diagnostics: dict = {}
 
     for entity_id in selected_entities:
         state = hass.states.get(entity_id)
@@ -192,7 +227,7 @@ def resolve_targets(hass, selected_entities: list[str], expand_groups: bool = Tr
         source = f"{entity_id}:selected_entity"
 
         if expand_groups:
-            direct = direct_member_lights(hass, entity_id)
+            direct = direct_member_lights(hass, entity_id, diagnostics=group_diagnostics)
             if direct:
                 expanded = direct
                 source = f"{entity_id}:direct_entity_id_members"
@@ -232,4 +267,5 @@ def resolve_targets(hass, selected_entities: list[str], expand_groups: bool = Tr
         source=", ".join(source_parts) if source_parts else "selected_entities",
         skipped=skipped,
         source_map=source_map,
+        group_diagnostics=group_diagnostics,
     )

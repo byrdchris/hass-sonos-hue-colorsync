@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.3.14
+
+### Fixed
+- Preferred direct Hue room/group `entity_id` members over same-area fallback.
+- Prevented a frozen same-area fallback result from dropping direct Hue group members for the rest of a track.
+
+### Added
+- Added group expansion diagnostics:
+  - `group_resolution`
+  - `preview_group_resolution`
+
 ## v2.3.13
 
 ### Changed

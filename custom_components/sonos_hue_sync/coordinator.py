@@ -72,6 +72,7 @@ class SonosHueCoordinator:
         self.last_service_data = []
         self.last_resolver_source = None
         self.last_resolver_source_map = {}
+        self.last_group_resolution = {}
         self.last_skipped_lights = []
         self._frozen_track_key = None
         self._frozen_resolve_result = None
@@ -162,6 +163,7 @@ class SonosHueCoordinator:
             "expansion_entity_count": len(self.expansion_entities),
             "resolver_source": self.last_resolver_source,
             "resolver_source_map": self.last_resolver_source_map,
+            "group_resolution": self.last_group_resolution,
             "skipped_lights": self.last_skipped_lights,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
@@ -204,6 +206,7 @@ class SonosHueCoordinator:
             "preview_resolver_source": resolver_source,
             "preview_skipped_lights": skipped,
             "preview_source_map": preview.source_map,
+            "preview_group_resolution": getattr(preview, "group_diagnostics", {}),
             "expansion_entities": self.expansion_entities,
             "light_targets": self.light_entities,
             "additional_hue_groups": self.group_entities,
@@ -580,9 +583,31 @@ Tokens and artwork URLs are redacted.
 
 
     def _resolve_for_track(self):
-        """Resolve once per track and freeze targets for the current track."""
+        """Resolve once per track and freeze targets for the current track.
+
+        If the earlier frozen result used same-area fallback and direct Hue group
+        members become available later, refresh the frozen result so Hue room
+        membership is not permanently missing a light for the rest of the track.
+        """
         if self._frozen_track_key == self.last_track_key and self._frozen_resolve_result is not None:
-            return self._frozen_resolve_result
+            frozen = self._frozen_resolve_result
+            if "same_area_hue_group_fallback" not in getattr(frozen, "source", ""):
+                return frozen
+
+            refreshed = resolve_light_entities_detailed(
+                self.hass,
+                self.expansion_entities,
+                expand_groups=self.config.get("expand_groups", True),
+            )
+            refreshed_direct = "direct_entity_id_members" in getattr(refreshed, "source", "")
+            refreshed_has_more = len(refreshed.lights) > len(frozen.lights)
+            if refreshed_direct or refreshed_has_more:
+                self._frozen_resolve_result = refreshed
+                self.last_group_resolution = getattr(refreshed, "group_diagnostics", {})
+                return refreshed
+
+            self.last_group_resolution = getattr(frozen, "group_diagnostics", {})
+            return frozen
 
         result = resolve_light_entities_detailed(
             self.hass,
@@ -591,6 +616,7 @@ Tokens and artwork URLs are redacted.
         )
         self._frozen_track_key = self.last_track_key
         self._frozen_resolve_result = result
+        self.last_group_resolution = getattr(result, "group_diagnostics", {})
         return result
 
     async def _apply_palette_to_lights(self, force_apply=False):
@@ -629,6 +655,7 @@ Tokens and artwork URLs are redacted.
                         self.last_resolved_lights = resolved
                         self.last_resolver_source = resolver_source
                         self.last_resolver_source_map = frozen.source_map
+                        self.last_group_resolution = getattr(frozen, "group_diagnostics", {})
                         self.last_skipped_lights = skipped_lights
                         self.last_service_data = last_service_data
                         self.last_error = None

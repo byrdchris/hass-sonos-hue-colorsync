@@ -907,3 +907,24 @@ Removed:
 - Album Art image entity
 
 Album art can still be viewed from the selected Sonos media player entity or in the existing Sonos media card.
+
+
+## v2.3.14
+
+### Hue group member resolution fix
+
+Fixes cases where a selected Hue room/group exposed direct `entity_id` members but the integration still used same-area fallback.
+
+Changes:
+
+- Direct Hue group `entity_id` membership is now preferred whenever available.
+- Same-area fallback is only used when direct group members are unavailable.
+- If a track was frozen using same-area fallback before group attributes populated, the frozen resolver refreshes when direct members become available.
+- Adds group expansion diagnostics:
+
+```yaml
+group_resolution:
+preview_group_resolution:
+```
+
+These diagnostics show declared group members, resolved members, and missing/skipped members.
