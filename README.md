@@ -1,341 +1,364 @@
 # Sonos Hue Sync
 
-Home Assistant custom integration that extracts colors from Sonos album art and applies them to Hue lights/groups.
+Home Assistant custom integration that extracts colors from Sonos album art and applies them to Hue lights, rooms, zones, or groups.
 
-## v1.19.0 features
+## Core behavior
 
-- HA-native Sonos album-art palette extraction
-- Hue room/group expansion
-- Per-light color distribution
-- Scene snapshot and restore
-- Enable/disable switch
-- Palette sensor with diagnostics
-- Extract/apply/test buttons
-- Palette clustering to reduce near-duplicate reds/pinks/browns
-- Gradient-aware assignment, HA-native only
-- Light assignment strategies:
-  - Balanced
-  - Sequential
-  - Alternating bright/dim
-  - Brightness order
+- Watches a selected Sonos media player.
+- Fetches the current album art from Home Assistant.
+- Extracts a color palette.
+- Applies colors to selected Hue/Home Assistant light targets.
+- Restores the prior lighting scene when playback stops or the integration is disabled.
+- Provides controls for enable/disable, extract now, apply last palette, test rainbow, assignment strategy, and target preview.
 
-## Notes
+## Recommended setup
 
-Gradient awareness does not create a true multi-segment gradient. It still uses Home Assistant `light.turn_on` and assigns one color per gradient entity.
+Start simple:
 
-For Home Assistant translation cache issues: restart HA and hard-refresh the frontend.
+1. Select the Sonos speaker that shows the active track metadata.
+2. In **Hue lights / groups**, select the main Hue room or group you want controlled.
+3. Enable **Distribute colors across group members**.
+4. Press **Extract Now**.
+5. Check the **Target Preview** sensor and the **Palette** sensor.
 
+If some lights are missing, do not keep adding helper zones blindly. Use the target fields as described below.
 
-## v1.20.0
+## Target settings
 
-### Controls
+### Sonos speaker
 
-Adds a Home Assistant select entity:
+The Sonos media player to follow.
 
-- **Assignment Strategy**
+For grouped Sonos speakers, choose the room that shows the active track title, artist, album, and album art.
 
-This appears on the integration device page alongside Extract Now, Apply Last Palette, Test Rainbow, and Enabled.
+### Hue lights / groups
 
-Changing the select immediately reapplies the last palette if one exists.
+Main targets to control.
 
-### Group diagnostics
+Use this for the normal Hue room, group, or individual lights you want synced.
 
-The palette sensor now includes:
-
-- `selected_entity_members`
-
-This shows the direct `entity_id` member list exposed by selected Hue room/group entities, making it easier to confirm whether Home Assistant is exposing all bulbs in the group.
-
-
-## v1.21.0
-
-### Group resolution fix
-
-- Uses Home Assistant's own light target expansion helper
-- Still prefers the Hue group's live `entity_id` member attribute
-- Improves `selected_entity_members` diagnostics so selected groups show an empty list instead of disappearing when no members are read
-- Falls back to same-area Hue expansion only if direct members cannot be read
-
-
-## v1.23.0
-
-Regression fix after v1.22.
-
-### Changes
-
-- Does not process album art immediately during integration setup
-  - avoids Hue group attributes being read before they are populated
-- Removes `color_temp` service calls
-  - uses `rgb_color` for neutral colors too
-  - avoids `extra keys not allowed @ data['color_temp']`
-- Reverts group resolver behavior to the last stable direct `entity_id` member path
-- Keeps Assignment Strategy select entity from v1.20/v1.21
-
-### Recommended test
-
-After restart:
-1. Wait for the Hue group state to show `entity_id`
-2. Press **Extract Now**
-3. Check:
-   - `selected_entity_members`
-   - `resolved_lights`
-   - `last_error`
-
-
-## v1.24.0
-
-### Stabilized Hue group resolver
-
-Fixes timing cases where a Hue room/group temporarily exposes an empty
-`entity_id` member list.
-
-Resolver order:
-
-1. Retry direct group members briefly
-2. Cache the last valid full direct member list
-3. Use cached direct members if live members are temporarily empty
-4. Fall back to area-based resolver only if no direct/cached members exist
-
-This keeps all Hue room members instead of falling back to a partial area scan.
-
-
-## v1.27.0
-
-### Resolver reset
-
-v1.26 failed to load because of a missing method. v1.27 is built from the last
-stable resolver base and applies a simpler deterministic rule:
-
-- If the selected Hue room/group exposes `entity_id`, use that list exactly.
-- Do not filter direct group members through area/device metadata.
-- This preserves Hue Play entities and any other valid members exposed by the group.
-- Retry direct member reads for up to ~3 seconds before falling back.
-
-### Important
-
-If `light.living_room.entity_id` contains 9 lights, `resolved_lights` should
-contain those same 9 lights.
-
-
-## v1.28.0
-
-### Resolver repair
-
-Fixes v1.27 packaging error:
-
-```text
-name '_stabilized_resolve_light_entities' is not defined
-```
-
-v1.28 replaces the resolver with one clean path:
-
-1. Use selected Hue group's live `entity_id` members exactly as exposed
-2. Use cached direct members if available
-3. Fall back to same-area Hue scan only if direct/cached members are unavailable
-
-It does not filter Hue Play entities out of direct group members.
-
-
-## v1.29.0
-
-### Flicker reduction
-
-Removes stepped crossfade.
-
-Previous versions issued 5 repeated `light.turn_on` calls per light during one
-album change. Hue/HA already supports transitions, so v1.29 now sends one
-`light.turn_on` call per resolved light using the configured transition value.
-
-This should reduce visible flicker during album changes and reduce service-call
-chatter.
-
-
-## v1.30.0
-
-### Helper group resolution
-
-If a selected Hue helper entity such as `light.living_room_primary` or
-`light.living_room_ambient` has no direct members, the resolver now searches
-for a parent light group with direct members.
-
-Example:
-
-- selected: `light.living_room_primary`
-- parent found: `light.living_room`
-- resolved targets: all members exposed by `light.living_room.entity_id`
-
-The search is generic and is not hard-coded to Living Room.
-
-### Transition
-
-Ensures one `light.turn_on` call per resolved light.
-
-
-## v1.31.0
-
-### Explicit group expansion source
-
-Adds a new options field:
-
-- **Hue groups to expand**
-
-Use this for real Hue room/zone/group entities such as:
-
-- `light.living_room`
-- `light.kitchen`
-- `light.bedroom`
-
-If this field is set, the integration expands those groups directly and ignores
-helper entities such as:
-
-- `light.living_room_primary`
-- `light.living_room_ambient`
-
-This avoids guessing parent groups from helper names and supports any group name.
-
-
-## v1.32.0
-
-### Edge-case hardening
-
-Adds defensive handling for mixed and imperfect light selections:
-
-- Deduplicates lights when multiple groups overlap
-- Skips missing, unavailable, and unknown entities
-- Keeps explicit selected entities if they cannot be expanded
-- Tracks skipped lights and skip reasons in diagnostics
-- Improves selected group diagnostics with:
-  - state
-  - friendly name
-  - is_hue_group
-  - hue_type
-  - live entity members
-
-New palette sensor diagnostic:
+Examples:
 
 ```yaml
-skipped_lights:
-  - entity_id: light.example
-    reason: duplicate | missing | unavailable | unknown
+light.living_room
+light.kitchen
+light.hue_color_lamp_1
 ```
 
-This makes it safer to use multiple real Hue groups in **Hue groups to expand**.
+If the selected entity exposes member lights, the integration can distribute colors across those members.
 
+### Additional Hue groups to expand
 
-## v1.33.0
+Optional additive workaround.
 
-### Member lights override
+Use this when the main selection does not expose all of its member lights. This field is added to **Hue lights / groups**; it does not replace it.
 
-Adds a deterministic override for Hue groups that do not expose members reliably.
+Use real Hue room, zone, or group entities here.
 
-New options field:
+Good examples:
 
-- **Member lights override**
+```yaml
+light.living_room
+light.kitchen
+light.bedroom
+```
 
-If populated, the integration uses those actual light entities directly and bypasses group expansion entirely.
+Avoid putting helper zones here unless you want that helper zone treated as a target. For example, a helper like `light.living_room_ambient` may be controlled as one combined light if it does not expose members.
 
-Resolution priority is now:
+### Additional member lights
 
-1. Member lights override
-2. Hue groups to expand
-3. Hue lights / groups
+Optional additive direct override.
 
+Use this for specific individual lights that should always be controlled directly, especially if group expansion misses them.
 
-## v1.34.0
+Good examples:
 
-### Additive target handling
+```yaml
+light.game_hue_play_1
+light.game_hue_play_2
+light.hue_play_1_3
+```
 
-`Hue groups to expand` and `Member lights override` are now additive instead of replacing
-the main `Hue lights / groups` selection.
+Do not put room/group helper entities here.
 
-Target sources are combined in this order:
+### Distribute colors across group members
 
-1. Hue lights / groups
-2. Additional Hue groups to expand
-3. Additional member lights
+When enabled, colors are applied to individual member lights inside groups when Home Assistant exposes those members.
 
-The resolver deduplicates overlapping lights after expansion.
+Disable only if you want a single color applied to the selected group entity itself.
 
-### Icon
+## Palette settings
 
-Adds `custom_components/sonos_hue_sync/icon.png` for HACS/Home Assistant display.
+### Color count
 
+Number of colors to extract from album art.
 
-## v1.35.0
+If there are more target lights than extracted colors, the colors repeat.
 
-### UI polish
+### Filter dull colors
 
-- Renames `member_light_entities` to **Additional member lights**
-- Clarifies the difference between:
-  - Hue lights / groups
-  - Additional Hue groups to expand
-  - Additional member lights
+Removes black, gray, muddy, or very dark colors while keeping useful color tones.
 
-### Palette tuning
+Recommended: enabled.
 
-Adds a new option:
+### Filter bright whites
 
-- **Filter bright whites**
+Removes harsh pure or cool whites while keeping warmer cream and soft white tones.
 
-This removes harsh pure/cool whites from album-art palettes while preserving warmer cream and soft white tones.
-
-
-## v1.36.0
-
-### UI polish
-
-- Normalizes labels and descriptions for all options fields
-- Avoids raw/internal option names where Home Assistant supports translations
-- Renames **Expand grouped lights** to **Distribute colors across group members**
-
-### Target Preview sensor
-
-Adds a new sensor:
-
-- **Target Preview**
-
-This previews the currently resolved targets before palette application and exposes:
-
-- preview targets
-- preview target count
-- resolver source
-- skipped lights
-- configured target sources
-
-This helps debug target selection without waiting for a song change.
-
-
-## v1.37.0
+Recommended: enabled.
 
 ### Black-and-white album handling
 
-Adds a new option:
+Controls what happens when album art is mostly black, white, or grayscale.
 
-- **Black-and-white album handling**
+Options:
 
-Modes:
+- **Warm neutral**: cream and warm gray palette. Recommended default.
+- **Preserve grayscale**: soft grayscale palette.
+- **Muted accent**: restrained accent colors.
+- **Disabled**: use normal extraction behavior.
 
-- **Warm neutral**: default; cream/warm gray palette, avoids harsh white
-- **Preserve grayscale**: soft grayscale palette
-- **Muted accent**: restrained accent tones
-- **Disabled**: use normal extraction behavior
+This prevents black-and-white artwork from producing random saturated colors from compression or palette noise.
 
-This prevents black-and-white album art from producing random saturated colors
-from JPEG/compression artifacts or palette quantization noise.
+### Handle low-color album art
 
+When artwork has only subtle color, the integration uses a restrained muted palette instead of letting tiny color noise become overly saturated.
 
-## v1.38.0
+Recommended: enabled.
 
-### Low-color album handling
+### Cache album colors
 
-Adds a middle path between full-color and black-and-white album art:
+Reuses extracted colors for album art that has already been processed.
 
-- **Full color**: normal palette extraction
-- **Low color**: restrained muted palette based on the art's subtle hues
-- **Black-and-white**: black-and-white handling mode
+Recommended: enabled for normal use. Disable while tuning palette behavior if you want every extraction recalculated.
 
-New option:
+## Light behavior settings
 
-- **Handle low-color album art**
+### Transition time
 
-This prevents nearly monochrome album art from producing exaggerated saturated colors.
+Fade time in seconds for each light change.
+
+Higher values are smoother but slower. Lower values respond faster.
+
+### Light assignment strategy
+
+Controls how extracted colors are assigned to resolved target lights.
+
+Options:
+
+- **Balanced**: usually best for color variety. Recommended default.
+- **Sequential**: follows palette order directly.
+- **Alternating bright / dim**: alternates lighter and darker tones.
+- **Brightness order**: sorts colors from bright to dark. This can make similar hues dominate if the album art has many related tones.
+
+If a room looks too much like one color even though the palette contains several colors, try **Balanced** first.
+
+## Controls
+
+The integration creates these controls:
+
+- **Enabled** switch
+- **Extract Now** button
+- **Apply Last Palette** button
+- **Test Rainbow** button
+- **Assignment Strategy** select
+
+## Sensors
+
+### Palette
+
+Shows the latest extracted colors and application diagnostics.
+
+Useful attributes include:
+
+```yaml
+hex_colors:
+rgb_colors:
+palette_preview:
+resolved_lights:
+last_service_data:
+last_error:
+resolver_source:
+skipped_lights:
+```
+
+### Target Preview
+
+Shows what the integration would currently target before applying a palette.
+
+Use this to troubleshoot target selection without waiting for a track change.
+
+Useful attributes include:
+
+```yaml
+preview_targets:
+preview_target_count:
+preview_resolver_source:
+preview_skipped_lights:
+expansion_entities:
+light_targets:
+additional_hue_groups:
+additional_member_lights:
+selected_entity_members:
+```
+
+## Practical target examples
+
+### One Hue room works normally
+
+```yaml
+Hue lights / groups:
+  - light.living_room
+
+Additional Hue groups to expand:
+  []
+
+Additional member lights:
+  []
+```
+
+### Main room misses a few Hue Play lights
+
+```yaml
+Hue lights / groups:
+  - light.living_room
+
+Additional Hue groups to expand:
+  []
+
+Additional member lights:
+  - light.game_hue_play_1
+  - light.game_hue_play_2
+  - light.hue_play_1_3
+```
+
+### Multiple rooms
+
+```yaml
+Hue lights / groups:
+  - light.living_room
+  - light.kitchen
+
+Additional Hue groups to expand:
+  []
+
+Additional member lights:
+  []
+```
+
+### Helper zone should also be included as one target
+
+```yaml
+Hue lights / groups:
+  - light.living_room
+
+Additional Hue groups to expand:
+  - light.living_room_ambient
+
+Additional member lights:
+  []
+```
+
+Only use this if you want the helper zone treated as one target.
+
+## Troubleshooting
+
+### The lights are all one color
+
+Check:
+
+```yaml
+assignment_strategy:
+palette_preview:
+resolved_lights:
+```
+
+Try **Balanced** assignment strategy.
+
+### Some lights are missing
+
+Check the **Target Preview** sensor:
+
+```yaml
+preview_targets:
+preview_resolver_source:
+selected_entity_members:
+```
+
+If a group does not expose all members, add missing lights to **Additional member lights**.
+
+### Colors look too white or harsh
+
+Enable:
+
+```yaml
+Filter bright whites
+```
+
+Use:
+
+```yaml
+Black-and-white album handling: Warm neutral
+```
+
+### Black-and-white artwork creates random colors
+
+Use:
+
+```yaml
+Black-and-white album handling: Warm neutral
+Handle low-color album art: enabled
+```
+
+### Album art changes but lights flicker
+
+Use a transition of 1–3 seconds. The integration sends one Home Assistant `light.turn_on` call per resolved light and relies on Hue/Home Assistant transitions.
+
+## HACS
+
+This integration is intended to be HACS-installable.
+
+Repository structure:
+
+```text
+custom_components/sonos_hue_sync/
+hacs.json
+README.md
+```
+
+The HACS/Home Assistant icon is included at:
+
+```text
+custom_components/sonos_hue_sync/icon.png
+```
+
+## Version notes
+
+### v1.39.0
+
+- Clarifies all settings labels and descriptions.
+- Expands README with complete settings reference and examples.
+- Adds stronger guidance for target selection and assignment strategy behavior.
+
+### v1.38.0
+
+- Adds low-color album-art handling.
+
+### v1.37.0
+
+- Adds black-and-white album-art handling.
+
+### v1.36.0
+
+- Adds Target Preview sensor.
+- Normalizes UI labels/descriptions.
+
+### v1.35.0
+
+- Adds Filter bright whites.
+- Improves member-light UI labels.
+
+### v1.34.0
+
+- Makes target sources additive.
+- Adds icon.

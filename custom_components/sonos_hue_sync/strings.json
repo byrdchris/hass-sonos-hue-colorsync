@@ -15,26 +15,26 @@
           "transition": "Transition time",
           "filter_dull": "Filter dull colors",
           "filter_bright_white": "Filter bright whites",
+          "monochrome_mode": "Black-and-white album handling",
+          "low_color_handling": "Handle low-color album art",
           "cache": "Cache album colors",
           "expand_groups": "Distribute colors across group members",
-          "assignment_strategy": "Light assignment strategy",
-          "monochrome_mode": "Black-and-white album handling",
-          "low_color_handling": "Handle low-color album art"
+          "assignment_strategy": "Light assignment strategy"
         },
         "data_description": {
-          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
-          "light_entities": "Primary targets to control. You can select individual lights, Hue rooms, zones, groups, or helper entities.",
-          "group_entities": "Optional. Add real Hue room, zone, or group entities to expand into their member lights. These are added to the primary targets instead of replacing them.",
-          "member_light_entities": "Optional. Add individual light entities directly. Use this as a reliable workaround when a Hue group does not expose every member consistently.",
-          "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
-          "transition": "Fade time in seconds when applying new colors.",
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main targets to control. Select the Hue room/group you normally want synced, or select individual lights. If a selected room/group exposes its member lights, colors are distributed across those members.",
+          "group_entities": "Optional additive workaround. Add real Hue room, zone, or group entities only when the main Hue lights / groups selection does not expose all of its members. These are added to the main targets, not used instead of them. Avoid adding helper zones here if you do not want the entire zone treated as one target.",
+          "member_light_entities": "Optional additive override. Add specific individual lights that should always be controlled directly. Use this for missing bulbs or Hue Play lights when group expansion does not resolve them. Do not add room/group helper entities here.",
+          "color_count": "Number of colors to extract from album art. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds for each light change. Higher values are smoother but slower; lower values respond faster.",
           "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping useful color tones.",
           "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
-          "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups instead of one color for the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark.",
-          "monochrome_mode": "Controls what happens when album art is mostly black, white, or grayscale. Warm neutral avoids random colors and harsh white; Preserve grayscale keeps soft grays; Muted accent adds restrained color.",
-          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated."
+          "monochrome_mode": "Controls black, white, or grayscale artwork. Warm neutral avoids random colors and harsh white; Preserve grayscale uses soft grays; Muted accent adds restrained color; Disabled uses normal extraction.",
+          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated.",
+          "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
+          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
+          "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors."
         }
       }
     }
@@ -53,26 +53,26 @@
           "transition": "Transition time",
           "filter_dull": "Filter dull colors",
           "filter_bright_white": "Filter bright whites",
+          "monochrome_mode": "Black-and-white album handling",
+          "low_color_handling": "Handle low-color album art",
           "cache": "Cache album colors",
           "expand_groups": "Distribute colors across group members",
-          "assignment_strategy": "Light assignment strategy",
-          "monochrome_mode": "Black-and-white album handling",
-          "low_color_handling": "Handle low-color album art"
+          "assignment_strategy": "Light assignment strategy"
         },
         "data_description": {
-          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
-          "light_entities": "Primary targets to control. You can select individual lights, Hue rooms, zones, groups, or helper entities.",
-          "group_entities": "Optional. Add real Hue room, zone, or group entities to expand into their member lights. These are added to the primary targets instead of replacing them.",
-          "member_light_entities": "Optional. Add individual light entities directly. Use this as a reliable workaround when a Hue group does not expose every member consistently.",
-          "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
-          "transition": "Fade time in seconds when applying new colors.",
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main targets to control. Select the Hue room/group you normally want synced, or select individual lights. If a selected room/group exposes its member lights, colors are distributed across those members.",
+          "group_entities": "Optional additive workaround. Add real Hue room, zone, or group entities only when the main Hue lights / groups selection does not expose all of its members. These are added to the main targets, not used instead of them. Avoid adding helper zones here if you do not want the entire zone treated as one target.",
+          "member_light_entities": "Optional additive override. Add specific individual lights that should always be controlled directly. Use this for missing bulbs or Hue Play lights when group expansion does not resolve them. Do not add room/group helper entities here.",
+          "color_count": "Number of colors to extract from album art. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds for each light change. Higher values are smoother but slower; lower values respond faster.",
           "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping useful color tones.",
           "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
-          "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups instead of one color for the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark.",
-          "monochrome_mode": "Controls what happens when album art is mostly black, white, or grayscale. Warm neutral avoids random colors and harsh white; Preserve grayscale keeps soft grays; Muted accent adds restrained color.",
-          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated."
+          "monochrome_mode": "Controls black, white, or grayscale artwork. Warm neutral avoids random colors and harsh white; Preserve grayscale uses soft grays; Muted accent adds restrained color; Disabled uses normal extraction.",
+          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated.",
+          "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
+          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
+          "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors."
         }
       }
     }
