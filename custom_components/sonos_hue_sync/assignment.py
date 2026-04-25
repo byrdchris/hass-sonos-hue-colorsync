@@ -76,17 +76,19 @@ def assign_colors(hass, resolved_lights: list[str], palette: list[tuple[int, int
     gradient_lights = [light for light in resolved_lights if is_gradient_entity(hass, light)]
     normal_lights = [light for light in resolved_lights if light not in gradient_lights]
 
-    accent_palette = sorted(ordered_palette, key=_color_score, reverse=True)
-    for idx, light in enumerate(gradient_lights):
-        assignments[light] = accent_palette[idx % len(accent_palette)]
+    # Gradient-aware lights still get priority in assignment order, but they now
+    # use the strategy-ordered palette. Previous versions used a separate accent
+    # palette for gradients, so changing assignment strategy often appeared to
+    # affect every light except Signe/gradient lights.
+    assignment_order = gradient_lights + normal_lights
 
-    if strategy == ASSIGNMENT_STRATEGY_BALANCED and normal_lights:
-        step = max(1, math.floor(len(ordered_palette) / max(1, min(len(normal_lights), len(ordered_palette)))))
-        color_indexes = [(i * step) % len(ordered_palette) for i in range(len(normal_lights))]
+    if strategy == ASSIGNMENT_STRATEGY_BALANCED and assignment_order:
+        step = max(1, math.floor(len(ordered_palette) / max(1, min(len(assignment_order), len(ordered_palette)))))
+        color_indexes = [(i * step) % len(ordered_palette) for i in range(len(assignment_order))]
     else:
-        color_indexes = list(range(len(normal_lights)))
+        color_indexes = list(range(len(assignment_order)))
 
-    for idx, light in enumerate(normal_lights):
+    for idx, light in enumerate(assignment_order):
         assignments[light] = ordered_palette[color_indexes[idx] % len(ordered_palette)]
 
     return assignments

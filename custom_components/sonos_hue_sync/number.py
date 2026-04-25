@@ -7,6 +7,7 @@ from .const import DOMAIN
 NUMBERS = [
     ("color_count", "Color Count", "mdi:palette", 1, 10, 1),
     ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
+    ("gradient_color_points", "Gradient Color Points", "mdi:gradient-horizontal", 2, 5, 1),
 ]
 
 async def async_setup_entry(hass, entry, async_add_entities):

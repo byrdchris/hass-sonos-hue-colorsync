@@ -46,6 +46,6 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
     strategy = config.get(CONF_ASSIGNMENT_STRATEGY, ASSIGNMENT_STRATEGY_BALANCED)
     transition = float(config.get("transition", 2))
     assignments = assign_colors(hass, resolved, palette, strategy)
-    service_data_sent, apply_skipped = await apply_assignments(hass, assignments, strategy, transition)
+    service_data_sent, apply_skipped = await apply_assignments(hass, assignments, strategy, transition, palette=palette, config=config)
 
     return resolved, service_data_sent, resolver_source, skipped_lights + apply_skipped

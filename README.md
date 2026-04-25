@@ -460,3 +460,44 @@ Pressing **Show Help** creates a Home Assistant persistent notification with a c
 - troubleshooting
 
 Entity descriptions were also expanded where Home Assistant supports them. The standard Home Assistant hover tooltip still shows entity names only; the help button is the supported way to provide richer inline guidance.
+
+
+## v2.0.3
+
+### Gradient assignment fix
+
+Gradient-aware lights such as Signe lamps now follow the selected assignment strategy.
+
+Previous behavior:
+- Gradient-aware lights were assigned from a fixed accent palette.
+- Changing assignment strategy could make regular lights change while gradient lights stayed visually similar.
+
+New behavior:
+- Gradient-aware lights still receive assignment priority.
+- Their colors now come from the selected strategy's palette ordering.
+
+
+## v2.1.0
+
+### Experimental True Gradient Mode
+
+Adds optional true multi-color gradients for Hue gradient-capable lights.
+
+New controls:
+
+- **True Gradient Mode**
+- **Gradient Color Points**
+
+Behavior:
+
+- When disabled, gradient lights use the existing HA-native single-color behavior.
+- When enabled, gradient-aware lights attempt direct Hue V2/aiohue gradient control through Home Assistant's existing Hue bridge connection.
+- If direct gradient control fails for a light, that light falls back to the normal Home Assistant `light.turn_on` method.
+
+Diagnostics:
+
+- `gradient_requested`
+- `gradient_applied`
+- `gradient_colors`
+- `gradient_points`
+- `gradient_error`

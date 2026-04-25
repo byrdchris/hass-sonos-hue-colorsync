@@ -10,6 +10,7 @@ OPTION_SWITCHES = [
     ("low_color_handling", "Handle Low-Color Album Art", "mdi:contrast-circle"),
     ("cache", "Cache Album Colors", "mdi:cached"),
     ("expand_groups", "Distribute Colors Across Group Members", "mdi:lightbulb-group"),
+    ("true_gradient_mode", "True Gradient Mode", "mdi:gradient-horizontal"),
 ]
 
 async def async_setup_entry(hass, entry, async_add_entities):

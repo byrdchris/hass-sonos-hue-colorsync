@@ -4,6 +4,7 @@ import logging
 
 from .assignment import is_gradient_entity
 from .palette import luminance
+from .hue_gradient import try_apply_gradient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def should_apply(entity_id: str, call_data: dict, rgb_tolerance: int = 6, bright
 
     return False, "unchanged"
 
-async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], strategy: str, transition: float) -> tuple[list[dict], list[dict]]:
+async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], strategy: str, transition: float, palette=None, config=None) -> tuple[list[dict], list[dict]]:
     sent: list[dict] = []
     skipped: list[dict] = []
 
@@ -62,12 +63,47 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
             skipped.append({"entity_id": entity_id, "reason": f"{state.state}_at_apply"})
             continue
 
+        gradient_aware = is_gradient_entity(hass, entity_id)
+        true_gradient_enabled = bool((config or {}).get("true_gradient_mode", False))
+
+        if true_gradient_enabled and gradient_aware and palette:
+            success, gradient_diag = await try_apply_gradient(
+                hass,
+                entity_id,
+                list(palette),
+                color,
+                int((config or {}).get("gradient_color_points", 5)),
+                transition,
+            )
+            if success:
+                gradient_diag["assignment_strategy"] = strategy
+                gradient_diag["gradient_aware"] = True
+                gradient_diag["apply_reason"] = "true_gradient"
+                gradient_diag["rgb_color"] = list(color)
+                sent.append(gradient_diag)
+                # Prevent immediate HA-native duplicate apply on the same target.
+                _LAST_APPLIED[entity_id] = {
+                    "rgb_color": list(color),
+                    "brightness": _brightness_for_color(color),
+                    "transition": transition,
+                    "gradient": True,
+                }
+                continue
+
+            # If direct Hue gradient failed, fall back to HA-native single color.
+            skipped.append({
+                "entity_id": entity_id,
+                "reason": "true_gradient_fallback",
+                "detail": gradient_diag.get("gradient_error"),
+            })
+
         service_data = build_service_data(state, color, transition)
         apply_needed, reason = should_apply(entity_id, service_data)
 
         diagnostic_data = dict(service_data)
         diagnostic_data["assignment_strategy"] = strategy
-        diagnostic_data["gradient_aware"] = is_gradient_entity(hass, entity_id)
+        diagnostic_data["gradient_aware"] = gradient_aware
+        diagnostic_data["true_gradient_mode"] = true_gradient_enabled
         diagnostic_data["apply_reason"] = reason
 
         if not apply_needed:

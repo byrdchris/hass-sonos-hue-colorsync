@@ -1,52 +1,24 @@
 # Changelog
 
-## v2.0.2
+## v2.1.0
 
 ### Added
-- Added **Show Help** button.
-- Added `sonos_hue_sync.show_help` service.
-- Help opens as a Home Assistant persistent notification.
-- Added expanded entity descriptions where Home Assistant supports them.
-
-### Changed
-- Improved control/help guidance for target selection, palette controls, assignment strategy, and troubleshooting.
+- Experimental **True Gradient Mode** for Hue gradient-capable lights.
+- **Gradient Color Points** control.
+- Direct Hue/aiohue gradient application using Home Assistant's existing Hue bridge connection when available.
+- HA-native fallback when direct gradient application fails.
 
 ### Notes
-- Native Home Assistant hover tooltips still show entity names only. Use **Show Help** for richer guidance.
+- Default is off.
+- Normal lights continue using Home Assistant `light.turn_on`.
+- Gradient lights use multiple palette colors only when True Gradient Mode is enabled and the Hue resource can be matched.
 
-## v2.0.1
+## v2.0.3
 
 ### Fixed
-- Changing **Color Count** now forces fresh album-art extraction.
-- **Extract Now** now bypasses palette cache.
-- **Extract Now** forces light application even when state diffing would otherwise skip unchanged lights.
-- Palette-affecting controls now force refresh:
-  - Color Count
-  - Filter Dull Colors
-  - Filter Bright Whites
-  - Black-and-White Album Handling
-  - Handle Low-Color Album Art
+- Assignment strategy changes now affect gradient-aware lights, including Signe gradient lamps.
+- Gradient-aware lights still receive assignment priority, but now use the selected strategy's palette order instead of a fixed accent palette.
 
-## v2.0.0
+### Notes
+- This fixes cases where changing assignment strategy appeared to update regular Hue lights but not Signe/gradient lights.
 
-### Added
-- Resolver freeze per track.
-- Target source map diagnostics.
-- State diffing to skip unchanged light calls.
-- Capability-aware light application.
-- Cleaner module split:
-  - `resolver.py`
-  - `assignment.py`
-  - `applier.py`
-  - `hue_controller.py`
-
-### Retained
-- Runtime controls.
-- Target Preview sensor.
-- Palette sensor.
-- Additional Hue groups.
-- Additional member lights.
-- Additive target handling.
-- Monochrome and low-color album handling.
-- Bright white filtering.
-- HACS icon/package structure.
