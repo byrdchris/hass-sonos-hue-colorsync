@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 
@@ -11,7 +12,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([SonosHueSyncAlbumArtImage(coordinator, entry)])
 
 
-class SonosHueSyncAlbumArtImage(ImageEntity):
+class SonosHueSyncAlbumArtImage(CoordinatorEntity, ImageEntity):
     """Current Sonos album art exposed as an image entity."""
 
     _attr_has_entity_name = True
@@ -20,7 +21,8 @@ class SonosHueSyncAlbumArtImage(ImageEntity):
     _attr_icon = "mdi:album"
 
     def __init__(self, coordinator, entry):
-        super().__init__(hass=coordinator.hass)
+        CoordinatorEntity.__init__(self, coordinator)
+        ImageEntity.__init__(self, hass=coordinator.hass)
         self.coordinator = coordinator
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_album_art"
@@ -32,15 +34,10 @@ class SonosHueSyncAlbumArtImage(ImageEntity):
 
     @property
     def available(self):
-        attrs = getattr(self.coordinator, "last_sonos_attributes", {}) or {}
-        return bool(
-            self.coordinator.enabled
-            and (
-                getattr(self.coordinator, "current_artwork_bytes", None)
-                or attrs.get("entity_picture_present")
-                or attrs.get("media_image_url_present")
-            )
-        )
+        # Keep the entity available while the integration is enabled. The image
+        # request itself will return None when no artwork is available, but the
+        # card should not remain permanently unavailable after startup.
+        return bool(getattr(self.coordinator, "enabled", False))
 
     @property
     def extra_state_attributes(self):

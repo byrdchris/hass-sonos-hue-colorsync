@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.3.10
+
+### Fixed
+- Fixed `image.sonos_hue_sync_album_art` remaining unavailable after startup.
+- Album Art image entity now refreshes from coordinator updates.
+
 ## v2.3.9
 
 ### Fixed

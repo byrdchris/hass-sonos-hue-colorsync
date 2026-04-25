@@ -921,3 +921,16 @@ image.sonos_hue_sync_album_art
 ```
 
 If Home Assistant assigns a suffix, search Entities for **Album Art**.
+
+
+## v2.3.10
+
+### Album Art availability fix
+
+Fixes the Album Art image entity showing as unavailable even after artwork was successfully fetched.
+
+Changes:
+
+- Album Art is now coordinator-backed.
+- Entity remains available while Sonos Hue Sync is enabled.
+- Image entity refreshes when artwork metadata or artwork bytes update.
