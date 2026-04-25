@@ -1,32 +1,19 @@
 # Changelog
 
-## v2.3.11
+## v2.3.13
+
+### Changed
+- Rolled back to v2.3.7 as the stable baseline.
+- Removed Album Art image entity and image platform setup.
+- Kept fallback suppression logic from v2.3.12.
 
 ### Fixed
-- Fixed refresh error caused by invalid `async_set_updated_data()` call.
-- Fixed Album Art image setup error caused by using `CoordinatorEntity` with a custom coordinator.
-- Album Art now uses the integration's existing listener mechanism.
+- Prevents transient artwork fetch failures from overwriting an existing useful palette with warm-neutral or generated fallback colors.
+- Keeps standard-light Reapply Colors rotation behavior from v2.3.7.
 
-## v2.3.10
-
-### Fixed
-- Fixed `image.sonos_hue_sync_album_art` remaining unavailable after startup.
-- Album Art image entity now refreshes from coordinator updates.
-
-## v2.3.9
-
-### Fixed
-- Fixed **Album Art** image entity not being created.
-- Added `image` to integration `PLATFORMS`.
-
-## v2.3.8
-
-### Added
-- Added dedicated **Album Art** image entity.
-- Entity can be used in Lovelace as `image.sonos_hue_sync_album_art`.
-
-### Included
-- Includes the v2.3.7 fix for standard-light Reapply Colors rotation.
+### Diagnostics
+- Keeps artwork fetch diagnostics.
+- Adds/keeps `fallback_suppressed`.
 
 ## v2.3.6
 

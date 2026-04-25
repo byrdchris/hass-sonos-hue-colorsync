@@ -57,8 +57,6 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
-        self.current_artwork_bytes = None
-        self.current_artwork_content_type = None
         self._restore_delay_task = None
         self._listeners = []
         self.last_palette = []
@@ -69,6 +67,7 @@ class SonosHueCoordinator:
         self.last_image_fetch_candidates = []
         self.last_artwork_fallback_mode = None
         self.last_artwork_fallback_applied = None
+        self.last_fallback_suppressed = None
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
@@ -146,6 +145,7 @@ class SonosHueCoordinator:
             "last_image_fetch_candidates": self.last_image_fetch_candidates,
             "artwork_fallback_mode": self.last_artwork_fallback_mode,
             "artwork_fallback_applied": self.last_artwork_fallback_applied,
+            "fallback_suppressed": self.last_fallback_suppressed,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
             "sonos_media": self.last_sonos_attributes,
@@ -286,8 +286,6 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
-        self.current_artwork_bytes = None
-        self.current_artwork_content_type = None
         self._restore_delay_task = None
 
     async def async_refresh_listener(self):
@@ -300,8 +298,6 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
-        self.current_artwork_bytes = None
-        self.current_artwork_content_type = None
         self._restore_delay_task = None
         _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)
         self._ensure_polling()
@@ -329,7 +325,6 @@ class SonosHueCoordinator:
             "media_image_url_present": bool(attrs.get("media_image_url")),
             "media_image_url": attrs.get("media_image_url"),
         }
-        self._notify()  # artwork metadata refresh
 
     def _art_candidates(self, state):
         attrs = state.attributes
@@ -342,12 +337,28 @@ class SonosHueCoordinator:
 
 
     def _palette_for_artwork_failure(self, state, reason: str):
+        """Return a fallback palette for artwork failures.
+
+        Transient Sonos/Home Assistant artwork proxy failures should not replace
+        an existing useful palette with generic fallback colors. This is common
+        with AirPlay-to-Sonos where `/api/media_player_proxy` may intermittently
+        return HTTP 500.
+        """
         mode = self.config.get("artwork_fallback_mode", "reuse_last")
         desired = int(self.config.get("color_count", 3))
         self.last_artwork_fallback_mode = mode
+        self.last_fallback_suppressed = None
+
+        has_previous = bool(self.last_palette)
+
+        if has_previous and reason in ("image_fetch_empty", "image_fetch_failed", "no_artwork"):
+            self.last_artwork_fallback_applied = "reuse_existing_palette"
+            self.last_palette_error = f"{reason}_reuse_existing_palette"
+            self.last_fallback_suppressed = f"suppressed_{mode}_fallback_previous_palette_available"
+            return list(self.last_palette)
 
         if mode == "reuse_last":
-            if self.last_palette:
+            if has_previous:
                 self.last_artwork_fallback_applied = "reuse_last_palette"
                 self.last_palette_error = f"{reason}_reuse_last_palette"
                 return list(self.last_palette)
@@ -370,7 +381,6 @@ class SonosHueCoordinator:
             self.last_palette_error = f"{reason}_do_nothing"
             return None
 
-        # Safety fallback for unknown stored option values.
         self.last_artwork_fallback_applied = "unknown_mode_track_based"
         self.last_palette_error = f"{reason}_unknown_mode_track_based"
         return self._metadata_fallback_palette(state)
@@ -416,9 +426,6 @@ class SonosHueCoordinator:
                     self._notify()
                     return None
                 self.last_image_fetch_status = f"ok:{len(data)}_bytes"
-                self.current_artwork_bytes = data
-                self.current_artwork_content_type = resp.headers.get("Content-Type", "image/jpeg")
-                self._notify()
                 return data
         except Exception as err:
             self.last_image_fetch_status = f"exception:{type(err).__name__}"
@@ -794,14 +801,6 @@ Tokens and artwork URLs are redacted.
         self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
 
 
-    async def async_get_current_artwork(self):
-        """Return current artwork bytes for the image entity."""
-        if self.current_artwork_bytes:
-            return self.current_artwork_bytes, self.current_artwork_content_type or "image/jpeg"
-
-        state = self.hass.states.get(self.sonos_entity)
-        if state is None:
-            return None, None
         self._snapshot_sonos_attrs(state)
         for candidate in self._art_candidates(state):
             data = await self._fetch_image_bytes(candidate)

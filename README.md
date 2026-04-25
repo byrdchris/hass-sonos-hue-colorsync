@@ -886,62 +886,24 @@ apply_queue_status:
 ```
 
 
-## v2.3.8
+## v2.3.13
 
-### Album Art image entity
+### Stable rollback baseline
 
-Adds a dedicated image entity:
+This release rolls back to the last stable pre-image-entity baseline and removes the Album Art image entity.
 
-```text
-image.sonos_hue_sync_album_art
-```
+Included:
 
-Dashboard example:
+- v2.3.7 behavior as the baseline.
+- Reapply Colors standard-light rotation fix.
+- True-gradient rotation behavior.
+- Artwork fallback suppression from v2.3.12.
+- Diagnostics retained for artwork fetch and fallback handling.
 
-```yaml
-type: picture-entity
-entity: image.sonos_hue_sync_album_art
-show_name: true
-show_state: false
-```
+Removed:
 
-Also includes the v2.3.7 Reapply Colors standard-light rotation fix.
+- `image.py`
+- `image` platform setup
+- Album Art image entity
 
-
-## v2.3.9
-
-### Album Art image entity setup fix
-
-Fixes v2.3.8 where `image.py` was included but the image platform was not listed in `PLATFORMS`, so Home Assistant did not create the entity.
-
-After restart, look for:
-
-```text
-image.sonos_hue_sync_album_art
-```
-
-If Home Assistant assigns a suffix, search Entities for **Album Art**.
-
-
-## v2.3.10
-
-### Album Art availability fix
-
-Fixes the Album Art image entity showing as unavailable even after artwork was successfully fetched.
-
-Changes:
-
-- Album Art is now coordinator-backed.
-- Entity remains available while Sonos Hue Sync is enabled.
-- Image entity refreshes when artwork metadata or artwork bytes update.
-
-
-## v2.3.11
-
-### Album Art refresh error fix
-
-Fixes v2.3.10 errors:
-
-- Removed `CoordinatorEntity` usage from Album Art because Sonos Hue Sync uses a custom coordinator.
-- Removed invalid `async_set_updated_data()` calls.
-- Album Art now refreshes using the integration's existing listener/notify mechanism.
+Album art can still be viewed from the selected Sonos media player entity or in the existing Sonos media card.
