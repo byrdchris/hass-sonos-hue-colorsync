@@ -264,10 +264,10 @@ def _match_hue_resource(hass, entity_id: str):
 
     return None, None, None, None, attempted
 
-def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float):
+def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float, brightness: int = 255):
     return {
         "on": {"on": True},
-        "dimming": {"brightness": 100},
+        "dimming": {"brightness": max(1, min(100, int((brightness / 255) * 100)))},
         "dynamics": {"duration": int(float(transition_seconds or 0) * 1000)},
         "gradient": {
             "points": [
@@ -278,7 +278,7 @@ def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds
         },
     }
 
-def _model_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float):
+def _model_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float, brightness: int = 255):
     from aiohue.v2.models.feature import (
         ColorFeaturePut,
         ColorPoint,
@@ -292,7 +292,7 @@ def _model_gradient_payload(points: list[tuple[int, int, int]], transition_secon
 
     update = LightPut()
     update.on = OnFeature(on=True)
-    update.dimming = DimmingFeaturePut(brightness=100)
+    update.dimming = DimmingFeaturePut(brightness=max(1, min(100, int((brightness / 255) * 100))))
     update.dynamics = DynamicsFeaturePut(duration=int(float(transition_seconds or 0) * 1000))
     update.gradient = GradientFeatureBase(
         points=[
@@ -319,6 +319,7 @@ async def try_apply_gradient(
     transition: float,
     order_mode: str = "same_order",
     track_key: str | None = None,
+    brightness: int = 255,
 ) -> tuple[bool, dict]:
     diagnostics = {
         "entity_id": entity_id,
@@ -355,12 +356,13 @@ async def try_apply_gradient(
     diagnostics["gradient_colors"] = [list(color) for color in points]
     diagnostics["gradient_points"] = len(points)
     diagnostics["gradient_order_mode"] = order_mode
+    diagnostics["gradient_brightness"] = brightness
 
     errors = []
 
     payload_kind = "aiohue_model"
     try:
-        payload = _model_gradient_payload(points, transition)
+        payload = _model_gradient_payload(points, transition, brightness=brightness)
         await _try_update(bridge, controller, resource_id, payload)
         diagnostics["gradient_applied"] = True
         diagnostics["gradient_payload_kind"] = payload_kind

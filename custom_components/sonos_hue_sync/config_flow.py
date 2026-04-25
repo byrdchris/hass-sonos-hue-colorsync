@@ -45,6 +45,16 @@ from .const import (
     MONOCHROME_MODE_DISABLED,
     GRADIENT_ORDER_MODE_LABELS,
     GRADIENT_ORDER_MODES,
+    CONF_MIN_BRIGHTNESS,
+    CONF_MAX_BRIGHTNESS,
+    CONF_GRADIENT_BRIGHTNESS,
+    CONF_EXCLUDE_LIGHT_ENTITIES,
+    CONF_RESTORE_DELAY,
+    DEFAULT_MIN_BRIGHTNESS,
+    DEFAULT_MAX_BRIGHTNESS,
+    DEFAULT_GRADIENT_BRIGHTNESS,
+    DEFAULT_EXCLUDE_LIGHT_ENTITIES,
+    DEFAULT_RESTORE_DELAY,
 )
 
 def build_schema(defaults: dict):
@@ -61,6 +71,17 @@ def build_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_MAX_BRIGHTNESS, default=defaults.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_GRADIENT_BRIGHTNESS, default=defaults.get(CONF_GRADIENT_BRIGHTNESS, DEFAULT_GRADIENT_BRIGHTNESS)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_EXCLUDE_LIGHT_ENTITIES, default=defaults.get(CONF_EXCLUDE_LIGHT_ENTITIES, DEFAULT_EXCLUDE_LIGHT_ENTITIES)):
+            selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
+        vol.Optional(CONF_RESTORE_DELAY, default=defaults.get(CONF_RESTORE_DELAY, DEFAULT_RESTORE_DELAY)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
         vol.Optional(CONF_MONOCHROME_MODE, default=defaults.get(CONF_MONOCHROME_MODE, DEFAULT_MONOCHROME_MODE)):

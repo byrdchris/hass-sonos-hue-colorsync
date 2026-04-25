@@ -147,6 +147,74 @@ def _monochrome_palette(image_bytes: bytes, desired: int, mode: str) -> list[tup
         (110, 100, 95),
     ], desired)
 
+
+def _dominant_accent_candidates(candidates: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
+    """Return strong, useful accent colors from otherwise dark/neutral artwork."""
+    accents = []
+    for rgb in candidates:
+        h, s, v = _hsv(rgb)
+
+        # Keep real accent colors such as orange stars/logos/text.
+        # Avoid black, near-white, and low-saturation neutrals.
+        if s >= 0.34 and 0.20 <= v <= 0.92 and not is_bright_white(rgb):
+            accents.append(rgb)
+
+    return _clustered_select(accents, max(1, min(len(accents), 6)))
+
+
+def _dark_anchor_candidates(candidates: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
+    """Keep usable dark anchors from artwork without collapsing everything to black."""
+    anchors = []
+    for rgb in candidates:
+        h, s, v = _hsv(rgb)
+
+        # Deep navy, charcoal, and dark colored backgrounds are visually useful.
+        if 0.08 <= v <= 0.34 and (s >= 0.08 or v >= 0.16):
+            adjusted_v = max(v, 0.18)
+            adjusted_s = min(max(s, 0.14), 0.42)
+            r, g, b = colorsys.hsv_to_rgb(h, adjusted_s, adjusted_v)
+            anchors.append((int(r * 255), int(g * 255), int(b * 255)))
+
+    return _clustered_select(anchors, max(1, min(len(anchors), 4)))
+
+
+def _accent_preserving_low_color_palette(candidates: list[tuple[int, int, int]], desired: int) -> list[tuple[int, int, int]] | None:
+    """Preserve strong accent + dark anchor colors in mostly dark/neutral art.
+
+    This avoids turning covers with one real accent color into generic warm
+    neutral palettes.
+    """
+    accents = _dominant_accent_candidates(candidates)
+    if not accents:
+        return None
+
+    anchors = _dark_anchor_candidates(candidates)
+    soft_neutrals = []
+
+    for rgb in candidates:
+        h, s, v = _hsv(rgb)
+        if is_bright_white(rgb):
+            continue
+        if s < 0.22 and 0.24 <= v <= 0.82:
+            # Keep neutral support, but avoid harsh white and pure gray dominance.
+            v = min(v, 0.70)
+            s = min(s, 0.16)
+            r, g, b = colorsys.hsv_to_rgb(h, s, v)
+            soft_neutrals.append((int(r * 255), int(g * 255), int(b * 255)))
+
+    result = []
+    for group in (accents, anchors, soft_neutrals):
+        for color in group:
+            if color not in result:
+                result.append(color)
+
+    if not result:
+        return None
+
+    clustered = _clustered_select(result, desired)
+    return _repeat_to_count(clustered or result, desired)[:desired]
+
+
 def _muted_low_color_palette(candidates: list[tuple[int, int, int]], desired: int) -> list[tuple[int, int, int]]:
     """Bias low-color art toward restrained colors instead of saturated noise."""
     muted = []
@@ -190,6 +258,11 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[i
     candidates = ct.get_palette(color_count=max(desired * 6, 20), quality=3)
 
     if color_class == "low_color" and config.get("low_color_handling", True):
+        # Prefer preserving real accent colors on mostly dark/neutral artwork
+        # before falling back to generic muted low-color handling.
+        accent_palette = _accent_preserving_low_color_palette(candidates, desired)
+        if accent_palette:
+            return accent_palette[:desired]
         return _muted_low_color_palette(candidates, desired)[:desired]
 
     if config.get("filter_dull", True):

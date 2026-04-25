@@ -20,10 +20,21 @@ def _color_distance(a: list[int] | tuple[int, int, int] | None, b: list[int] | t
         return 999
     return max(abs(int(a[i]) - int(b[i])) for i in range(3))
 
+def _clamp_brightness(value: int, config: dict | None = None, gradient_aware: bool = False) -> int:
+    config = config or {}
+    min_brightness = int(config.get("min_brightness", 30))
+    max_brightness = int(config.get("max_brightness", 255))
+    if max_brightness < min_brightness:
+        max_brightness = min_brightness
+    if gradient_aware and config.get("gradient_brightness") is not None:
+        max_brightness = min(max_brightness, int(config.get("gradient_brightness", max_brightness)))
+    return max(min_brightness, min(max_brightness, int(value)))
+
+
 def _brightness_for_color(color: tuple[int, int, int]) -> int:
     return int(50 + luminance(color) * 205)
 
-def build_service_data(state, color: tuple[int, int, int], transition: float) -> dict:
+def build_service_data(state, color: tuple[int, int, int], transition: float, config: dict | None = None, gradient_aware: bool = False) -> dict:
     brightness = _brightness_for_color(color)
     data = {"entity_id": state.entity_id, "brightness": brightness, "transition": transition}
 
@@ -76,6 +87,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 transition,
                 order_mode=(config or {}).get("gradient_order_mode", "same_order"),
                 track_key=(config or {}).get("_track_key"),
+                brightness=_clamp_brightness(_brightness_for_color(color), config, True),
             )
             if success:
                 gradient_diag["assignment_strategy"] = strategy
@@ -86,7 +98,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 # Prevent immediate HA-native duplicate apply on the same target.
                 _LAST_APPLIED[entity_id] = {
                     "rgb_color": list(color),
-                    "brightness": _brightness_for_color(color),
+                    "brightness": _clamp_brightness(_brightness_for_color(color), config, gradient_aware),
                     "transition": transition,
                     "gradient": True,
                 }
@@ -99,7 +111,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 "detail": gradient_diag.get("gradient_error"),
             })
 
-        service_data = build_service_data(state, color, transition)
+        service_data = build_service_data(state, color, transition, config=config, gradient_aware=gradient_aware)
         apply_needed, reason = should_apply(entity_id, service_data)
 
         diagnostic_data = dict(service_data)

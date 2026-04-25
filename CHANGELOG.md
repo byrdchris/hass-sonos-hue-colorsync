@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.3.0
+
+### Added
+- Added **Minimum Brightness** control.
+- Added **Maximum Brightness** control.
+- Added **Gradient Brightness** control.
+- Added **Excluded Lights** option.
+- Added **Restore Delay** option.
+
+### Changed
+- Brightness is now clamped before light service calls.
+- Gradient brightness is passed to Hue direct gradient control.
+- Excluded lights are filtered after group expansion.
+- Restore can now be delayed and cancelled if playback resumes.
+
+## v2.2.1
+
+### Fixed
+- Improved low-color album art handling so mostly dark/neutral covers with strong accent colors no longer collapse into generic warm neutrals.
+- Preserves real accent colors such as orange stars, logos, or text.
+- Keeps usable dark anchors while still avoiding harsh bright whites.
+
+### Notes
+- This targets covers like black/navy artwork with orange or colored typography.
+
 ## v2.2.0
 
 ### Added

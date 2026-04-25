@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from datetime import timedelta
@@ -48,6 +49,7 @@ class SonosHueCoordinator:
         self.scene = None
         self.enabled = True
         self._remove_listener = None
+        self._restore_delay_task = None
         self._listeners = []
         self.last_palette = []
         self.last_image = None
@@ -142,6 +144,9 @@ class SonosHueCoordinator:
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
             "runtime_options": self.runtime_options,
+            "brightness_limits": {"minimum": self.config.get("min_brightness", 30), "maximum": self.config.get("max_brightness", 255), "gradient": self.config.get("gradient_brightness", 255)},
+            "excluded_lights": self.config.get("exclude_light_entities", []),
+            "restore_delay": self.config.get("restore_delay", 0),
             "timings": self.last_timings,
             "cache_result": self.last_cache_result,
             "restore_snapshot_count": self.last_restore_snapshot_count,
@@ -251,11 +256,13 @@ class SonosHueCoordinator:
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        self._restore_delay_task = None
 
     async def async_refresh_listener(self):
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        self._restore_delay_task = None
         _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)
         self._remove_listener = async_track_state_change_event(self.hass, [self.sonos_entity], self._handle)
 
@@ -483,6 +490,7 @@ Tokens and artwork URLs are redacted.
             await self._handle_stop()
 
     async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False):
+        self._cancel_pending_restore()
         process_started = time.perf_counter()
         self.last_timings = {}
         self.last_cache_result = None
@@ -547,19 +555,35 @@ Tokens and artwork URLs are redacted.
             _LOGGER.exception("Failed extracting/applying palette")
             self._notify()
 
-    async def _handle_stop(self):
-        if self.scene:
-            try:
-                self.last_restore_snapshot_count = len(self.scene) if hasattr(self.scene, '__len__') else 1
-                await restore_scene(self.hass, self.scene)
-                self.last_restore_result = 'restored'
-            except Exception as err:
-                self.last_restore_result = f'failed: {err}'
-                _LOGGER.exception('Failed restoring Sonos Hue Sync scene')
-            self.scene = None
-        clear_apply_cache()
-        self._notify()
 
+    def _cancel_pending_restore(self):
+        if self._restore_delay_task and not self._restore_delay_task.done():
+            self._restore_delay_task.cancel()
+        self._restore_delay_task = None
+
+    async def _restore_after_delay(self, delay: float):
+        try:
+            if delay > 0:
+                await asyncio.sleep(delay)
+            if self.scene:
+                try:
+                    self.last_restore_snapshot_count = len(self.scene) if hasattr(self.scene, "__len__") else 1
+                    await restore_scene(self.hass, self.scene)
+                    self.last_restore_result = "restored"
+                except Exception as err:
+                    self.last_restore_result = f"failed: {err}"
+                    _LOGGER.exception("Failed restoring Sonos Hue Sync scene")
+                self.scene = None
+            clear_apply_cache()
+            self._notify()
+        except asyncio.CancelledError:
+            self.last_restore_result = "cancelled"
+            raise
+
+    async def _handle_stop(self):
+        delay = float(self.config.get("restore_delay", 0) or 0)
+        self._cancel_pending_restore()
+        self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
 
     async def async_health_check(self) -> dict:
         """Run a user-facing integration health check."""

@@ -730,3 +730,38 @@ Adds:
 - Expanded downloaded diagnostics with health and runtime troubleshooting data.
 
 Health Check reviews Hue bridge reachability, Sonos availability, selected targets, resolved lights, gradient success/fallback counts, and recent processing errors.
+
+
+## v2.2.1
+
+### Accent-preserving low-color artwork
+
+Improves color extraction for mostly dark or neutral album art that contains a real accent color, such as orange stars/logos/text.
+
+Previous behavior:
+- Low-color handling could over-mute the cover into warm browns/tans.
+
+New behavior:
+- Preserves strong accent colors.
+- Keeps a usable dark anchor from the artwork.
+- Still avoids harsh bright whites.
+
+
+## v2.3.0
+
+### Control tuning
+
+Adds:
+
+- **Minimum Brightness**
+- **Maximum Brightness**
+- **Gradient Brightness**
+- **Excluded Lights**
+- **Restore Delay**
+
+Behavior:
+
+- Standard light brightness is clamped between Minimum and Maximum Brightness.
+- True Gradient lights use Gradient Brightness as their maximum.
+- Excluded Lights are removed after group expansion, so they are not controlled even if they belong to a selected room/group.
+- Restore Delay waits after playback stops before restoring the previous light state. If playback resumes during the delay, restore is cancelled.

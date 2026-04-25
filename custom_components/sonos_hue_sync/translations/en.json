@@ -22,7 +22,12 @@
           "assignment_strategy": "Light assignment strategy",
           "true_gradient_mode": "Enable True Gradient",
           "gradient_color_points": "Gradient Detail Level",
-          "gradient_order_mode": "Gradient Pattern"
+          "gradient_order_mode": "Gradient Pattern",
+          "min_brightness": "Minimum Brightness",
+          "max_brightness": "Maximum Brightness",
+          "gradient_brightness": "Gradient Brightness",
+          "exclude_light_entities": "Excluded Lights",
+          "restore_delay": "Restore Delay"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -40,7 +45,12 @@
           "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors.",
           "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
           "gradient_color_points": "Number of color points sent to supported gradient lights.",
-          "gradient_order_mode": "Choose whether gradient lights use the same color order, an offset order per light, or a deterministic random order per track."
+          "gradient_order_mode": "Choose whether gradient lights use the same color order, an offset order per light, or a deterministic random order per track.",
+          "min_brightness": "Lowest brightness Sonos Hue Sync may apply to standard lights.",
+          "max_brightness": "Highest brightness Sonos Hue Sync may apply to standard lights.",
+          "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
+          "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
+          "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled."
         }
       }
     }
@@ -66,7 +76,12 @@
           "assignment_strategy": "Light assignment strategy",
           "true_gradient_mode": "Enable True Gradient",
           "gradient_color_points": "Gradient Detail Level",
-          "gradient_order_mode": "Gradient Pattern"
+          "gradient_order_mode": "Gradient Pattern",
+          "min_brightness": "Minimum Brightness",
+          "max_brightness": "Maximum Brightness",
+          "gradient_brightness": "Gradient Brightness",
+          "exclude_light_entities": "Excluded Lights",
+          "restore_delay": "Restore Delay"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -84,7 +99,12 @@
           "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors.",
           "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
           "gradient_color_points": "Number of color points sent to supported gradient lights.",
-          "gradient_order_mode": "Choose whether gradient lights use the same color order, an offset order per light, or a deterministic random order per track."
+          "gradient_order_mode": "Choose whether gradient lights use the same color order, an offset order per light, or a deterministic random order per track.",
+          "min_brightness": "Lowest brightness Sonos Hue Sync may apply to standard lights.",
+          "max_brightness": "Highest brightness Sonos Hue Sync may apply to standard lights.",
+          "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
+          "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
+          "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled."
         }
       }
     }
@@ -176,6 +196,22 @@
       "gradient_color_points": {
         "name": "Gradient Detail Level",
         "description": "Set the number of color points sent to gradient lights."
+      },
+      "min_brightness": {
+        "name": "Minimum Brightness",
+        "description": "Lowest brightness Sonos Hue Sync may apply."
+      },
+      "max_brightness": {
+        "name": "Maximum Brightness",
+        "description": "Highest brightness Sonos Hue Sync may apply."
+      },
+      "gradient_brightness": {
+        "name": "Gradient Brightness",
+        "description": "Maximum brightness used for supported gradient lights."
+      },
+      "restore_delay": {
+        "name": "Restore Delay",
+        "description": "Seconds to wait before restoring lights after playback stops."
       }
     }
   },
