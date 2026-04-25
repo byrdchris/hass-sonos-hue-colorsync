@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, is_dataclass
 
 from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
+
+GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
 
 def rgb_to_xy(rgb: tuple[int, int, int]) -> tuple[float, float]:
     """Approximate sRGB to CIE 1931 xy conversion."""
@@ -36,51 +37,58 @@ def gradient_palette_for_light(
     base_color: tuple[int, int, int],
     point_count: int,
 ) -> list[tuple[int, int, int]]:
-    """Create ordered gradient points.
-
-    Keep the assigned color as the first point so gradient behavior remains
-    consistent with the selected assignment strategy, then fill with other
-    palette colors.
-    """
     point_count = max(2, min(5, int(point_count or 5)))
-
     ordered = [base_color]
     for color in palette:
         if color not in ordered:
             ordered.append(color)
-
     return _repeat_to_count(ordered, point_count)
+
+def _entity_looks_gradient(hass, entity_id: str) -> bool:
+    state = hass.states.get(entity_id)
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+    haystack = " ".join(str(x or "").lower() for x in (
+        entity_id,
+        state.attributes.get("friendly_name") if state else "",
+        entry.name if entry else "",
+        entry.original_name if entry else "",
+        entry.unique_id if entry else "",
+        state.attributes.get("model") if state else "",
+    ))
+    effects = state.attributes.get("effect_list") if state else []
+    if isinstance(effects, list):
+        haystack += " " + " ".join(str(e).lower() for e in effects)
+    return any(hint in haystack for hint in GRADIENT_HINTS)
 
 def _walk_bridge_candidates(hass):
     hue_data = hass.data.get("hue")
     if not hue_data:
-        return
+        return []
 
-    if isinstance(hue_data, dict):
-        values = hue_data.values()
-    else:
-        values = [hue_data]
+    values = hue_data.values() if isinstance(hue_data, dict) else [hue_data]
+    results = []
 
     for value in values:
         if value is None:
             continue
         if hasattr(value, "api"):
-            yield value, getattr(value, "api")
+            results.append((value, getattr(value, "api")))
         if hasattr(value, "bridge") and hasattr(value.bridge, "api"):
-            yield value.bridge, value.bridge.api
+            results.append((value.bridge, value.bridge.api))
         if isinstance(value, dict):
             for sub in value.values():
                 if hasattr(sub, "api"):
-                    yield sub, sub.api
+                    results.append((sub, sub.api))
+
+    return results
 
 def _iter_lights_controller(api):
     candidates = [
         getattr(api, "lights", None),
         getattr(getattr(api, "v2", None), "lights", None),
     ]
-    for controller in candidates:
-        if controller is not None:
-            yield controller
+    return [controller for controller in candidates if controller is not None]
 
 def _controller_values(controller):
     for attr in ("values", "items"):
@@ -123,10 +131,10 @@ def _resource_id_v1(resource) -> str | None:
         return resource.get("id_v1")
     return getattr(resource, "id_v1", None)
 
-def _resource_supports_gradient(resource) -> bool:
+def _resource_gradient_info(resource):
     if isinstance(resource, dict):
-        return bool(resource.get("gradient"))
-    return getattr(resource, "gradient", None) is not None
+        return resource.get("gradient")
+    return getattr(resource, "gradient", None)
 
 def _match_hue_resource(hass, entity_id: str):
     registry = er.async_get(hass)
@@ -136,23 +144,40 @@ def _match_hue_resource(hass, entity_id: str):
     unique_id = str(entry.unique_id if entry and entry.unique_id else "")
     friendly_name = str(state.attributes.get("friendly_name", "") if state else "")
 
-    for _bridge, api in _walk_bridge_candidates(hass) or []:
+    attempted = []
+
+    for _bridge, api in _walk_bridge_candidates(hass):
         for controller in _iter_lights_controller(api):
             for resource in _controller_values(controller):
                 rid = _resource_id(resource)
                 rid_v1 = _resource_id_v1(resource)
                 name = _resource_name(resource)
+                attempted.append({"id": rid, "id_v1": rid_v1, "name": name})
 
                 candidates = [str(x) for x in (rid, rid_v1) if x]
                 if any(candidate and candidate in unique_id for candidate in candidates):
-                    return controller, rid, resource
+                    return controller, rid, resource, attempted
 
                 if friendly_name and name and friendly_name.casefold() == name.casefold():
-                    return controller, rid, resource
+                    return controller, rid, resource, attempted
 
-    return None, None, None
+    return None, None, None, attempted
 
-def _build_light_put(points: list[tuple[int, int, int]], transition_seconds: float):
+def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float):
+    return {
+        "on": {"on": True},
+        "dimming": {"brightness": 100},
+        "dynamics": {"duration": int(float(transition_seconds or 0) * 1000)},
+        "gradient": {
+            "points": [
+                {"color": {"xy": {"x": rgb_to_xy(color)[0], "y": rgb_to_xy(color)[1]}}}
+                for color in points
+            ],
+            "mode": "interpolated_palette",
+        },
+    }
+
+def _model_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float):
     from aiohue.v2.models.feature import (
         ColorFeaturePut,
         ColorPoint,
@@ -172,9 +197,13 @@ def _build_light_put(points: list[tuple[int, int, int]], transition_seconds: flo
         points=[
             GradientPoint(color=ColorFeaturePut(xy=ColorPoint(*rgb_to_xy(color))))
             for color in points
-        ]
+        ],
+        mode="interpolated_palette",
     )
     return update
+
+async def _try_update(controller, resource_id: str, payload):
+    await controller.update(resource_id, payload)
 
 async def try_apply_gradient(
     hass,
@@ -184,43 +213,56 @@ async def try_apply_gradient(
     point_count: int,
     transition: float,
 ) -> tuple[bool, dict]:
-    """Try to apply true Hue gradient through HA's existing aiohue bridge.
-
-    Returns (success, diagnostics). Failure is expected on unsupported lights or
-    if Home Assistant internals differ; caller should fall back to HA-native.
-    """
     diagnostics = {
         "entity_id": entity_id,
         "gradient_requested": True,
         "gradient_applied": False,
     }
 
-    try:
-        controller, resource_id, resource = _match_hue_resource(hass, entity_id)
-        if controller is None or not resource_id:
-            diagnostics["gradient_error"] = "hue_resource_not_found"
-            return False, diagnostics
+    controller, resource_id, resource, attempted = _match_hue_resource(hass, entity_id)
 
-        if not _resource_supports_gradient(resource):
-            diagnostics["gradient_error"] = "resource_has_no_gradient_feature"
-            return False, diagnostics
-
-        points = gradient_palette_for_light(palette, base_color, point_count)
-        update = _build_light_put(points, transition)
-
-        await controller.update(resource_id, update)
-
-        diagnostics.update(
-            {
-                "gradient_applied": True,
-                "hue_resource_id": resource_id,
-                "gradient_colors": [list(color) for color in points],
-                "gradient_points": len(points),
-            }
-        )
-        return True, diagnostics
-
-    except Exception as err:
-        _LOGGER.debug("[gradient] failed for %s: %s", entity_id, err, exc_info=True)
-        diagnostics["gradient_error"] = f"{type(err).__name__}: {err}"
+    if controller is None or not resource_id:
+        diagnostics["gradient_error"] = "hue_resource_not_found"
+        diagnostics["gradient_match_attempts"] = attempted[:10]
+        _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
         return False, diagnostics
+
+    gradient_info = _resource_gradient_info(resource)
+    looks_gradient = _entity_looks_gradient(hass, entity_id)
+
+    diagnostics["hue_resource_id"] = resource_id
+    diagnostics["hue_resource_name"] = _resource_name(resource)
+    diagnostics["hue_gradient_info"] = str(gradient_info)
+    diagnostics["entity_looks_gradient"] = looks_gradient
+
+    # Some HA/aiohue versions parse gradient data as invalid dicts. Do not block
+    # attempts on parsed model quality when the entity itself looks like a
+    # gradient device.
+    if gradient_info is None and not looks_gradient:
+        diagnostics["gradient_error"] = "resource_has_no_gradient_feature"
+        _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
+        return False, diagnostics
+
+    points = gradient_palette_for_light(palette, base_color, point_count)
+    diagnostics["gradient_colors"] = [list(color) for color in points]
+    diagnostics["gradient_points"] = len(points)
+
+    errors = []
+
+    for payload_kind, builder in (
+        ("aiohue_model", _model_gradient_payload),
+        ("raw_dict", _raw_gradient_payload),
+    ):
+        try:
+            payload = builder(points, transition)
+            await _try_update(controller, resource_id, payload)
+            diagnostics["gradient_applied"] = True
+            diagnostics["gradient_payload_kind"] = payload_kind
+            _LOGGER.debug("[gradient] %s applied via %s", entity_id, payload_kind)
+            return True, diagnostics
+        except Exception as err:
+            errors.append(f"{payload_kind}: {type(err).__name__}: {err}")
+            _LOGGER.debug("[gradient] %s %s failed: %s", entity_id, payload_kind, err, exc_info=True)
+
+    diagnostics["gradient_error"] = " | ".join(errors)
+    return False, diagnostics

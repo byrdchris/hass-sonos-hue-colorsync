@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.1
+
+### Fixed
+- Cleaned up **Gradient Color Points** labels/descriptions in UI translations.
+- Improved True Gradient Mode diagnostics.
+- Attempts direct Hue gradient update even when Home Assistant/aiohue exposes gradient metadata as an invalid or empty parsed object, as long as the entity looks like a gradient light.
+- Adds raw-dictionary fallback payload after aiohue model payload failure.
+
+### Notes
+- True Gradient Mode remains experimental and still falls back to normal Home Assistant single-color control when direct gradient update fails.
+
 ## v2.1.0
 
 ### Added

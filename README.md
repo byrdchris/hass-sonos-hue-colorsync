@@ -501,3 +501,25 @@ Diagnostics:
 - `gradient_colors`
 - `gradient_points`
 - `gradient_error`
+
+
+## v2.1.1
+
+### Gradient diagnostics and label cleanup
+
+- Fixes remaining raw **gradient_color_points** label leakage in translations.
+- Improves True Gradient Mode diagnostics.
+- Attempts direct Hue gradient update even when Home Assistant/aiohue exposes gradient metadata as an invalid/empty parsed object.
+- Adds raw dictionary payload fallback after aiohue model payload failure.
+
+Check `last_service_data` for:
+
+```yaml
+gradient_requested:
+gradient_applied:
+gradient_error:
+gradient_payload_kind:
+hue_resource_id:
+hue_resource_name:
+gradient_colors:
+```
