@@ -15,6 +15,7 @@ from .const import (
     CONF_EXPAND_GROUPS,
     CONF_FILTER_DULL,
     CONF_LIGHT_ENTITIES,
+    CONF_GROUP_ENTITIES,
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
     CONF_TRANSITION,
@@ -32,6 +33,8 @@ def build_schema(defaults: dict):
         vol.Required(CONF_SONOS_ENTITY, default=defaults.get(CONF_SONOS_ENTITY, "")):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),
         vol.Required(CONF_LIGHT_ENTITIES, default=defaults.get(CONF_LIGHT_ENTITIES, [])):
+            selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
+        vol.Optional(CONF_GROUP_ENTITIES, default=defaults.get(CONF_GROUP_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_COLOR_COUNT, default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),

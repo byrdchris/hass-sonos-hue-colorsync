@@ -20,6 +20,7 @@ from .const import (
     ATTR_SOURCE_IMAGE,
     CONF_CACHE,
     CONF_LIGHT_ENTITIES,
+    CONF_GROUP_ENTITIES,
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
@@ -42,6 +43,7 @@ class SonosHueCoordinator:
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
+        self.last_skipped_lights = []
         self.last_track_key = None
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
@@ -66,6 +68,14 @@ class SonosHueCoordinator:
         return [legacy] if legacy else []
 
     @property
+    def group_entities(self):
+        return self.config.get(CONF_GROUP_ENTITIES, []) or []
+
+    @property
+    def expansion_entities(self):
+        return self.group_entities or self.light_entities
+
+    @property
     def palette_attributes(self):
         hex_colors = [rgb_to_hex(c) for c in self.last_palette]
         return {
@@ -80,12 +90,15 @@ class SonosHueCoordinator:
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
             "light_entities": self.light_entities,
+            "group_entities": self.group_entities,
+            "expansion_entities": self.expansion_entities,
             "selected_entity_members": self._selected_entity_members(),
             "last_track_key": self.last_track_key,
             "last_processing_reason": self.last_processing_reason,
             "selected_light_count": len(self.light_entities),
             "resolved_light_count": len(self.last_resolved_lights),
             "resolver_source": self.last_resolver_source,
+            "skipped_lights": self.last_skipped_lights,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
         }
@@ -103,15 +116,18 @@ class SonosHueCoordinator:
 
     def _selected_entity_members(self):
         members = {}
-        for entity_id in self.light_entities:
+        for entity_id in self.expansion_entities:
             state = self.hass.states.get(entity_id)
             live = []
             if state is not None:
                 value = state.attributes.get("entity_id")
                 live = value if isinstance(value, list) else []
             members[entity_id] = {
-                "live_entity_id": live,
+                "state": state.state if state is not None else None,
                 "friendly_name": state.attributes.get("friendly_name") if state is not None else None,
+                "is_hue_group": state.attributes.get("is_hue_group") if state is not None else None,
+                "hue_type": state.attributes.get("hue_type") if state is not None else None,
+                "live_entity_id": live,
             }
         return members
 
@@ -248,11 +264,12 @@ class SonosHueCoordinator:
 
     async def _apply_palette_to_lights(self):
         try:
-            resolved, last_service_data, resolver_source = await apply_palette(
-                self.hass, self.light_entities, self.last_palette, self.config
+            resolved, last_service_data, resolver_source, skipped_lights = await apply_palette(
+                self.hass, self.expansion_entities, self.last_palette, self.config
             )
             self.last_resolved_lights = resolved
             self.last_resolver_source = resolver_source
+            self.last_skipped_lights = skipped_lights
             self.last_service_data = last_service_data
             self.last_error = None
         except Exception as err:
@@ -293,7 +310,7 @@ class SonosHueCoordinator:
         self.last_track_key = track_key
 
         if not self.scene:
-            self.scene = await snapshot_scene(self.hass, self.light_entities)
+            self.scene = await snapshot_scene(self.hass, self.expansion_entities)
 
         art = state.attributes.get("entity_picture")
         if not art:

@@ -166,11 +166,61 @@ def _same_area_physical_lights(hass, source_entity_id: str) -> list[str]:
             candidates.append(entry.entity_id)
     return _unique(candidates)
 
-def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> tuple[list[str], str]:
+
+def _is_available_light_state(state) -> bool:
+    return state is not None and state.state not in ("unavailable", "unknown")
+
+def _is_control_target(hass, entity_id: str) -> bool:
+    state = hass.states.get(entity_id)
+    if not _is_available_light_state(state):
+        return False
+    # Avoid applying directly to aggregate group helpers after expansion unless
+    # the user explicitly selected them and they could not be expanded.
+    if state.attributes.get("entity_id"):
+        return False
+    if state.attributes.get("is_hue_group") is True:
+        return False
+    if state.attributes.get("hue_type") in ("room", "zone", "group"):
+        return False
+    return True
+
+def _clean_resolved_lights(hass, lights: list[str]) -> tuple[list[str], list[dict]]:
+    cleaned = []
+    skipped = []
+    seen = set()
+
+    for light in lights:
+        if light in seen:
+            skipped.append({"entity_id": light, "reason": "duplicate"})
+            continue
+        seen.add(light)
+
+        state = hass.states.get(light)
+        if state is None:
+            skipped.append({"entity_id": light, "reason": "missing"})
+            continue
+        if state.state in ("unavailable", "unknown"):
+            skipped.append({"entity_id": light, "reason": state.state})
+            continue
+
+        cleaned.append(light)
+
+    return cleaned, skipped
+
+def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True) -> tuple[list[str], str, list[dict]]:
     resolved = []
     sources = []
+    skipped = []
 
     for entity_id in selected_entities:
+        state = hass.states.get(entity_id)
+        if state is None:
+            skipped.append({"entity_id": entity_id, "reason": "selected_missing"})
+            continue
+        if state.state in ("unavailable", "unknown"):
+            skipped.append({"entity_id": entity_id, "reason": f"selected_{state.state}"})
+            continue
+
         expanded = []
 
         if expand_groups:
@@ -178,14 +228,14 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
             if direct:
                 expanded = direct
                 sources.append(f"{entity_id}:direct_entity_id_members")
+            elif _LAST_GROUP_MEMBERS.get(entity_id):
+                expanded = _LAST_GROUP_MEMBERS[entity_id]
+                sources.append(f"{entity_id}:cached_direct_entity_id_members")
             else:
                 parent, parent_members = _find_parent_group_for_helper(hass, entity_id)
                 if parent_members:
                     expanded = parent_members
                     sources.append(f"{entity_id}:parent_group:{parent}")
-                elif _LAST_GROUP_MEMBERS.get(entity_id):
-                    expanded = _LAST_GROUP_MEMBERS[entity_id]
-                    sources.append(f"{entity_id}:cached_direct_entity_id_members")
                 elif _is_hue_group_entity(hass, entity_id):
                     area_members = _same_area_physical_lights(hass, entity_id)
                     if area_members:
@@ -196,10 +246,16 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
             _LOGGER.info("Expanded %s to %s", entity_id, expanded)
             resolved.extend(expanded)
         else:
+            # If it could not be expanded, use the selected entity as a final
+            # target. This preserves explicit helper/entity selection.
             resolved.append(entity_id)
             sources.append(f"{entity_id}:selected_entity")
 
-    return _unique(resolved), ", ".join(sources) if sources else "selected_entities"
+    cleaned, clean_skipped = _clean_resolved_lights(hass, resolved)
+    skipped.extend(clean_skipped)
+
+    return cleaned, ", ".join(sources) if sources else "selected_entities", skipped
+
 
 def _is_gradient_entity(hass, entity_id: str) -> bool:
     state = hass.states.get(entity_id)
@@ -281,10 +337,10 @@ def _build_service_data(state, color, transition):
     return data
 
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
-    resolved, resolver_source = resolve_light_entities(hass, selected_entities, expand_groups=config.get(CONF_EXPAND_GROUPS, True))
+    resolved, resolver_source, skipped_lights = resolve_light_entities(hass, selected_entities, expand_groups=config.get(CONF_EXPAND_GROUPS, True))
     if not resolved:
         _LOGGER.warning("No resolved light entities from selected entities: %s", selected_entities)
-        return [], [], resolver_source
+        return [], [], resolver_source, skipped_lights
 
     strategy = config.get(CONF_ASSIGNMENT_STRATEGY, ASSIGNMENT_STRATEGY_BALANCED)
     assignments = _assign_colors(hass, resolved, palette, strategy)
@@ -308,4 +364,4 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
         _LOGGER.debug("Calling light.turn_on with %s", call_data)
         await hass.services.async_call("light", "turn_on", call_data, blocking=True)
 
-    return resolved, service_data_sent, resolver_source
+    return resolved, service_data_sent, resolver_source, skipped_lights

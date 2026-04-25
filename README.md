@@ -169,3 +169,54 @@ The search is generic and is not hard-coded to Living Room.
 ### Transition
 
 Ensures one `light.turn_on` call per resolved light.
+
+
+## v1.31.0
+
+### Explicit group expansion source
+
+Adds a new options field:
+
+- **Hue groups to expand**
+
+Use this for real Hue room/zone/group entities such as:
+
+- `light.living_room`
+- `light.kitchen`
+- `light.bedroom`
+
+If this field is set, the integration expands those groups directly and ignores
+helper entities such as:
+
+- `light.living_room_primary`
+- `light.living_room_ambient`
+
+This avoids guessing parent groups from helper names and supports any group name.
+
+
+## v1.32.0
+
+### Edge-case hardening
+
+Adds defensive handling for mixed and imperfect light selections:
+
+- Deduplicates lights when multiple groups overlap
+- Skips missing, unavailable, and unknown entities
+- Keeps explicit selected entities if they cannot be expanded
+- Tracks skipped lights and skip reasons in diagnostics
+- Improves selected group diagnostics with:
+  - state
+  - friendly name
+  - is_hue_group
+  - hue_type
+  - live entity members
+
+New palette sensor diagnostic:
+
+```yaml
+skipped_lights:
+  - entity_id: light.example
+    reason: duplicate | missing | unavailable | unknown
+```
+
+This makes it safer to use multiple real Hue groups in **Hue groups to expand**.

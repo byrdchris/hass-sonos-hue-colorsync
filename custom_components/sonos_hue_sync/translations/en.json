@@ -14,7 +14,8 @@
           "filter_dull": "Filter dull colors",
           "cache": "Cache album colors",
           "expand_groups": "Expand grouped lights",
-          "assignment_strategy": "Light assignment strategy"
+          "assignment_strategy": "Light assignment strategy",
+          "group_entities": "Hue groups to expand"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
@@ -24,7 +25,8 @@
           "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping bright whites and cream tones.",
           "cache": "Reuse colors for album art that has already been processed.",
           "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark."
+          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark.",
+          "group_entities": "Optional. Choose real Hue room/zone/group light entities to expand into their member lights. Use this when Home Assistant exposes helper entities such as Primary or Ambient that do not list members."
         }
       }
     }
@@ -42,7 +44,8 @@
           "filter_dull": "Filter dull colors",
           "cache": "Cache album colors",
           "expand_groups": "Expand grouped lights",
-          "assignment_strategy": "Light assignment strategy"
+          "assignment_strategy": "Light assignment strategy",
+          "group_entities": "Hue groups to expand"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
@@ -52,7 +55,8 @@
           "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping bright whites and cream tones.",
           "cache": "Reuse colors for album art that has already been processed.",
           "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark."
+          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark.",
+          "group_entities": "Optional. Choose real Hue room/zone/group light entities to expand into their member lights. Use this when Home Assistant exposes helper entities such as Primary or Ambient that do not list members."
         }
       }
     }
