@@ -10,6 +10,8 @@ from homeassistant.components.http.auth import async_sign_path
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.network import get_url
+from homeassistant.helpers.event import async_track_time_interval
+from datetime import timedelta
 
 from .cache import PaletteCache
 from .const import (
@@ -49,6 +51,10 @@ class SonosHueCoordinator:
         self.scene = None
         self.enabled = True
         self._remove_listener = None
+        self._poll_remove = None
+        self.last_sonos_attributes = {}
+        self.current_artwork_bytes = None
+        self.current_artwork_content_type = None
         self._restore_delay_task = None
         self._listeners = []
         self.last_palette = []
@@ -137,6 +143,7 @@ class SonosHueCoordinator:
             "artwork_fallback_applied": self.last_artwork_fallback_applied,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
+            "sonos_media": self.last_sonos_attributes,
             "light_entities": self.light_entities,
             "group_entities": self.group_entities,
             "member_light_entities": self.member_light_entities,
@@ -266,14 +273,23 @@ class SonosHueCoordinator:
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        self._poll_remove = None
+        self.last_sonos_attributes = {}
+        self.current_artwork_bytes = None
+        self.current_artwork_content_type = None
         self._restore_delay_task = None
 
     async def async_refresh_listener(self):
         if self._remove_listener:
             self._remove_listener()
             self._remove_listener = None
+        self._poll_remove = None
+        self.last_sonos_attributes = {}
+        self.current_artwork_bytes = None
+        self.current_artwork_content_type = None
         self._restore_delay_task = None
         _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)
+        self._ensure_polling()
         self._remove_listener = async_track_state_change_event(self.hass, [self.sonos_entity], self._handle)
 
     async def async_update_config(self):
@@ -282,6 +298,22 @@ class SonosHueCoordinator:
         self._notify()
         await self.async_process_current_state(reason="options_update")
 
+
+
+    def _snapshot_sonos_attrs(self, state):
+        attrs = state.attributes if state is not None else {}
+        self.last_sonos_attributes = {
+            "state": state.state if state is not None else None,
+            "media_title": attrs.get("media_title"),
+            "media_artist": attrs.get("media_artist"),
+            "media_album_name": attrs.get("media_album_name"),
+            "media_content_id": attrs.get("media_content_id"),
+            "media_duration": attrs.get("media_duration"),
+            "entity_picture_present": bool(attrs.get("entity_picture")),
+            "entity_picture": attrs.get("entity_picture"),
+            "media_image_url_present": bool(attrs.get("media_image_url")),
+            "media_image_url": attrs.get("media_image_url"),
+        }
 
     def _art_candidates(self, state):
         attrs = state.attributes
@@ -368,6 +400,8 @@ class SonosHueCoordinator:
                     self._notify()
                     return None
                 self.last_image_fetch_status = f"ok:{len(data)}_bytes"
+                self.current_artwork_bytes = data
+                self.current_artwork_content_type = resp.headers.get("Content-Type", "image/jpeg")
                 return data
         except Exception as err:
             self.last_image_fetch_status = f"exception:{type(err).__name__}"
@@ -569,6 +603,7 @@ Tokens and artwork URLs are redacted.
         self.last_timings = {}
         self.last_cache_result = None
         self.last_processing_reason = reason
+        self._snapshot_sonos_attrs(state)
 
         if reason in ("button_extract_now", "extract_now_service") or reason.startswith("runtime_option_changed") or reason == "options_update":
             bypass_cache = True
@@ -700,6 +735,22 @@ Tokens and artwork URLs are redacted.
         self._cancel_pending_restore()
         self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
 
+
+    async def async_get_current_artwork(self):
+        """Return current artwork bytes for the image entity."""
+        if self.current_artwork_bytes:
+            return self.current_artwork_bytes, self.current_artwork_content_type or "image/jpeg"
+
+        state = self.hass.states.get(self.sonos_entity)
+        if state is None:
+            return None, None
+        self._snapshot_sonos_attrs(state)
+        for candidate in self._art_candidates(state):
+            data = await self._fetch_image_bytes(candidate)
+            if data:
+                return data, self.current_artwork_content_type or "image/jpeg"
+        return None, None
+
     async def async_health_check(self) -> dict:
         """Run a user-facing integration health check."""
         report = build_health_report(self.hass, self)
@@ -717,12 +768,49 @@ Tokens and artwork URLs are redacted.
         self._notify()
         return report
 
+
+    async def _poll_playing_sonos(self, now=None):
+        """Fallback poll for AirPlay/Sonos metadata sources that do not emit reliable HA state events."""
+        if not self.enabled:
+            return
+        state = self.hass.states.get(self.sonos_entity)
+        if state is None:
+            return
+        if state.state != "playing":
+            return
+
+        attrs = state.attributes
+        track_key = self._track_key(state)
+        current_key = self.last_track_key
+
+        # Only process if track/art metadata changed since the last successful/attempted run.
+        if track_key and track_key != current_key:
+            await self._process_state(state, reason="airplay_poll_metadata_change", force=True, bypass_cache=False, force_apply=True)
+
+    def _ensure_polling(self):
+        interval = int(self.config.get("airplay_poll_interval", 5) or 5)
+        interval = max(2, min(60, interval))
+        if self._poll_remove is not None:
+            return
+        self._poll_remove = async_track_time_interval(
+            self.hass,
+            self._poll_playing_sonos,
+            timedelta(seconds=interval),
+        )
+
+    def _stop_polling(self):
+        if self._poll_remove is not None:
+            self._poll_remove()
+            self._poll_remove = None
+
     async def async_enable(self):
         self.enabled = True
+        self._ensure_polling()
         self._notify()
         await self.async_process_current_state(reason="enabled")
 
     async def async_disable(self):
         self.enabled = False
+        self._stop_polling()
         await self._handle_stop()
         self._notify()

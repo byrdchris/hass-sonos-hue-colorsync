@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.3.4
+
+### Added
+- Added **Current Artwork** image entity.
+- Added fallback metadata polling while Sonos is playing.
+- Added **AirPlay Metadata Check Interval** option.
+- Added Sonos media/artwork diagnostics.
+
+### Fixed
+- Improves automatic updates when AirPlay/Sonos metadata changes do not reliably emit Home Assistant state events.
+
 ## v2.3.3
 
 ### Added

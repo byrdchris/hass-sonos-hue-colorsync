@@ -825,3 +825,19 @@ last_palette_error:
 last_image_fetch_status:
 last_image_fetch_candidates:
 ```
+
+
+## v2.3.4
+
+### AirPlay/Sonos metadata reliability
+
+Adds:
+
+- **Current Artwork** image entity for the integration device/controls page.
+- Fallback metadata polling while the selected Sonos entity is playing.
+- AirPlay metadata diagnostics in Status and diagnostics download.
+- Configurable **AirPlay Metadata Check Interval**.
+
+Why:
+
+AirPlay-to-Sonos can update track metadata and artwork inconsistently through Home Assistant events. This release keeps the event-driven design but adds a lightweight safety check while playback is active.

@@ -28,7 +28,8 @@
           "gradient_brightness": "Gradient Brightness",
           "exclude_light_entities": "Excluded Lights",
           "restore_delay": "Restore Delay",
-          "artwork_fallback_mode": "Artwork fallback behavior"
+          "artwork_fallback_mode": "Artwork fallback behavior",
+          "airplay_poll_interval": "AirPlay Metadata Check Interval"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -52,7 +53,8 @@
           "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
           "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
           "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled.",
-          "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved, which can happen with AirPlay or some Sonos sources."
+          "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved, which can happen with AirPlay or some Sonos sources.",
+          "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent."
         }
       }
     }
@@ -84,7 +86,8 @@
           "gradient_brightness": "Gradient Brightness",
           "exclude_light_entities": "Excluded Lights",
           "restore_delay": "Restore Delay",
-          "artwork_fallback_mode": "Artwork fallback behavior"
+          "artwork_fallback_mode": "Artwork fallback behavior",
+          "airplay_poll_interval": "AirPlay Metadata Check Interval"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -108,7 +111,8 @@
           "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
           "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
           "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled.",
-          "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved, which can happen with AirPlay or some Sonos sources."
+          "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved, which can happen with AirPlay or some Sonos sources.",
+          "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent."
         }
       }
     }
@@ -217,6 +221,12 @@
         "name": "Restore Delay",
         "description": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled."
       }
+    },
+    "image": {
+      "current_artwork": {
+        "name": "Current Artwork",
+        "description": "Shows the current artwork from the selected Sonos speaker when available."
+      }
     }
   },
   "selector": {
@@ -258,6 +268,7 @@
     "gradient_brightness": "Gradient Brightness",
     "exclude_light_entities": "Excluded Lights",
     "restore_delay": "Restore Delay",
-    "artwork_fallback_mode": "Artwork fallback behavior"
+    "artwork_fallback_mode": "Artwork fallback behavior",
+    "airplay_poll_interval": "AirPlay Metadata Check Interval"
   }
 }

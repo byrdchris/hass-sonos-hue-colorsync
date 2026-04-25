@@ -59,6 +59,8 @@ from .const import (
     DEFAULT_ARTWORK_FALLBACK_MODE,
     ARTWORK_FALLBACK_MODES,
     ARTWORK_FALLBACK_MODE_LABELS,
+    CONF_AIRPLAY_POLL_INTERVAL,
+    DEFAULT_AIRPLAY_POLL_INTERVAL,
 )
 
 def build_schema(defaults: dict):
@@ -85,6 +87,9 @@ def build_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_RESTORE_DELAY, default=defaults.get(CONF_RESTORE_DELAY, DEFAULT_RESTORE_DELAY)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+
+        vol.Optional(CONF_AIRPLAY_POLL_INTERVAL, default=defaults.get(CONF_AIRPLAY_POLL_INTERVAL, DEFAULT_AIRPLAY_POLL_INTERVAL)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
 
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
