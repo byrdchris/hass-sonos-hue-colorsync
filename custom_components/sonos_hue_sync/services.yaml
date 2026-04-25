@@ -48,3 +48,7 @@ test_color:
 show_help:
   name: Show help
   description: Show a Sonos Hue Sync quick guide, including where to download diagnostics, as a Home Assistant notification.
+
+health_check:
+  name: Health check
+  description: Run a Sonos Hue Sync health check and show the result as a Home Assistant notification.

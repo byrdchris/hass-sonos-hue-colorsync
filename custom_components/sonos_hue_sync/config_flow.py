@@ -43,6 +43,8 @@ from .const import (
     MONOCHROME_MODE_GRAYSCALE,
     MONOCHROME_MODE_MUTED_ACCENT,
     MONOCHROME_MODE_DISABLED,
+    GRADIENT_ORDER_MODE_LABELS,
+    GRADIENT_ORDER_MODES,
 )
 
 def build_schema(defaults: dict):

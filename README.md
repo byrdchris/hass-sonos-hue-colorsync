@@ -1,3 +1,5 @@
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+
 # Sonos Hue Sync
 
 Home Assistant custom integration that extracts colors from Sonos album art and applies them to Hue lights, rooms, zones, or groups.
@@ -696,3 +698,35 @@ Diagnostics include:
 ```yaml
 gradient_order_mode:
 ```
+
+
+## v2.1.8
+
+### Config flow fix
+
+Fixes the Options/Config flow crash from v2.1.7 caused by missing Gradient Pattern constants in `config_flow.py`.
+
+## License
+
+MIT License © 2026 Chris Byrd
+
+This project is open source. If you build upon it, please retain attribution.
+
+## v2.2.0
+
+### Diagnostics and stability release
+
+Adds:
+
+- **Health Check** button
+- `sonos_hue_sync.health_check` service
+- Health Check persistent notification
+- Additional Status diagnostics:
+  - timings
+  - cache result
+  - restore result
+  - restore snapshot count
+  - health report
+- Expanded downloaded diagnostics with health and runtime troubleshooting data.
+
+Health Check reviews Hue bridge reachability, Sonos availability, selected targets, resolved lights, gradient success/fallback counts, and recent processing errors.

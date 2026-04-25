@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.2.0
+
+### Added
+- Added MIT `LICENSE` file with attribution to Chris Byrd.
+- Added **Health Check** button.
+- Added `sonos_hue_sync.health_check` service.
+- Health Check opens a Home Assistant persistent notification.
+- Added Status diagnostics for timings, cache result, restore result, restore snapshot count, and health report.
+- Expanded downloaded diagnostics with health and runtime troubleshooting data.
+
+### Notes
+- This is primarily a diagnostics and supportability release.
+
+## v2.1.8
+
+### Fixed
+- Fixed Options/Config flow crash introduced in v2.1.7.
+- Added missing Gradient Pattern constants to config flow imports.
+
+### Notes
+- This resolves:
+  - `Config flow could not be loaded: 500 Internal Server Error`
+  - `NameError: name 'GRADIENT_ORDER_MODES' is not defined`
+
 ## v2.1.7
 
 ### Added

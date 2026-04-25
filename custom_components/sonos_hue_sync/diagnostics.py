@@ -150,6 +150,11 @@ def _coordinator_snapshot(coordinator) -> dict[str, Any]:
         "runtime_assignment_strategy",
         "runtime_options",
         "last_palette",
+        "last_timings",
+        "last_cache_result",
+        "last_restore_result",
+        "last_restore_snapshot_count",
+        "last_health_report",
     ]
 
     out = {}
@@ -188,7 +193,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry) -> dict
             "domain": DOMAIN,
             "entry_id": entry.entry_id,
             "title": entry.title,
-            "version": "2.1.6",
+            "version": "2.2.0",
         },
         "config_entry": {
             "data": deepcopy(dict(entry.data)),

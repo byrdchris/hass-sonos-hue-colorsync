@@ -73,3 +73,5 @@ GRADIENT_ORDER_MODE_LABELS = {
     GRADIENT_ORDER_MODE_ROTATED: "Offset per light",
     GRADIENT_ORDER_MODE_RANDOM: "Random order",
 }
+
+SERVICE_HEALTH_CHECK = "health_check"

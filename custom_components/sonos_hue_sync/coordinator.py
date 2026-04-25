@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import timedelta
 
 from aiohttp import ClientError
@@ -28,6 +29,7 @@ from .const import (
 from .applier import clear_apply_cache
 from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
 from .palette import extract_palette_from_bytes, rgb_to_hex
+from .health import build_health_report, format_health_message
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,6 +63,11 @@ class SonosHueCoordinator:
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
         self.runtime_options = {}
+        self.last_timings = {}
+        self.last_cache_result = None
+        self.last_restore_result = None
+        self.last_restore_snapshot_count = 0
+        self.last_health_report = None
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
     @property
@@ -135,6 +142,11 @@ class SonosHueCoordinator:
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
             "runtime_options": self.runtime_options,
+            "timings": self.last_timings,
+            "cache_result": self.last_cache_result,
+            "restore_snapshot_count": self.last_restore_snapshot_count,
+            "restore_last_result": self.last_restore_result,
+            "health_report": self.last_health_report,
         }
 
     @property
@@ -430,6 +442,7 @@ Tokens and artwork URLs are redacted.
         return result
 
     async def _apply_palette_to_lights(self, force_apply=False):
+        apply_started = time.perf_counter()
         try:
             if force_apply:
                 clear_apply_cache()
@@ -449,6 +462,7 @@ Tokens and artwork URLs are redacted.
             self.last_skipped_lights = skipped_lights
             self.last_service_data = last_service_data
             self.last_error = None
+            self.last_timings['light_apply_ms'] = round((time.perf_counter() - apply_started) * 1000, 1)
         except Exception as err:
             self.last_error = f"light_apply_failed: {err}"
             _LOGGER.exception("Failed applying palette/test color")
@@ -469,6 +483,9 @@ Tokens and artwork URLs are redacted.
             await self._handle_stop()
 
     async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False):
+        process_started = time.perf_counter()
+        self.last_timings = {}
+        self.last_cache_result = None
         self.last_processing_reason = reason
 
         if reason in ("button_extract_now", "extract_now_service"):
@@ -506,18 +523,25 @@ Tokens and artwork URLs are redacted.
 
         try:
             if self.cache and not bypass_cache and self.cache.exists(art):
+                self.last_cache_result = 'hit'
                 palette = self.cache.get(art)
             else:
+                self.last_cache_result = 'disabled' if not self.cache else 'miss'
+                fetch_started = time.perf_counter()
                 image_bytes = await self._fetch_image_bytes(art)
+                self.last_timings['album_art_fetch_ms'] = round((time.perf_counter() - fetch_started) * 1000, 1)
+                extract_started = time.perf_counter()
                 if not image_bytes:
                     return
                 palette = extract_palette_from_bytes(image_bytes, self.config)
+                self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
                     self.cache.set(art, palette)
 
             self.last_palette = palette
             self._notify()
             await self._apply_palette_to_lights(force_apply=force_apply)
+            self.last_timings['total_processing_ms'] = round((time.perf_counter() - process_started) * 1000, 1)
         except Exception as err:
             self.last_error = f"palette_extract_failed: {err}"
             _LOGGER.exception("Failed extracting/applying palette")
@@ -525,10 +549,34 @@ Tokens and artwork URLs are redacted.
 
     async def _handle_stop(self):
         if self.scene:
-            await restore_scene(self.hass, self.scene)
+            try:
+                self.last_restore_snapshot_count = len(self.scene) if hasattr(self.scene, '__len__') else 1
+                await restore_scene(self.hass, self.scene)
+                self.last_restore_result = 'restored'
+            except Exception as err:
+                self.last_restore_result = f'failed: {err}'
+                _LOGGER.exception('Failed restoring Sonos Hue Sync scene')
             self.scene = None
         clear_apply_cache()
         self._notify()
+
+
+    async def async_health_check(self) -> dict:
+        """Run a user-facing integration health check."""
+        report = build_health_report(self.hass, self)
+        self.last_health_report = report
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "Sonos Hue Sync Health Check",
+                "message": format_health_message(report),
+                "notification_id": "sonos_hue_sync_health_check",
+            },
+            blocking=False,
+        )
+        self._notify()
+        return report
 
     async def async_enable(self):
         self.enabled = True
