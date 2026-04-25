@@ -10,7 +10,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class SonosHueSyncPaletteSensor(SensorEntity):
     _attr_has_entity_name = True
-    _attr_name = "Palette"
+    _attr_name = "Status"
 
     def __init__(self, coordinator, entry):
         self._coordinator = coordinator
@@ -45,7 +45,7 @@ class SonosHueSyncPaletteSensor(SensorEntity):
 
 class SonosHueSyncTargetPreviewSensor(SensorEntity):
     _attr_has_entity_name = True
-    _attr_name = "Target Preview"
+    _attr_name = "Targets"
 
     def __init__(self, coordinator, entry):
         self._coordinator = coordinator

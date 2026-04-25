@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
@@ -136,13 +137,38 @@ def _resource_gradient_info(resource):
         return resource.get("gradient")
     return getattr(resource, "gradient", None)
 
+def _device_identifiers(hass, entity_id: str) -> list[str]:
+    registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    entry = registry.async_get(entity_id)
+    if not entry or not entry.device_id:
+        return []
+    device = device_registry.async_get(entry.device_id)
+    if not device:
+        return []
+
+    values = []
+    for domain, identifier in device.identifiers:
+        values.append(str(identifier))
+    for connection_type, connection_value in device.connections:
+        values.append(str(connection_value))
+    return values
+
 def _match_hue_resource(hass, entity_id: str):
     registry = er.async_get(hass)
     entry = registry.async_get(entity_id)
     state = hass.states.get(entity_id)
 
     unique_id = str(entry.unique_id if entry and entry.unique_id else "")
+    device_identifiers = _device_identifiers(hass, entity_id)
     friendly_name = str(state.attributes.get("friendly_name", "") if state else "")
+    entity_fragments = [
+        entity_id,
+        unique_id,
+        friendly_name,
+        *device_identifiers,
+    ]
+    entity_fragments = [frag.casefold() for frag in entity_fragments if frag]
 
     attempted = []
 
@@ -152,13 +178,35 @@ def _match_hue_resource(hass, entity_id: str):
                 rid = _resource_id(resource)
                 rid_v1 = _resource_id_v1(resource)
                 name = _resource_name(resource)
-                attempted.append({"id": rid, "id_v1": rid_v1, "name": name})
 
-                candidates = [str(x) for x in (rid, rid_v1) if x]
-                if any(candidate and candidate in unique_id for candidate in candidates):
-                    return controller, rid, resource, attempted
+                resource_fragments = [
+                    str(rid or ""),
+                    str(rid_v1 or ""),
+                    str(name or ""),
+                ]
+                resource_fragments = [frag.casefold() for frag in resource_fragments if frag]
 
-                if friendly_name and name and friendly_name.casefold() == name.casefold():
+                attempted.append(
+                    {
+                        "id": rid,
+                        "id_v1": rid_v1,
+                        "name": name,
+                        "gradient": str(_resource_gradient_info(resource)),
+                    }
+                )
+
+                # Strong direct matching.
+                for resource_frag in resource_fragments:
+                    for entity_frag in entity_fragments:
+                        if resource_frag and resource_frag in entity_frag:
+                            return controller, rid, resource, attempted
+                        if entity_frag and entity_frag in resource_frag:
+                            return controller, rid, resource, attempted
+
+                # Friendly name matching with normalized punctuation.
+                norm_entity_name = "".join(ch for ch in friendly_name.casefold() if ch.isalnum())
+                norm_resource_name = "".join(ch for ch in name.casefold() if ch.isalnum())
+                if norm_entity_name and norm_resource_name and norm_entity_name == norm_resource_name:
                     return controller, rid, resource, attempted
 
     return None, None, None, attempted

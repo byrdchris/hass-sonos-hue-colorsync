@@ -20,8 +20,8 @@
           "cache": "Cache album colors",
           "expand_groups": "Distribute colors across group members",
           "assignment_strategy": "Light assignment strategy",
-          "true_gradient_mode": "True Gradient Mode",
-          "gradient_color_points": "Gradient Color Points"
+          "true_gradient_mode": "Enable True Gradient",
+          "gradient_color_points": "Gradient Detail Level"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -37,8 +37,8 @@
           "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
           "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors.",
-          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights. Falls back to normal single-color control if direct gradient control fails.",
-          "gradient_color_points": "Number of colors to send to supported gradient lights when True Gradient Mode is enabled."
+          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
+          "gradient_color_points": "Number of color points sent to supported gradient lights."
         }
       }
     }
@@ -62,8 +62,8 @@
           "cache": "Cache album colors",
           "expand_groups": "Distribute colors across group members",
           "assignment_strategy": "Light assignment strategy",
-          "true_gradient_mode": "True Gradient Mode",
-          "gradient_color_points": "Gradient Color Points"
+          "true_gradient_mode": "Enable True Gradient",
+          "gradient_color_points": "Gradient Detail Level"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -79,8 +79,8 @@
           "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
           "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors.",
-          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights. Falls back to normal single-color control if direct gradient control fails.",
-          "gradient_color_points": "Number of colors to send to supported gradient lights when True Gradient Mode is enabled."
+          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
+          "gradient_color_points": "Number of color points sent to supported gradient lights."
         }
       }
     }
@@ -88,73 +88,73 @@
   "entity": {
     "button": {
       "extract_now": {
-        "name": "Extract Now",
-        "description": "Force a fresh album-art extraction and apply colors immediately."
+        "name": "Refresh Colors",
+        "description": "Force fresh album-art extraction and apply colors immediately."
       },
       "apply_last_palette": {
-        "name": "Apply Last Palette",
-        "description": "Apply the most recently extracted palette again."
+        "name": "Reapply Colors",
+        "description": "Apply the most recently extracted colors again."
       },
       "test_rainbow": {
-        "name": "Test Rainbow",
-        "description": "Apply a test rainbow palette to verify target light distribution."
+        "name": "Test Lighting",
+        "description": "Apply a test palette to verify target distribution."
       },
       "show_help": {
-        "name": "Show Help",
-        "description": "Open a quick Sonos Hue Sync guide in Home Assistant notifications."
+        "name": "Help & Guide",
+        "description": "Open a quick Sonos Hue Sync guide."
       }
     },
     "sensor": {
       "palette": {
-        "name": "Palette"
+        "name": "Status"
       },
       "target_preview": {
-        "name": "Target Preview"
+        "name": "Targets"
       }
     },
     "switch": {
       "enabled": {
-        "name": "Enabled",
-        "description": "Enable or disable Sonos Hue Sync. Turning off restores the previous scene."
+        "name": "Sync Enabled",
+        "description": "Enable or disable automatic light syncing."
       },
       "filter_dull": {
-        "name": "Filter Dull Colors",
-        "description": "Remove dark, gray, muddy, or low-saturation tones from extracted album-art palettes."
+        "name": "Remove Dull Colors",
+        "description": "Remove gray, muddy, and low-saturation tones."
       },
       "filter_bright_white": {
-        "name": "Filter Bright Whites",
-        "description": "Remove harsh pure/cool whites while keeping warmer cream and soft white tones."
+        "name": "Reduce Harsh Whites",
+        "description": "Reduce pure/cool whites while keeping cream and warm whites."
       },
       "low_color_handling": {
-        "name": "Handle Low-Color Album Art",
-        "description": "Keep nearly monochrome album art restrained instead of over-saturating tiny color noise."
+        "name": "Stabilize Low-Color Artwork",
+        "description": "Keep nearly monochrome covers from becoming overly saturated."
       },
       "cache": {
         "name": "Cache Album Colors",
-        "description": "Reuse processed album-art palettes for faster updates."
+        "description": "Reuse processed album-art color palettes."
       },
       "expand_groups": {
-        "name": "Distribute Colors Across Group Members",
-        "description": "Apply colors to individual lights inside selected groups when Home Assistant exposes group members."
+        "name": "Distribute Across Group Lights",
+        "description": "Apply colors to individual lights inside groups when available."
       },
       "true_gradient_mode": {
-        "name": "True Gradient Mode",
-        "description": "Use direct Hue gradient control for supported gradient lights."
+        "name": "Enable True Gradient",
+        "description": "Use Hue direct control for supported gradient lights."
       }
     },
     "select": {
       "assignment_strategy": {
-        "name": "Assignment Strategy",
-        "description": "Choose how extracted colors are distributed across resolved lights."
+        "name": "Color Distribution Mode",
+        "description": "Choose how extracted colors are distributed across lights."
       },
       "monochrome_mode": {
-        "name": "Black-and-White Album Handling",
-        "description": "Choose how black-and-white or grayscale album art is converted into lighting colors."
+        "name": "Black & White Handling",
+        "description": "Choose how black-and-white album art becomes light colors."
       }
     },
     "number": {
       "color_count": {
-        "name": "Color Count",
+        "name": "Number of Colors",
         "description": "Set the number of colors extracted from album art."
       },
       "transition": {
@@ -162,8 +162,8 @@
         "description": "Set the fade duration for light changes."
       },
       "gradient_color_points": {
-        "name": "Gradient Color Points",
-        "description": "Number of colors sent to supported gradient lights."
+        "name": "Gradient Detail Level",
+        "description": "Set the number of color points sent to gradient lights."
       }
     }
   },

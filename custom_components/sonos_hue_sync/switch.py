@@ -5,12 +5,12 @@ from homeassistant.components.switch import SwitchEntity
 from .const import DOMAIN
 
 OPTION_SWITCHES = [
-    ("filter_dull", "Filter Dull Colors", "mdi:palette-outline"),
-    ("filter_bright_white", "Filter Bright Whites", "mdi:white-balance-sunny"),
-    ("low_color_handling", "Handle Low-Color Album Art", "mdi:contrast-circle"),
+    ("filter_dull", "Remove Dull Colors", "mdi:palette-outline"),
+    ("filter_bright_white", "Reduce Harsh Whites", "mdi:white-balance-sunny"),
+    ("low_color_handling", "Stabilize Low-Color Artwork", "mdi:contrast-circle"),
     ("cache", "Cache Album Colors", "mdi:cached"),
-    ("expand_groups", "Distribute Colors Across Group Members", "mdi:lightbulb-group"),
-    ("true_gradient_mode", "True Gradient Mode", "mdi:gradient-horizontal"),
+    ("expand_groups", "Distribute Across Group Lights", "mdi:lightbulb-group"),
+    ("true_gradient_mode", "Enable True Gradient", "mdi:gradient-horizontal"),
 ]
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -27,7 +27,7 @@ class SonosHueSyncEnableSwitch(SwitchEntity):
         self._entry = entry
         self._remove_listener = None
         self._attr_unique_id = f"{entry.entry_id}_enabled"
-        self._attr_name = "Enabled"
+        self._attr_name = "Sync Enabled"
         self._attr_icon = "mdi:toggle-switch"
 
     async def async_added_to_hass(self):

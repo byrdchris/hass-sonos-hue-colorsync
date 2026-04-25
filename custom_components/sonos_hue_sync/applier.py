@@ -105,6 +105,11 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
         diagnostic_data["gradient_aware"] = gradient_aware
         diagnostic_data["true_gradient_mode"] = true_gradient_enabled
         diagnostic_data["apply_reason"] = reason
+        if true_gradient_enabled and gradient_aware and "gradient_diag" in locals():
+            diagnostic_data.update({
+                key: value for key, value in gradient_diag.items()
+                if key not in diagnostic_data
+            })
 
         if not apply_needed:
             skipped.append({"entity_id": entity_id, "reason": "unchanged"})

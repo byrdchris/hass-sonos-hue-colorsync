@@ -8,10 +8,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
         [
-            SonosHueSyncButton(coordinator, entry, "Extract Now", "extract_now", "mdi:image-sync"),
-            SonosHueSyncButton(coordinator, entry, "Apply Last Palette", "apply_last_palette", "mdi:palette"),
-            SonosHueSyncButton(coordinator, entry, "Test Rainbow", "test_rainbow", "mdi:rainbow"),
-            SonosHueSyncButton(coordinator, entry, "Show Help", "show_help", "mdi:help-circle-outline"),
+            SonosHueSyncButton(coordinator, entry, "Refresh Colors", "extract_now", "mdi:image-sync"),
+            SonosHueSyncButton(coordinator, entry, "Reapply Colors", "apply_last_palette", "mdi:palette"),
+            SonosHueSyncButton(coordinator, entry, "Test Lighting", "test_rainbow", "mdi:rainbow"),
+            SonosHueSyncButton(coordinator, entry, "Help & Guide", "show_help", "mdi:help-circle-outline"),
         ],
         True,
     )

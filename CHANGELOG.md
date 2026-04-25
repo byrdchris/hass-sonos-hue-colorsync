@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.1.2
+
+### Added
+- Expanded gradient resource matching using entity unique ID, device identifiers, friendly name, Hue V1 path fragments, and normalized names.
+- Adds gradient match attempts to diagnostics when a Hue resource cannot be found.
+- Includes gradient fallback diagnostics in `last_service_data`, not only `skipped_lights`.
+
+### Changed
+- Renamed UI entities for clearer product-level naming:
+  - Palette → Status
+  - Target Preview → Targets
+  - Extract Now → Refresh Colors
+  - Apply Last Palette → Reapply Colors
+  - Test Rainbow → Test Lighting
+  - Show Help → Help & Guide
+  - Assignment Strategy → Color Distribution Mode
+  - Gradient Color Points → Gradient Detail Level
+
+### Notes
+- True Gradient remains experimental. If it still reports `hue_resource_not_found`, the new diagnostics should show which Hue resources were discovered.
+
 ## v2.1.1
 
 ### Fixed

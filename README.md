@@ -523,3 +523,31 @@ hue_resource_id:
 hue_resource_name:
 gradient_colors:
 ```
+
+
+## v2.1.2
+
+### Gradient matching and UI naming cleanup
+
+This release improves True Gradient diagnostics and matching.
+
+If gradient application fails, check the Status entity's `last_service_data` for:
+
+```yaml
+gradient_error:
+gradient_match_attempts:
+hue_resource_id:
+hue_resource_name:
+```
+
+UI naming has also been standardized:
+
+- Status
+- Targets
+- Refresh Colors
+- Reapply Colors
+- Test Lighting
+- Help & Guide
+- Color Distribution Mode
+- Enable True Gradient
+- Gradient Detail Level
