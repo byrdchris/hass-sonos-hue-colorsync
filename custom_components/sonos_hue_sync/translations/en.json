@@ -125,7 +125,7 @@
       },
       "apply_last_palette": {
         "name": "Reapply Colors",
-        "description": "Apply the most recently extracted colors again."
+        "description": "Rotate the current palette across the selected lights and reapply it."
       },
       "test_rainbow": {
         "name": "Test Lighting",

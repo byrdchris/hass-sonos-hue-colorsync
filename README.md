@@ -841,3 +841,26 @@ Adds:
 Why:
 
 AirPlay-to-Sonos can update track metadata and artwork inconsistently through Home Assistant events. This release keeps the event-driven design but adds a lightweight safety check while playback is active.
+
+
+## v2.3.5
+
+### Reapply Colors rotates assignments
+
+The **Reapply Colors** button now rotates the current palette across the selected lights instead of simply sending the same assignment again.
+
+Behavior:
+
+- Uses the current palette.
+- Uses the current resolved light targets.
+- Forces a new light update.
+- Rotates which light receives which color.
+- For supported true-gradient lights, rotates the gradient point order as well.
+- Does not re-fetch album art or re-extract the palette.
+
+Diagnostics include:
+
+```yaml
+reapply_rotation_offset:
+gradient_rotation_offset:
+```

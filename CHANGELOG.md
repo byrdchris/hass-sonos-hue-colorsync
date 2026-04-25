@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.5
+
+### Changed
+- **Reapply Colors** now rotates the current palette assignment across lights.
+- True-gradient lights also receive rotated gradient point order when possible.
+
+### Added
+- Added `reapply_rotation_offset` diagnostic field.
+- Added `gradient_rotation_offset` diagnostic field.
+
+### Notes
+- This does not re-extract album art. Use **Refresh Colors** for a fresh album-art extraction.
+
 ## v2.3.4
 
 ### Added

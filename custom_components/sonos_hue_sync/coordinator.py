@@ -76,6 +76,7 @@ class SonosHueCoordinator:
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
         self.runtime_options = {}
+        self.reapply_rotation_offset = 0
         self.last_timings = {}
         self.last_cache_result = None
         self.last_restore_result = None
@@ -161,6 +162,7 @@ class SonosHueCoordinator:
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
             "runtime_options": self.runtime_options,
+            "reapply_rotation_offset": self.reapply_rotation_offset,
             "brightness_limits": {"minimum": self.config.get("min_brightness", 30), "maximum": self.config.get("max_brightness", 255), "gradient": self.config.get("gradient_brightness", 255)},
             "excluded_lights": self.config.get("exclude_light_entities", []),
             "restore_delay": self.config.get("restore_delay", 0),
@@ -514,15 +516,28 @@ Tokens and artwork URLs are redacted.
         )
 
     async def async_apply_last_palette(self):
+        """Rotate the current color assignment across lights and reapply.
+
+        This intentionally does not re-extract album art. It uses the current
+        palette and frozen target list, then shifts which light receives which
+        color. For true-gradient lights, the gradient point order is rotated too.
+        """
         if not self.last_palette:
             state = self.hass.states.get(self.sonos_entity)
             if state is not None:
                 self.last_palette = self._metadata_fallback_palette(state)
-                self.last_palette_error = "apply_last_metadata_fallback"
+                self.last_palette_error = "reapply_metadata_fallback"
             else:
                 self.last_error = "no_palette_available"
                 self._notify()
                 return
+
+        palette_len = len(self.last_palette or [])
+        resolved_len = len(self.last_resolved_lights or [])
+        rotate_size = max(palette_len, resolved_len, 1)
+        self.reapply_rotation_offset = (int(self.reapply_rotation_offset or 0) + 1) % rotate_size
+        self.last_processing_reason = "button_reapply_rotate_colors"
+
         await self._apply_palette_to_lights(force_apply=True)
 
     async def async_test_color(self, rgb):
@@ -567,6 +582,7 @@ Tokens and artwork URLs are redacted.
             apply_config["_frozen_resolver_source"] = frozen.source
             apply_config["_frozen_skipped_lights"] = frozen.skipped
             apply_config["_track_key"] = self.last_track_key
+            apply_config["_rotation_offset"] = self.reapply_rotation_offset
 
             resolved, last_service_data, resolver_source, skipped_lights = await apply_palette(
                 self.hass, self.expansion_entities, self.last_palette, apply_config

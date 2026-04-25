@@ -41,6 +41,7 @@ def gradient_palette_for_light(
     order_mode: str = "same_order",
     entity_id: str | None = None,
     track_key: str | None = None,
+    rotation_offset: int = 0,
 ) -> list[tuple[int, int, int]]:
     """Create ordered gradient points.
 
@@ -73,7 +74,11 @@ def gradient_palette_for_light(
     else:
         ordered = list(base_palette)
 
-    return _repeat_to_count(ordered, point_count)
+    points = _repeat_to_count(ordered, point_count)
+    if rotation_offset and len(points) > 1:
+        rotation_offset = int(rotation_offset) % len(points)
+        points = points[rotation_offset:] + points[:rotation_offset]
+    return points
 
 def _entity_looks_gradient(hass, entity_id: str) -> bool:
     state = hass.states.get(entity_id)
@@ -320,6 +325,7 @@ async def try_apply_gradient(
     order_mode: str = "same_order",
     track_key: str | None = None,
     brightness: int = 255,
+    rotation_offset: int = 0,
 ) -> tuple[bool, dict]:
     diagnostics = {
         "entity_id": entity_id,
@@ -352,10 +358,11 @@ async def try_apply_gradient(
         _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
         return False, diagnostics
 
-    points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key)
+    points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key, rotation_offset=rotation_offset)
     diagnostics["gradient_colors"] = [list(color) for color in points]
     diagnostics["gradient_points"] = len(points)
     diagnostics["gradient_order_mode"] = order_mode
+    diagnostics["gradient_rotation_offset"] = rotation_offset
     diagnostics["gradient_brightness"] = brightness
 
     errors = []

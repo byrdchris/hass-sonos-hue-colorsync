@@ -25,6 +25,24 @@ def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bo
 def resolve_light_entities_detailed(hass, selected_entities: list[str], expand_groups: bool = True):
     return resolve_targets(hass, selected_entities, expand_groups=expand_groups)
 
+
+def _rotate_assignment_values(assignments: dict[str, tuple[int, int, int]], offset: int):
+    """Rotate assigned colors across the same light order without re-resolving targets."""
+    if not assignments or not offset:
+        return assignments
+
+    keys = list(assignments.keys())
+    values = list(assignments.values())
+    if len(values) < 2:
+        return assignments
+
+    offset = int(offset) % len(values)
+    if offset == 0:
+        return assignments
+
+    rotated_values = values[offset:] + values[:offset]
+    return dict(zip(keys, rotated_values))
+
 async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[int, int, int]], config: dict):
     if config.get("_frozen_resolved_lights"):
         resolved = list(config["_frozen_resolved_lights"])

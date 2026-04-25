@@ -88,6 +88,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 order_mode=(config or {}).get("gradient_order_mode", "same_order"),
                 track_key=(config or {}).get("_track_key"),
                 brightness=_clamp_brightness(_brightness_for_color(color), config, True),
+                rotation_offset=(config or {}).get("_rotation_offset", 0),
             )
             if success:
                 gradient_diag["assignment_strategy"] = strategy
