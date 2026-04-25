@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.8
+
+### Added
+- Added dedicated **Album Art** image entity.
+- Entity can be used in Lovelace as `image.sonos_hue_sync_album_art`.
+
+### Included
+- Includes the v2.3.7 fix for standard-light Reapply Colors rotation.
+
 ## v2.3.6
 
 ### Fixed

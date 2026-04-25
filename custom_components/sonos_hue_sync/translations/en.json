@@ -226,6 +226,10 @@
       "current_artwork": {
         "name": "Current Artwork",
         "description": "Shows the current artwork from the selected Sonos speaker when available."
+      },
+      "album_art": {
+        "name": "Album Art",
+        "description": "Shows the current album art from the selected Sonos speaker when available."
       }
     }
   },

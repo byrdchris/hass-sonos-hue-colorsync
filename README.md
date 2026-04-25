@@ -884,3 +884,25 @@ Diagnostics:
 ```yaml
 apply_queue_status:
 ```
+
+
+## v2.3.8
+
+### Album Art image entity
+
+Adds a dedicated image entity:
+
+```text
+image.sonos_hue_sync_album_art
+```
+
+Dashboard example:
+
+```yaml
+type: picture-entity
+entity: image.sonos_hue_sync_album_art
+show_name: true
+show_state: false
+```
+
+Also includes the v2.3.7 Reapply Colors standard-light rotation fix.

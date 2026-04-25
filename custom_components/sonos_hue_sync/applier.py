@@ -36,7 +36,7 @@ def _brightness_for_color(color: tuple[int, int, int]) -> int:
     return int(50 + luminance(color) * 205)
 
 def build_service_data(state, color: tuple[int, int, int], transition: float, config: dict | None = None, gradient_aware: bool = False) -> dict:
-    brightness = _brightness_for_color(color)
+    brightness = _clamp_brightness(_brightness_for_color(color), config, gradient_aware)
     data = {"entity_id": state.entity_id, "brightness": brightness, "transition": transition}
 
     # Prefer rgb_color for Hue xy/rgb/hs lights. Avoid color_temp service keys
@@ -128,6 +128,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
         diagnostic_data["gradient_aware"] = gradient_aware
         diagnostic_data["true_gradient_mode"] = true_gradient_enabled
         diagnostic_data["apply_reason"] = reason
+        diagnostic_data["assignment_rotation_offset"] = int((config or {}).get("_rotation_offset", 0) or 0)
         if gradient_diag:
             diagnostic_data.update({
                 key: value for key, value in gradient_diag.items()
