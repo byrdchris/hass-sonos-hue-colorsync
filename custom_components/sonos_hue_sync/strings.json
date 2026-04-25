@@ -15,7 +15,8 @@
           "cache": "Cache album colors",
           "expand_groups": "Expand grouped lights",
           "assignment_strategy": "Light assignment strategy",
-          "group_entities": "Hue groups to expand"
+          "group_entities": "Hue groups to expand",
+          "member_light_entities": "Member lights override"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
@@ -26,7 +27,8 @@
           "cache": "Reuse colors for album art that has already been processed.",
           "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group.",
           "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark.",
-          "group_entities": "Optional. Choose real Hue room/zone/group light entities to expand into their member lights. Use this when Home Assistant exposes helper entities such as Primary or Ambient that do not list members."
+          "group_entities": "Optional. Choose real Hue room/zone/group light entities to expand into their member lights. Use this when Home Assistant exposes helper entities such as Primary or Ambient that do not list members.",
+          "member_light_entities": "Optional. Choose the actual individual lights to control. If set, this bypasses Hue group expansion and is the most reliable option when a Hue room/group does not expose its members consistently."
         }
       }
     }
@@ -45,7 +47,8 @@
           "cache": "Cache album colors",
           "expand_groups": "Expand grouped lights",
           "assignment_strategy": "Light assignment strategy",
-          "group_entities": "Hue groups to expand"
+          "group_entities": "Hue groups to expand",
+          "member_light_entities": "Member lights override"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
@@ -56,7 +59,8 @@
           "cache": "Reuse colors for album art that has already been processed.",
           "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group.",
           "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark.",
-          "group_entities": "Optional. Choose real Hue room/zone/group light entities to expand into their member lights. Use this when Home Assistant exposes helper entities such as Primary or Ambient that do not list members."
+          "group_entities": "Optional. Choose real Hue room/zone/group light entities to expand into their member lights. Use this when Home Assistant exposes helper entities such as Primary or Ambient that do not list members.",
+          "member_light_entities": "Optional. Choose the actual individual lights to control. If set, this bypasses Hue group expansion and is the most reliable option when a Hue room/group does not expose its members consistently."
         }
       }
     }

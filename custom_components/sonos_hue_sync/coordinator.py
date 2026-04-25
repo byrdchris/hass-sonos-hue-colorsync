@@ -21,6 +21,7 @@ from .const import (
     CONF_CACHE,
     CONF_LIGHT_ENTITIES,
     CONF_GROUP_ENTITIES,
+    CONF_MEMBER_LIGHT_ENTITIES,
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
@@ -72,8 +73,12 @@ class SonosHueCoordinator:
         return self.config.get(CONF_GROUP_ENTITIES, []) or []
 
     @property
+    def member_light_entities(self):
+        return self.config.get(CONF_MEMBER_LIGHT_ENTITIES, []) or []
+
+    @property
     def expansion_entities(self):
-        return self.group_entities or self.light_entities
+        return self.member_light_entities or self.group_entities or self.light_entities
 
     @property
     def palette_attributes(self):
@@ -91,7 +96,9 @@ class SonosHueCoordinator:
             "sonos_entity": self.sonos_entity,
             "light_entities": self.light_entities,
             "group_entities": self.group_entities,
+            "member_light_entities": self.member_light_entities,
             "expansion_entities": self.expansion_entities,
+            "expansion_source": "member_light_entities" if self.member_light_entities else ("group_entities" if self.group_entities else "light_entities"),
             "selected_entity_members": self._selected_entity_members(),
             "last_track_key": self.last_track_key,
             "last_processing_reason": self.last_processing_reason,

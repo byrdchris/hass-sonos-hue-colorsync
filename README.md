@@ -220,3 +220,22 @@ skipped_lights:
 ```
 
 This makes it safer to use multiple real Hue groups in **Hue groups to expand**.
+
+
+## v1.33.0
+
+### Member lights override
+
+Adds a deterministic override for Hue groups that do not expose members reliably.
+
+New options field:
+
+- **Member lights override**
+
+If populated, the integration uses those actual light entities directly and bypasses group expansion entirely.
+
+Resolution priority is now:
+
+1. Member lights override
+2. Hue groups to expand
+3. Hue lights / groups
