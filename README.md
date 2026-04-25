@@ -239,3 +239,23 @@ Resolution priority is now:
 1. Member lights override
 2. Hue groups to expand
 3. Hue lights / groups
+
+
+## v1.34.0
+
+### Additive target handling
+
+`Hue groups to expand` and `Member lights override` are now additive instead of replacing
+the main `Hue lights / groups` selection.
+
+Target sources are combined in this order:
+
+1. Hue lights / groups
+2. Additional Hue groups to expand
+3. Additional member lights
+
+The resolver deduplicates overlapping lights after expansion.
+
+### Icon
+
+Adds `custom_components/sonos_hue_sync/icon.png` for HACS/Home Assistant display.

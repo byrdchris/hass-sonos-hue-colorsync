@@ -78,7 +78,17 @@ class SonosHueCoordinator:
 
     @property
     def expansion_entities(self):
-        return self.member_light_entities or self.group_entities or self.light_entities
+        # Additive target list:
+        # - Hue lights / groups remain active
+        # - Hue groups to expand are added as extra expansion sources
+        # - Member lights override acts as an explicit additional direct list
+        #
+        # The resolver deduplicates after expansion, so overlapping groups are safe.
+        entities = []
+        for entity_id in self.light_entities + self.group_entities + self.member_light_entities:
+            if entity_id and entity_id not in entities:
+                entities.append(entity_id)
+        return entities
 
     @property
     def palette_attributes(self):
@@ -98,12 +108,13 @@ class SonosHueCoordinator:
             "group_entities": self.group_entities,
             "member_light_entities": self.member_light_entities,
             "expansion_entities": self.expansion_entities,
-            "expansion_source": "member_light_entities" if self.member_light_entities else ("group_entities" if self.group_entities else "light_entities"),
+            "expansion_source": "additive: light_entities + group_entities + member_light_entities",
             "selected_entity_members": self._selected_entity_members(),
             "last_track_key": self.last_track_key,
             "last_processing_reason": self.last_processing_reason,
             "selected_light_count": len(self.light_entities),
             "resolved_light_count": len(self.last_resolved_lights),
+            "expansion_entity_count": len(self.expansion_entities),
             "resolver_source": self.last_resolver_source,
             "skipped_lights": self.last_skipped_lights,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
