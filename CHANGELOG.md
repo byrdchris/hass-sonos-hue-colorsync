@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.1.7
+
+### Added
+- Added **Gradient Pattern** control for True Gradient Mode.
+- Gradient pattern options:
+  - Same order on every gradient light
+  - Offset per light
+  - Random order
+- Gradient diagnostics now include `gradient_order_mode`.
+
+### Changed
+- Default gradient ordering is now same-order for a more coordinated look across multiple gradient lights.
+- Offset per light preserves the previous varied/rotated behavior.
+- Random order is deterministic per track and light so it changes between tracks without flickering during a track.
+
 ## v2.1.6
 
 ### Changed

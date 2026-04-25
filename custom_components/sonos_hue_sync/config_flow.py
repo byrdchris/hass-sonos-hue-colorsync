@@ -19,6 +19,7 @@ from .const import (
     CONF_LOW_COLOR_HANDLING,
     CONF_TRUE_GRADIENT_MODE,
     CONF_GRADIENT_COLOR_POINTS,
+    CONF_GRADIENT_ORDER_MODE,
     CONF_LIGHT_ENTITIES,
     CONF_GROUP_ENTITIES,
     CONF_MEMBER_LIGHT_ENTITIES,
@@ -35,6 +36,7 @@ from .const import (
     DEFAULT_LOW_COLOR_HANDLING,
     DEFAULT_TRUE_GRADIENT_MODE,
     DEFAULT_GRADIENT_COLOR_POINTS,
+    DEFAULT_GRADIENT_ORDER_MODE,
     DEFAULT_TRANSITION,
     DOMAIN,
     MONOCHROME_MODE_WARM_NEUTRAL,
@@ -75,6 +77,8 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_TRUE_GRADIENT_MODE, default=defaults.get(CONF_TRUE_GRADIENT_MODE, DEFAULT_TRUE_GRADIENT_MODE)): bool,
         vol.Optional(CONF_GRADIENT_COLOR_POINTS, default=defaults.get(CONF_GRADIENT_COLOR_POINTS, DEFAULT_GRADIENT_COLOR_POINTS)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=5, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_GRADIENT_ORDER_MODE, default=defaults.get(CONF_GRADIENT_ORDER_MODE, DEFAULT_GRADIENT_ORDER_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": GRADIENT_ORDER_MODE_LABELS[key]} for key in GRADIENT_ORDER_MODES], mode=selector.SelectSelectorMode.DROPDOWN)),
         vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
         vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
         vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):

@@ -356,6 +356,7 @@ class SonosHueCoordinator:
   - **Alternating bright / dim**: alternates light and dark tones.
   - **Brightness order**: sorts colors by lightness; can make similar hues dominate.
 - **Transition Time**: fade duration for light changes.
+- **Gradient Pattern**: choose whether gradient lights use the same order, offset order per light, or random order per track.
 - **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
 
 ### Troubleshooting
@@ -437,6 +438,7 @@ Tokens and artwork URLs are redacted.
             apply_config["_frozen_resolved_lights"] = frozen.lights
             apply_config["_frozen_resolver_source"] = frozen.source
             apply_config["_frozen_skipped_lights"] = frozen.skipped
+            apply_config["_track_key"] = self.last_track_key
 
             resolved, last_service_data, resolver_source, skipped_lights = await apply_palette(
                 self.hass, self.expansion_entities, self.last_palette, apply_config

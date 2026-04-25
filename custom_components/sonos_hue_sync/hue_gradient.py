@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -37,12 +38,41 @@ def gradient_palette_for_light(
     palette: list[tuple[int, int, int]],
     base_color: tuple[int, int, int],
     point_count: int,
+    order_mode: str = "same_order",
+    entity_id: str | None = None,
+    track_key: str | None = None,
 ) -> list[tuple[int, int, int]]:
+    """Create ordered gradient points.
+
+    Modes:
+    - same_order: every gradient light receives the same color order.
+    - rotated_by_light: each light starts from its assigned/base color.
+    - random: deterministic random shuffle per track/light so it changes per track
+      but does not reshuffle repeatedly during the same track.
+    """
     point_count = max(2, min(5, int(point_count or 5)))
-    ordered = [base_color]
-    for color in palette:
-        if color not in ordered:
-            ordered.append(color)
+
+    base_palette = list(palette) if palette else [base_color]
+    if not base_palette:
+        base_palette = [base_color]
+
+    # Ensure base color exists in the source palette.
+    if base_color not in base_palette:
+        base_palette.insert(0, base_color)
+
+    if order_mode == "rotated_by_light":
+        idx = base_palette.index(base_color) if base_color in base_palette else 0
+        ordered = base_palette[idx:] + base_palette[:idx]
+    elif order_mode == "random":
+        ordered = list(base_palette)
+        seed = f"{track_key or ''}|{entity_id or ''}|{base_color}"
+        random.Random(seed).shuffle(ordered)
+        # Keep the assigned color included and preferably visible.
+        if base_color in ordered and ordered[0] == base_color and len(ordered) > 1:
+            pass
+    else:
+        ordered = list(base_palette)
+
     return _repeat_to_count(ordered, point_count)
 
 def _entity_looks_gradient(hass, entity_id: str) -> bool:
@@ -287,6 +317,8 @@ async def try_apply_gradient(
     base_color: tuple[int, int, int],
     point_count: int,
     transition: float,
+    order_mode: str = "same_order",
+    track_key: str | None = None,
 ) -> tuple[bool, dict]:
     diagnostics = {
         "entity_id": entity_id,
@@ -319,9 +351,10 @@ async def try_apply_gradient(
         _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
         return False, diagnostics
 
-    points = gradient_palette_for_light(palette, base_color, point_count)
+    points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key)
     diagnostics["gradient_colors"] = [list(color) for color in points]
     diagnostics["gradient_points"] = len(points)
+    diagnostics["gradient_order_mode"] = order_mode
 
     errors = []
 

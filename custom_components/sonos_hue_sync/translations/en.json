@@ -21,7 +21,8 @@
           "expand_groups": "Distribute colors across group members",
           "assignment_strategy": "Light assignment strategy",
           "true_gradient_mode": "Enable True Gradient",
-          "gradient_color_points": "Gradient Detail Level"
+          "gradient_color_points": "Gradient Detail Level",
+          "gradient_order_mode": "Gradient Pattern"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -38,7 +39,8 @@
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
           "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors.",
           "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
-          "gradient_color_points": "Number of color points sent to supported gradient lights."
+          "gradient_color_points": "Number of color points sent to supported gradient lights.",
+          "gradient_order_mode": "Choose whether gradient lights use the same color order, an offset order per light, or a deterministic random order per track."
         }
       }
     }
@@ -63,7 +65,8 @@
           "expand_groups": "Distribute colors across group members",
           "assignment_strategy": "Light assignment strategy",
           "true_gradient_mode": "Enable True Gradient",
-          "gradient_color_points": "Gradient Detail Level"
+          "gradient_color_points": "Gradient Detail Level",
+          "gradient_order_mode": "Gradient Pattern"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -80,7 +83,8 @@
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
           "assignment_strategy": "Controls how colors are assigned after extraction. Balanced usually gives the most color variety. Brightness order sorts by lightness and can make similar hues dominate. Sequential follows palette order. Alternating bright / dim mixes light and dark colors.",
           "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
-          "gradient_color_points": "Number of color points sent to supported gradient lights."
+          "gradient_color_points": "Number of color points sent to supported gradient lights.",
+          "gradient_order_mode": "Choose whether gradient lights use the same color order, an offset order per light, or a deterministic random order per track."
         }
       }
     }
@@ -150,6 +154,10 @@
       "monochrome_mode": {
         "name": "Black & White Handling",
         "description": "Choose how black-and-white album art becomes light colors."
+      },
+      "gradient_order_mode": {
+        "name": "Gradient Pattern",
+        "description": "Choose the color order used by supported gradient lights."
       }
     },
     "number": {

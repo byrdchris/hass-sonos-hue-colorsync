@@ -677,3 +677,22 @@ Adds Download Diagnostics instructions to:
 - Help & Guide notification
 - README troubleshooting section
 - service/entity descriptions where Home Assistant supports them
+
+
+## v2.1.7
+
+### Gradient Pattern
+
+Adds a new **Gradient Pattern** control for True Gradient Mode.
+
+Options:
+
+- **Same order on every gradient light**: every gradient-capable light uses the same palette order.
+- **Offset per light**: each gradient-capable light starts from its assigned color, preserving the previous varied look.
+- **Random order**: shuffles the palette per track/light. The shuffle is deterministic for the current track, so it will not flicker during the same song.
+
+Diagnostics include:
+
+```yaml
+gradient_order_mode:
+```
