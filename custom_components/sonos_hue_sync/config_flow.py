@@ -55,6 +55,10 @@ from .const import (
     DEFAULT_GRADIENT_BRIGHTNESS,
     DEFAULT_EXCLUDE_LIGHT_ENTITIES,
     DEFAULT_RESTORE_DELAY,
+    CONF_ARTWORK_FALLBACK_MODE,
+    DEFAULT_ARTWORK_FALLBACK_MODE,
+    ARTWORK_FALLBACK_MODES,
+    ARTWORK_FALLBACK_MODE_LABELS,
 )
 
 def build_schema(defaults: dict):
@@ -84,6 +88,9 @@ def build_schema(defaults: dict):
 
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
+        vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": ARTWORK_FALLBACK_MODE_LABELS[key]} for key in ARTWORK_FALLBACK_MODES], mode=selector.SelectSelectorMode.DROPDOWN)),
+
         vol.Optional(CONF_MONOCHROME_MODE, default=defaults.get(CONF_MONOCHROME_MODE, DEFAULT_MONOCHROME_MODE)):
             selector.SelectSelector(
                 selector.SelectSelectorConfig(

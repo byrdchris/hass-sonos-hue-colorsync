@@ -801,3 +801,27 @@ Behavior:
   - `last_image_fetch_candidates`
 
 This prevents the integration from aborting with `no_palette_available` when Sonos artwork temporarily fails.
+
+
+## v2.3.3
+
+### Artwork fallback behavior
+
+Adds a configurable **Artwork fallback behavior** option for cases where Sonos/AirPlay artwork cannot be retrieved.
+
+Options:
+
+- **Reuse last palette**: reuse the previous palette when available; otherwise use track-based colors.
+- **Track-based colors**: generate stable colors from track metadata.
+- **Warm neutral**: use a soft warm neutral fallback palette.
+- **Do nothing**: leave lights unchanged when artwork is unavailable.
+
+Diagnostics added/updated:
+
+```yaml
+artwork_fallback_mode:
+artwork_fallback_applied:
+last_palette_error:
+last_image_fetch_status:
+last_image_fetch_candidates:
+```

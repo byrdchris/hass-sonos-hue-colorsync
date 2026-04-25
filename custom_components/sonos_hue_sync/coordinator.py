@@ -29,7 +29,7 @@ from .const import (
 )
 from .applier import clear_apply_cache
 from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
-from .palette import extract_palette_from_bytes, rgb_to_hex, fallback_palette_from_metadata
+from .palette import extract_palette_from_bytes, rgb_to_hex, fallback_palette_from_metadata, warm_neutral_fallback_palette
 from .health import build_health_report, format_health_message
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +57,8 @@ class SonosHueCoordinator:
         self.last_palette_error = None
         self.last_image_fetch_status = None
         self.last_image_fetch_candidates = []
+        self.last_artwork_fallback_mode = None
+        self.last_artwork_fallback_applied = None
         self.last_resolved_lights = []
         self.last_service_data = []
         self.last_resolver_source = None
@@ -131,6 +133,8 @@ class SonosHueCoordinator:
             "last_palette_error": self.last_palette_error,
             "last_image_fetch_status": self.last_image_fetch_status,
             "last_image_fetch_candidates": self.last_image_fetch_candidates,
+            "artwork_fallback_mode": self.last_artwork_fallback_mode,
+            "artwork_fallback_applied": self.last_artwork_fallback_applied,
             "enabled": self.enabled,
             "sonos_entity": self.sonos_entity,
             "light_entities": self.light_entities,
@@ -287,6 +291,41 @@ class SonosHueCoordinator:
             if value and value not in candidates:
                 candidates.append(value)
         return candidates
+
+
+    def _palette_for_artwork_failure(self, state, reason: str):
+        mode = self.config.get("artwork_fallback_mode", "reuse_last")
+        desired = int(self.config.get("color_count", 3))
+        self.last_artwork_fallback_mode = mode
+
+        if mode == "reuse_last":
+            if self.last_palette:
+                self.last_artwork_fallback_applied = "reuse_last_palette"
+                self.last_palette_error = f"{reason}_reuse_last_palette"
+                return list(self.last_palette)
+            self.last_artwork_fallback_applied = "track_based_no_previous_palette"
+            self.last_palette_error = f"{reason}_track_based_no_previous_palette"
+            return self._metadata_fallback_palette(state)
+
+        if mode == "track_based":
+            self.last_artwork_fallback_applied = "track_based"
+            self.last_palette_error = f"{reason}_track_based"
+            return self._metadata_fallback_palette(state)
+
+        if mode == "warm_neutral":
+            self.last_artwork_fallback_applied = "warm_neutral"
+            self.last_palette_error = f"{reason}_warm_neutral"
+            return warm_neutral_fallback_palette(desired)
+
+        if mode == "do_nothing":
+            self.last_artwork_fallback_applied = "do_nothing"
+            self.last_palette_error = f"{reason}_do_nothing"
+            return None
+
+        # Safety fallback for unknown stored option values.
+        self.last_artwork_fallback_applied = "unknown_mode_track_based"
+        self.last_palette_error = f"{reason}_unknown_mode_track_based"
+        return self._metadata_fallback_palette(state)
 
     def _metadata_fallback_palette(self, state):
         attrs = state.attributes
@@ -559,10 +598,13 @@ Tokens and artwork URLs are redacted.
         self.last_image_fetch_candidates = art_candidates
         art = art_candidates[0] if art_candidates else None
         if not art:
-            self.last_palette_error = "no_artwork_metadata_fallback"
-            palette = self._metadata_fallback_palette(state)
-            self.last_palette = palette
+            palette = self._palette_for_artwork_failure(state, "no_artwork")
             self.last_image = None
+            if not palette:
+                self.last_error = "no_palette_available"
+                self._notify()
+                return
+            self.last_palette = palette
             self.last_error = None
             self._notify()
             await self._apply_palette_to_lights(force_apply=True)
@@ -589,14 +631,12 @@ Tokens and artwork URLs are redacted.
                 self.last_timings['album_art_fetch_ms'] = round((time.perf_counter() - fetch_started) * 1000, 1)
                 extract_started = time.perf_counter()
                 if not image_bytes:
-                    if self.last_palette:
-                        palette = self.last_palette
-                        self.last_palette_error = "image_fetch_empty_fallback_previous"
-                        self.last_error = None
-                    else:
-                        palette = self._metadata_fallback_palette(state)
-                        self.last_palette_error = "image_fetch_empty_metadata_fallback"
-                        self.last_error = None
+                    palette = self._palette_for_artwork_failure(state, "image_fetch_empty")
+                    if not palette:
+                        self.last_error = "no_palette_available"
+                        self._notify()
+                        return
+                    self.last_error = None
                     self.last_palette = palette
                     self._notify()
                     await self._apply_palette_to_lights(force_apply=True)

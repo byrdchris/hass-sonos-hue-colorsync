@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.3.3
+
+### Added
+- Added **Artwork fallback behavior** option.
+- Fallback modes:
+  - Reuse last palette
+  - Track-based colors
+  - Warm neutral
+  - Do nothing
+- Added fallback diagnostics:
+  - `artwork_fallback_mode`
+  - `artwork_fallback_applied`
+
+### Changed
+- Artwork failures are now handled according to user preference instead of always using metadata fallback.
+
 ## v2.3.2
 
 ### Fixed

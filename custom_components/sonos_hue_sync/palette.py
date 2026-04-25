@@ -301,3 +301,14 @@ def fallback_palette_from_metadata(metadata: str, desired: int) -> list[tuple[in
             colors.append(color)
 
     return _repeat_to_count(colors, desired)[:desired]
+
+
+def warm_neutral_fallback_palette(desired: int) -> list[tuple[int, int, int]]:
+    desired = max(1, int(desired or 3))
+    base = [
+        (255, 214, 170),
+        (220, 190, 150),
+        (180, 160, 130),
+        (130, 115, 100),
+    ]
+    return _repeat_to_count(base, desired)[:desired]
