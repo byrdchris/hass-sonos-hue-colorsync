@@ -100,11 +100,37 @@
     "switch": {
       "enabled": {
         "name": "Enabled"
+      },
+      "filter_dull": {
+        "name": "Filter Dull Colors"
+      },
+      "filter_bright_white": {
+        "name": "Filter Bright Whites"
+      },
+      "low_color_handling": {
+        "name": "Handle Low-Color Album Art"
+      },
+      "cache": {
+        "name": "Cache Album Colors"
+      },
+      "expand_groups": {
+        "name": "Distribute Colors Across Group Members"
       }
     },
     "select": {
       "assignment_strategy": {
         "name": "Assignment Strategy"
+      },
+      "monochrome_mode": {
+        "name": "Black-and-White Album Handling"
+      }
+    },
+    "number": {
+      "color_count": {
+        "name": "Color Count"
+      },
+      "transition": {
+        "name": "Transition Time"
       }
     }
   },

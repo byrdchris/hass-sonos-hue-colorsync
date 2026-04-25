@@ -362,3 +362,19 @@ custom_components/sonos_hue_sync/icon.png
 
 - Makes target sources additive.
 - Adds icon.
+
+
+### v1.40.0
+
+Adds device-page controls for common tuning options:
+
+- Color Count
+- Transition Time
+- Filter Dull Colors
+- Filter Bright Whites
+- Black-and-White Album Handling
+- Handle Low-Color Album Art
+- Cache Album Colors
+- Distribute Colors Across Group Members
+
+The options dialog remains the full configuration surface. Device controls are runtime overrides and reapply the last palette when possible.

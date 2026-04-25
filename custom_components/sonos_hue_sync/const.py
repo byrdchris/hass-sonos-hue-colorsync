@@ -30,7 +30,7 @@ ASSIGNMENT_STRATEGY_BALANCED = "balanced"
 ASSIGNMENT_STRATEGY_ALTERNATING = "alternating"
 ASSIGNMENT_STRATEGY_BRIGHTNESS = "brightness"
 
-PLATFORMS = ["switch", "sensor", "button", "select"]
+PLATFORMS = ["switch", "sensor", "button", "select", "number"]
 
 SERVICE_ENABLE = "enable"
 SERVICE_DISABLE = "disable"

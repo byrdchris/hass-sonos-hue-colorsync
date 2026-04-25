@@ -48,11 +48,13 @@ class SonosHueCoordinator:
         self.last_track_key = None
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
+        self.runtime_options = {}
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
     @property
     def config(self):
         config = {**self.entry.data, **self.entry.options}
+        config.update(self.runtime_options)
         if self.runtime_assignment_strategy:
             config["assignment_strategy"] = self.runtime_assignment_strategy
         return config
@@ -119,6 +121,7 @@ class SonosHueCoordinator:
             "skipped_lights": self.last_skipped_lights,
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
+            "runtime_options": self.runtime_options,
         }
 
     @property
@@ -282,8 +285,18 @@ class SonosHueCoordinator:
             return
         await self._process_state(state, reason=reason, force=True)
 
+    async def async_set_runtime_option(self, key: str, value, reapply: bool = True):
+        self.runtime_options[key] = value
+        if key == "cache":
+            from .cache import PaletteCache
+            self.cache = PaletteCache() if value else None
+        self._notify()
+        if reapply and self.last_palette:
+            await self._apply_palette_to_lights()
+
     async def async_set_assignment_strategy(self, strategy: str):
         self.runtime_assignment_strategy = strategy
+        self.runtime_options["assignment_strategy"] = strategy
         self._notify()
         if self.last_palette:
             await self._apply_palette_to_lights()
