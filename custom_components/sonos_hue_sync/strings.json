@@ -5,30 +5,32 @@
     "step": {
       "user": {
         "title": "Sonos Hue Sync",
-        "description": "Configure the Sonos speaker and Hue lights/groups.",
+        "description": "Update the speaker, Hue targets, and palette behavior.",
         "data": {
           "sonos_entity": "Sonos speaker",
           "light_entities": "Hue lights / groups",
+          "group_entities": "Additional Hue groups to expand",
+          "member_light_entities": "Additional member lights",
           "color_count": "Color count",
           "transition": "Transition time",
           "filter_dull": "Filter dull colors",
+          "filter_bright_white": "Filter bright whites",
           "cache": "Cache album colors",
-          "expand_groups": "Expand grouped lights",
-          "assignment_strategy": "Light assignment strategy",
-          "group_entities": "Additional Hue groups to expand",
-          "member_light_entities": "Additional member lights"
+          "expand_groups": "Distribute colors across group members",
+          "assignment_strategy": "Light assignment strategy"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
-          "light_entities": "Choose one or more Home Assistant light entities. You can select individual bulbs, Hue rooms, zones, or groups.",
+          "light_entities": "Primary targets to control. You can select individual lights, Hue rooms, zones, groups, or helper entities.",
+          "group_entities": "Optional. Add real Hue room, zone, or group entities to expand into their member lights. These are added to the primary targets instead of replacing them.",
+          "member_light_entities": "Optional. Add individual light entities directly. Use this as a reliable workaround when a Hue group does not expose every member consistently.",
           "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
           "transition": "Fade time in seconds when applying new colors.",
-          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping bright whites and cream tones.",
+          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping useful color tones.",
+          "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
           "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark.",
-          "group_entities": "Optional. Add real Hue room/zone/group entities to expand into their member lights. These are added to the Hue lights / groups selection instead of replacing it.",
-          "member_light_entities": "Optional. Add actual individual lights to control directly. These are added to the selected lights/groups and are useful when a Hue group does not expose all members."
+          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups instead of one color for the whole group.",
+          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark."
         }
       }
     }
@@ -41,26 +43,28 @@
         "data": {
           "sonos_entity": "Sonos speaker",
           "light_entities": "Hue lights / groups",
+          "group_entities": "Additional Hue groups to expand",
+          "member_light_entities": "Additional member lights",
           "color_count": "Color count",
           "transition": "Transition time",
           "filter_dull": "Filter dull colors",
+          "filter_bright_white": "Filter bright whites",
           "cache": "Cache album colors",
-          "expand_groups": "Expand grouped lights",
-          "assignment_strategy": "Light assignment strategy",
-          "group_entities": "Additional Hue groups to expand",
-          "member_light_entities": "Additional member lights"
+          "expand_groups": "Distribute colors across group members",
+          "assignment_strategy": "Light assignment strategy"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows active playback metadata.",
-          "light_entities": "Choose one or more Home Assistant light entities. You can select individual bulbs, Hue rooms, zones, or groups.",
+          "light_entities": "Primary targets to control. You can select individual lights, Hue rooms, zones, groups, or helper entities.",
+          "group_entities": "Optional. Add real Hue room, zone, or group entities to expand into their member lights. These are added to the primary targets instead of replacing them.",
+          "member_light_entities": "Optional. Add individual light entities directly. Use this as a reliable workaround when a Hue group does not expose every member consistently.",
           "color_count": "Number of colors to extract from album art. If there are more lights than colors, colors repeat.",
           "transition": "Fade time in seconds when applying new colors.",
-          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping bright whites and cream tones.",
+          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping useful color tones.",
+          "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
           "cache": "Reuse colors for album art that has already been processed.",
-          "expand_groups": "When a selected light is a room, zone, or group, distribute colors across its member lights instead of applying one color to the whole group.",
-          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating mixes bright and dim tones, and Brightness order sorts colors from bright to dark.",
-          "group_entities": "Optional. Add real Hue room/zone/group entities to expand into their member lights. These are added to the Hue lights / groups selection instead of replacing it.",
-          "member_light_entities": "Optional. Add actual individual lights to control directly. These are added to the selected lights/groups and are useful when a Hue group does not expose all members."
+          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups instead of one color for the whole group.",
+          "assignment_strategy": "Controls how colors are assigned to lights. Balanced spreads distinct colors, Sequential follows palette order, Alternating bright / dim mixes luminance, and Brightness order sorts colors from bright to dark."
         }
       }
     }
@@ -80,6 +84,9 @@
     "sensor": {
       "palette": {
         "name": "Palette"
+      },
+      "target_preview": {
+        "name": "Target Preview"
       }
     },
     "switch": {
@@ -90,6 +97,16 @@
     "select": {
       "assignment_strategy": {
         "name": "Assignment Strategy"
+      }
+    }
+  },
+  "selector": {
+    "assignment_strategy": {
+      "options": {
+        "balanced": "Balanced",
+        "sequential": "Sequential",
+        "alternating": "Alternating bright / dim",
+        "brightness": "Brightness order"
       }
     }
   }

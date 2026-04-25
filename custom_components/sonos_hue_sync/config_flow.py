@@ -14,6 +14,7 @@ from .const import (
     CONF_COLOR_COUNT,
     CONF_EXPAND_GROUPS,
     CONF_FILTER_DULL,
+    CONF_FILTER_BRIGHT_WHITE,
     CONF_LIGHT_ENTITIES,
     CONF_GROUP_ENTITIES,
     CONF_MEMBER_LIGHT_ENTITIES,
@@ -25,6 +26,7 @@ from .const import (
     DEFAULT_COLOR_COUNT,
     DEFAULT_EXPAND_GROUPS,
     DEFAULT_FILTER_DULL,
+    DEFAULT_FILTER_BRIGHT_WHITE,
     DEFAULT_TRANSITION,
     DOMAIN,
 )
@@ -44,6 +46,7 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
+        vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
         vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
         vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
         vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):
@@ -52,7 +55,7 @@ def build_schema(defaults: dict):
                     options=[
                         selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BALANCED, label="Balanced"),
                         selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_SEQUENTIAL, label="Sequential"),
-                        selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright/dim"),
+                        selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright / dim"),
                         selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BRIGHTNESS, label="Brightness order"),
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,

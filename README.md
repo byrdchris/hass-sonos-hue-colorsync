@@ -259,3 +259,47 @@ The resolver deduplicates overlapping lights after expansion.
 ### Icon
 
 Adds `custom_components/sonos_hue_sync/icon.png` for HACS/Home Assistant display.
+
+
+## v1.35.0
+
+### UI polish
+
+- Renames `member_light_entities` to **Additional member lights**
+- Clarifies the difference between:
+  - Hue lights / groups
+  - Additional Hue groups to expand
+  - Additional member lights
+
+### Palette tuning
+
+Adds a new option:
+
+- **Filter bright whites**
+
+This removes harsh pure/cool whites from album-art palettes while preserving warmer cream and soft white tones.
+
+
+## v1.36.0
+
+### UI polish
+
+- Normalizes labels and descriptions for all options fields
+- Avoids raw/internal option names where Home Assistant supports translations
+- Renames **Expand grouped lights** to **Distribute colors across group members**
+
+### Target Preview sensor
+
+Adds a new sensor:
+
+- **Target Preview**
+
+This previews the currently resolved targets before palette application and exposes:
+
+- preview targets
+- preview target count
+- resolver source
+- skipped lights
+- configured target sources
+
+This helps debug target selection without waiting for a song change.

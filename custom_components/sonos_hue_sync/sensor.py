@@ -6,7 +6,7 @@ from .const import ATTR_HEX_COLORS, DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([SonosHueSyncPaletteSensor(coordinator, entry)], True)
+    async_add_entities([SonosHueSyncPaletteSensor(coordinator, entry), SonosHueSyncTargetPreviewSensor(coordinator, entry)], True)
 
 class SonosHueSyncPaletteSensor(SensorEntity):
     _attr_has_entity_name = True
@@ -37,6 +37,41 @@ class SonosHueSyncPaletteSensor(SensorEntity):
     @property
     def icon(self):
         return "mdi:palette"
+
+    @property
+    def device_info(self):
+        return {"identifiers": {(DOMAIN, self._entry.entry_id)}, "name": self._entry.title or "Sonos Hue Sync"}
+
+
+class SonosHueSyncTargetPreviewSensor(SensorEntity):
+    _attr_has_entity_name = True
+    _attr_name = "Target Preview"
+
+    def __init__(self, coordinator, entry):
+        self._coordinator = coordinator
+        self._entry = entry
+        self._remove_listener = None
+        self._attr_unique_id = f"{entry.entry_id}_target_preview"
+
+    async def async_added_to_hass(self):
+        self._remove_listener = self._coordinator.async_add_listener(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self):
+        if self._remove_listener:
+            self._remove_listener()
+
+    @property
+    def native_value(self):
+        targets = self._coordinator.target_preview_attributes.get("preview_targets", [])
+        return f"{len(targets)} targets"
+
+    @property
+    def extra_state_attributes(self):
+        return self._coordinator.target_preview_attributes
+
+    @property
+    def icon(self):
+        return "mdi:lightbulb-group"
 
     @property
     def device_info(self):

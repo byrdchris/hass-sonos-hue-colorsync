@@ -25,7 +25,7 @@ from .const import (
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
 )
-from .hue_controller import apply_palette, restore_scene, snapshot_scene
+from .hue_controller import apply_palette, resolve_light_entities, restore_scene, snapshot_scene
 from .palette import extract_palette_from_bytes, rgb_to_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -120,6 +120,37 @@ class SonosHueCoordinator:
             "assignment_strategy": self.config.get("assignment_strategy", "balanced"),
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
         }
+
+    @property
+    def target_preview_attributes(self):
+        try:
+            preview_targets, resolver_source, skipped = resolve_light_entities(
+                self.hass,
+                self.expansion_entities,
+                expand_groups=self.config.get("expand_groups", True),
+            )
+        except Exception as err:
+            return {
+                "preview_error": str(err),
+                "preview_targets": [],
+                "preview_target_count": 0,
+                "expansion_entities": self.expansion_entities,
+                "expansion_source": "additive: Hue lights/groups + Additional Hue groups + Additional member lights",
+            }
+
+        return {
+            "preview_targets": preview_targets,
+            "preview_target_count": len(preview_targets),
+            "preview_resolver_source": resolver_source,
+            "preview_skipped_lights": skipped,
+            "expansion_entities": self.expansion_entities,
+            "light_targets": self.light_entities,
+            "additional_hue_groups": self.group_entities,
+            "additional_member_lights": self.member_light_entities,
+            "expansion_source": "additive: Hue lights/groups + Additional Hue groups + Additional member lights",
+            "selected_entity_members": self._selected_entity_members(),
+        }
+
 
     def async_add_listener(self, update_callback):
         self._listeners.append(update_callback)

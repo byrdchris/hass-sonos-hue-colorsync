@@ -21,6 +21,31 @@ def is_dull(rgb: tuple[int, int, int]) -> bool:
         return True
     return False
 
+def is_bright_white(rgb: tuple[int, int, int]) -> bool:
+    """Filter harsh cool/neutral whites while preserving warm creams.
+
+    Album art frequently contains white backgrounds or highlights that produce
+    overly harsh Hue output. This only removes near-white colors that are both
+    very bright and low-saturation, unless they are visibly warm/cream.
+    """
+    r, g, b = rgb
+    _h, s, v = _hsv(rgb)
+
+    # Not bright enough to be harsh white.
+    if v < 0.90:
+        return False
+
+    # Saturated colors are not white.
+    if s > 0.16:
+        return False
+
+    # Preserve warm whites / cream tones where red is meaningfully above blue.
+    warm_bias = r - b
+    if warm_bias >= 10:
+        return False
+
+    return True
+
 def luminance(rgb: tuple[int, int, int]) -> float:
     r, g, b = [x / 255 for x in rgb]
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
@@ -77,6 +102,10 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[i
 
     if config.get("filter_dull", True):
         filtered = [c for c in candidates if not is_dull(c)]
+        candidates = filtered or candidates
+
+    if config.get("filter_bright_white", True):
+        filtered = [c for c in candidates if not is_bright_white(c)]
         candidates = filtered or candidates
 
     clustered = _clustered_select(candidates, desired)
