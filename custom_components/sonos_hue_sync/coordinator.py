@@ -52,6 +52,10 @@ class SonosHueCoordinator:
         self.enabled = True
         self._remove_listener = None
         self._poll_remove = None
+        self._apply_lock = asyncio.Lock()
+        self._apply_in_progress = False
+        self._apply_rerun_requested = False
+        self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
         self.current_artwork_bytes = None
         self.current_artwork_content_type = None
@@ -163,6 +167,7 @@ class SonosHueCoordinator:
             "runtime_assignment_strategy": self.runtime_assignment_strategy,
             "runtime_options": self.runtime_options,
             "reapply_rotation_offset": self.reapply_rotation_offset,
+            "apply_queue_status": self.last_apply_queue_status,
             "brightness_limits": {"minimum": self.config.get("min_brightness", 30), "maximum": self.config.get("max_brightness", 255), "gradient": self.config.get("gradient_brightness", 255)},
             "excluded_lights": self.config.get("exclude_light_entities", []),
             "restore_delay": self.config.get("restore_delay", 0),
@@ -276,6 +281,10 @@ class SonosHueCoordinator:
             self._remove_listener()
             self._remove_listener = None
         self._poll_remove = None
+        self._apply_lock = asyncio.Lock()
+        self._apply_in_progress = False
+        self._apply_rerun_requested = False
+        self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
         self.current_artwork_bytes = None
         self.current_artwork_content_type = None
@@ -286,6 +295,10 @@ class SonosHueCoordinator:
             self._remove_listener()
             self._remove_listener = None
         self._poll_remove = None
+        self._apply_lock = asyncio.Lock()
+        self._apply_in_progress = False
+        self._apply_rerun_requested = False
+        self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
         self.current_artwork_bytes = None
         self.current_artwork_content_type = None
@@ -572,32 +585,59 @@ Tokens and artwork URLs are redacted.
         return result
 
     async def _apply_palette_to_lights(self, force_apply=False):
-        apply_started = time.perf_counter()
-        try:
-            if force_apply:
-                clear_apply_cache()
-            frozen = self._resolve_for_track()
-            apply_config = dict(self.config)
-            apply_config["_frozen_resolved_lights"] = frozen.lights
-            apply_config["_frozen_resolver_source"] = frozen.source
-            apply_config["_frozen_skipped_lights"] = frozen.skipped
-            apply_config["_track_key"] = self.last_track_key
-            apply_config["_rotation_offset"] = self.reapply_rotation_offset
+        """Apply current palette with a single-flight guard.
 
-            resolved, last_service_data, resolver_source, skipped_lights = await apply_palette(
-                self.hass, self.expansion_entities, self.last_palette, apply_config
-            )
-            self.last_resolved_lights = resolved
-            self.last_resolver_source = resolver_source
-            self.last_resolver_source_map = frozen.source_map
-            self.last_skipped_lights = skipped_lights
-            self.last_service_data = last_service_data
-            self.last_error = None
-            self.last_timings['light_apply_ms'] = round((time.perf_counter() - apply_started) * 1000, 1)
-        except Exception as err:
-            self.last_error = f"light_apply_failed: {err}"
-            _LOGGER.exception("Failed applying palette/test color")
-        self._notify()
+        If multiple triggers arrive while an apply is already running, queue one
+        follow-up apply using the latest palette/options instead of stacking
+        several overlapping full passes.
+        """
+        if self._apply_in_progress:
+            self._apply_rerun_requested = True
+            self.last_apply_queue_status = "queued_latest"
+            self._notify()
+            return
+
+        async with self._apply_lock:
+            self._apply_in_progress = True
+            try:
+                while True:
+                    self._apply_rerun_requested = False
+                    apply_started = time.perf_counter()
+                    try:
+                        if force_apply:
+                            clear_apply_cache()
+                        frozen = self._resolve_for_track()
+                        apply_config = dict(self.config)
+                        apply_config["_frozen_resolved_lights"] = frozen.lights
+                        apply_config["_frozen_resolver_source"] = frozen.source
+                        apply_config["_frozen_skipped_lights"] = frozen.skipped
+                        apply_config["_track_key"] = self.last_track_key
+                        apply_config["_rotation_offset"] = self.reapply_rotation_offset
+
+                        resolved, last_service_data, resolver_source, skipped_lights = await apply_palette(
+                            self.hass, self.expansion_entities, self.last_palette, apply_config
+                        )
+                        self.last_resolved_lights = resolved
+                        self.last_resolver_source = resolver_source
+                        self.last_resolver_source_map = frozen.source_map
+                        self.last_skipped_lights = skipped_lights
+                        self.last_service_data = last_service_data
+                        self.last_error = None
+                        self.last_timings["light_apply_ms"] = round((time.perf_counter() - apply_started) * 1000, 1)
+                        self.last_apply_queue_status = "applied"
+                    except Exception as err:
+                        self.last_error = f"light_apply_failed: {err}"
+                        self.last_apply_queue_status = f"failed:{type(err).__name__}"
+                        _LOGGER.exception("Failed applying palette/test color")
+
+                    self._notify()
+
+                    if not self._apply_rerun_requested:
+                        break
+                    force_apply = True
+                    self.last_apply_queue_status = "rerun_latest"
+            finally:
+                self._apply_in_progress = False
 
     async def _handle(self, event):
         new_state = event.data.get("new_state")
@@ -818,6 +858,10 @@ Tokens and artwork URLs are redacted.
         if self._poll_remove is not None:
             self._poll_remove()
             self._poll_remove = None
+        self._apply_lock = asyncio.Lock()
+        self._apply_in_progress = False
+        self._apply_rerun_requested = False
+        self.last_apply_queue_status = None
 
     async def async_enable(self):
         self.enabled = True

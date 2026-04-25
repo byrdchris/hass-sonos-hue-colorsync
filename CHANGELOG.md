@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.6
+
+### Fixed
+- Reduced lag when several color apply events happen close together.
+- Prevented overlapping full apply passes from stacking.
+- Standard Hue/Home Assistant light service calls are now sent concurrently.
+
+### Added
+- Added `apply_queue_status` diagnostic field.
+
+### Notes
+- Gradient calls are still handled carefully through the Hue API, but standard lights no longer wait one-by-one behind each other.
+
 ## v2.3.5
 
 ### Changed

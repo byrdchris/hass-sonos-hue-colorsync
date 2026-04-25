@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from .assignment import is_gradient_entity
@@ -62,8 +63,16 @@ def should_apply(entity_id: str, call_data: dict, rgb_tolerance: int = 6, bright
     return False, "unchanged"
 
 async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], strategy: str, transition: float, palette=None, config=None) -> tuple[list[dict], list[dict]]:
+    """Apply color assignments.
+
+    True Hue gradient calls are still awaited per-light because they use the
+    Hue bridge API directly. Standard Home Assistant light.turn_on calls are
+    batched concurrently afterward, so non-gradient lights no longer wait behind
+    each other one-by-one.
+    """
     sent: list[dict] = []
     skipped: list[dict] = []
+    pending_native: list[tuple[str, dict, dict]] = []
 
     for entity_id, color in assignments.items():
         state = hass.states.get(entity_id)
@@ -76,6 +85,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
 
         gradient_aware = is_gradient_entity(hass, entity_id)
         true_gradient_enabled = bool((config or {}).get("true_gradient_mode", False))
+        gradient_diag = None
 
         if true_gradient_enabled and gradient_aware and palette:
             success, gradient_diag = await try_apply_gradient(
@@ -96,7 +106,6 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 gradient_diag["apply_reason"] = "true_gradient"
                 gradient_diag["rgb_color"] = list(color)
                 sent.append(gradient_diag)
-                # Prevent immediate HA-native duplicate apply on the same target.
                 _LAST_APPLIED[entity_id] = {
                     "rgb_color": list(color),
                     "brightness": _clamp_brightness(_brightness_for_color(color), config, gradient_aware),
@@ -105,11 +114,10 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 }
                 continue
 
-            # If direct Hue gradient failed, fall back to HA-native single color.
             skipped.append({
                 "entity_id": entity_id,
                 "reason": "true_gradient_fallback",
-                "detail": gradient_diag.get("gradient_error"),
+                "detail": gradient_diag.get("gradient_error") if gradient_diag else None,
             })
 
         service_data = build_service_data(state, color, transition, config=config, gradient_aware=gradient_aware)
@@ -120,7 +128,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
         diagnostic_data["gradient_aware"] = gradient_aware
         diagnostic_data["true_gradient_mode"] = true_gradient_enabled
         diagnostic_data["apply_reason"] = reason
-        if true_gradient_enabled and gradient_aware and "gradient_diag" in locals():
+        if gradient_diag:
             diagnostic_data.update({
                 key: value for key, value in gradient_diag.items()
                 if key not in diagnostic_data
@@ -131,11 +139,31 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
             sent.append(diagnostic_data | {"skipped": True})
             continue
 
-        _LOGGER.debug("[apply] light.turn_on %s", service_data)
-        await hass.services.async_call("light", "turn_on", service_data, blocking=True)
+        pending_native.append((entity_id, service_data, diagnostic_data))
 
-        _LAST_APPLIED[entity_id] = dict(service_data)
-        sent.append(diagnostic_data)
+    if pending_native:
+        async def _call_light_turn_on(entity_id: str, service_data: dict, diagnostic_data: dict):
+            _LOGGER.debug("[apply] light.turn_on %s", service_data)
+            await hass.services.async_call("light", "turn_on", service_data, blocking=True)
+            _LAST_APPLIED[entity_id] = dict(service_data)
+            return diagnostic_data
+
+        results = await asyncio.gather(
+            *[_call_light_turn_on(entity_id, data, diag) for entity_id, data, diag in pending_native],
+            return_exceptions=True,
+        )
+
+        for (entity_id, _, diagnostic_data), result in zip(pending_native, results, strict=False):
+            if isinstance(result, Exception):
+                skipped.append({
+                    "entity_id": entity_id,
+                    "reason": "service_call_failed",
+                    "detail": f"{type(result).__name__}: {result}",
+                })
+                diagnostic_data["apply_error"] = f"{type(result).__name__}: {result}"
+                sent.append(diagnostic_data)
+            else:
+                sent.append(result)
 
     return sent, skipped
 

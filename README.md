@@ -864,3 +864,23 @@ Diagnostics include:
 reapply_rotation_offset:
 gradient_rotation_offset:
 ```
+
+
+## v2.3.6
+
+### Apply performance and queueing
+
+Improves responsiveness when several color changes are triggered close together.
+
+Changes:
+
+- Adds a single-flight apply lock so multiple full apply passes do not stack.
+- If a new apply is requested while one is running, only one follow-up pass is queued using the latest palette/options.
+- Standard Home Assistant light calls are now sent concurrently after gradient handling.
+- This should reduce visible lag for lights near the end of the target list, such as Hue Play lights.
+
+Diagnostics:
+
+```yaml
+apply_queue_status:
+```
