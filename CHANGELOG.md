@@ -1,5 +1,3 @@
-# Changelog
-
 ## v2.3.15
 
 ### Changed
