@@ -946,3 +946,25 @@ Affected selector-style settings include:
 - Color Distribution Mode
 - Gradient Color Order
 - Artwork fallback behavior
+
+
+## v1.0.0
+
+First stable public release.
+
+Sonos Hue Sync creates Hue lighting palettes from currently playing Sonos album art and applies them to selected Hue lights, rooms, zones, and gradient-capable lights.
+
+### Highlights
+
+- Sonos album-art color extraction
+- Philips Hue light, room, and zone targeting
+- Hue gradient light support
+- Runtime controls for brightness, color count, transition time, fallback behavior, and color distribution
+- Reapply Colors button to rotate current color assignments
+- Artwork fallback protection for intermittent Sonos/AirPlay artwork failures
+- Diagnostics and target preview sensors for troubleshooting
+- HACS-ready custom integration structure
+
+### Notes
+
+Earlier v2.x builds were internal development iterations. v1.0.0 is the first polished stable release.
