@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .applier import apply_assignments, clear_apply_cache
 from .assignment import assign_colors, is_gradient_entity
-from .const import ASSIGNMENT_STRATEGY_BALANCED, CONF_ASSIGNMENT_STRATEGY, CONF_EXPAND_GROUPS
+from .const import ASSIGNMENT_STRATEGY_BALANCED, CONF_ASSIGNMENT_STRATEGY, CONF_EXPAND_GROUPS, CONF_EXCLUDE_LIGHT_ENTITIES
 from .resolver import resolve_targets
 
 async def snapshot_scene(hass, selected_entities: list[str]) -> str:
@@ -57,6 +57,14 @@ async def apply_palette(hass, selected_entities: list[str], palette: list[tuple[
         resolved = result.lights
         resolver_source = result.source
         skipped_lights = result.skipped
+
+    excluded = set(config.get(CONF_EXCLUDE_LIGHT_ENTITIES, []) or [])
+    if excluded:
+        before = list(resolved)
+        resolved = [entity_id for entity_id in resolved if entity_id not in excluded]
+        for entity_id in before:
+            if entity_id in excluded:
+                skipped_lights.append({"entity_id": entity_id, "reason": "excluded_by_user"})
 
     if not resolved:
         return [], [], resolver_source, skipped_lights

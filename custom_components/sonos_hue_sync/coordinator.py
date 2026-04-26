@@ -129,6 +129,22 @@ class SonosHueCoordinator:
                 entities.append(entity_id)
         return entities
 
+    def _resolved_control_targets(self):
+        """Resolve targets and remove excluded lights for apply/snapshot/preview."""
+        result = resolve_light_entities_detailed(
+            self.hass,
+            self.expansion_entities,
+            expand_groups=self.config.get("expand_groups", True),
+        )
+        excluded = set(self.config.get("exclude_light_entities", []) or [])
+        if excluded:
+            before = list(result.lights)
+            result.lights = [entity_id for entity_id in result.lights if entity_id not in excluded]
+            for entity_id in before:
+                if entity_id in excluded:
+                    result.skipped.append({"entity_id": entity_id, "reason": "excluded_by_user"})
+        return result
+
     @property
     def palette_attributes(self):
         hex_colors = [rgb_to_hex(c) for c in self.last_palette]
@@ -183,11 +199,7 @@ class SonosHueCoordinator:
     @property
     def target_preview_attributes(self):
         try:
-            preview = resolve_light_entities_detailed(
-                self.hass,
-                self.expansion_entities,
-                expand_groups=self.config.get("expand_groups", True),
-            )
+            preview = self._resolved_control_targets()
             preview_targets = preview.lights
             resolver_source = preview.source
             skipped = preview.skipped
@@ -594,11 +606,7 @@ Tokens and artwork URLs are redacted.
             if "same_area_hue_group_fallback" not in getattr(frozen, "source", ""):
                 return frozen
 
-            refreshed = resolve_light_entities_detailed(
-                self.hass,
-                self.expansion_entities,
-                expand_groups=self.config.get("expand_groups", True),
-            )
+            refreshed = self._resolved_control_targets()
             refreshed_direct = "direct_entity_id_members" in getattr(refreshed, "source", "")
             refreshed_has_more = len(refreshed.lights) > len(frozen.lights)
             if refreshed_direct or refreshed_has_more:
@@ -609,11 +617,7 @@ Tokens and artwork URLs are redacted.
             self.last_group_resolution = getattr(frozen, "group_diagnostics", {})
             return frozen
 
-        result = resolve_light_entities_detailed(
-            self.hass,
-            self.expansion_entities,
-            expand_groups=self.config.get("expand_groups", True),
-        )
+        result = self._resolved_control_targets()
         self._frozen_track_key = self.last_track_key
         self._frozen_resolve_result = result
         self.last_group_resolution = getattr(result, "group_diagnostics", {})
@@ -719,7 +723,9 @@ Tokens and artwork URLs are redacted.
         self._frozen_resolve_result = None
 
         if not self.scene:
-            self.scene = await snapshot_scene(self.hass, self.expansion_entities)
+            snapshot_targets = self._resolved_control_targets().lights
+            if snapshot_targets:
+                self.scene = await snapshot_scene(self.hass, snapshot_targets)
 
         art_candidates = self._art_candidates(state)
         self.last_image_fetch_candidates = art_candidates

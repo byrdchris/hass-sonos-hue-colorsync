@@ -150,7 +150,7 @@
     },
     "switch": {
       "enabled": {
-        "name": "Enable Sync",
+        "name": "Sync Active",
         "description": "Turn Sonos Hue Sync on or off. When disabled, music playback will not change lights and the previous lighting state is restored."
       },
       "filter_dull": {
