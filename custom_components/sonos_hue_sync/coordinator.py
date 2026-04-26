@@ -827,14 +827,6 @@ Tokens and artwork URLs are redacted.
         self._cancel_pending_restore()
         self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
 
-
-        self._snapshot_sonos_attrs(state)
-        for candidate in self._art_candidates(state):
-            data = await self._fetch_image_bytes(candidate)
-            if data:
-                return data, self.current_artwork_content_type or "image/jpeg"
-        return None, None
-
     async def async_health_check(self) -> dict:
         """Run a user-facing integration health check."""
         report = build_health_report(self.hass, self)
@@ -898,6 +890,7 @@ Tokens and artwork URLs are redacted.
         await self.async_process_current_state(reason="enabled")
 
     async def async_disable(self):
+        self.last_processing_reason = "sync_disabled"
         self.enabled = False
         self._stop_polling()
         await self._handle_stop()

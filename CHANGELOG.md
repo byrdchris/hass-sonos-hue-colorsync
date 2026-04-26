@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.1
+
+### Fixed
+- Fixed `name 'state' is not defined` when turning off sync.
+
+### Changed
+- Renamed main switch to **Enable Sync**.
+- Renamed **Reapply Colors** to **Rotate Colors**.
+- Reordered platform setup and control definitions for a cleaner controls panel.
+
 ## v1.0.0
 
 First stable public release.

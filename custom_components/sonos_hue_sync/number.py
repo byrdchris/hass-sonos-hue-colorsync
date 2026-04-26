@@ -6,12 +6,12 @@ from .const import DOMAIN
 
 NUMBERS = [
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
+    ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
     ("min_brightness", "Minimum Brightness", "mdi:brightness-5", 1, 255, 1),
     ("max_brightness", "Maximum Brightness", "mdi:brightness-7", 1, 255, 1),
     ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
-    ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
-    ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
     ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
+    ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
 ]
 
 async def async_setup_entry(hass, entry, async_add_entities):

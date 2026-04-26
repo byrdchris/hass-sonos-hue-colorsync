@@ -124,8 +124,8 @@
         "description": "Force fresh album-art extraction and apply colors immediately."
       },
       "apply_last_palette": {
-        "name": "Reapply Colors",
-        "description": "Rotate the current palette across the selected lights and reapply it."
+        "name": "Rotate Colors",
+        "description": "Rotate the current palette across the selected lights."
       },
       "test_rainbow": {
         "name": "Test Lighting",
@@ -150,19 +150,19 @@
     },
     "switch": {
       "enabled": {
-        "name": "Sync Enabled",
-        "description": "Enable or disable automatic light syncing."
+        "name": "Enable Sync",
+        "description": "Turn Sonos Hue Sync on or off. When disabled, music playback will not change lights and the previous lighting state is restored."
       },
       "filter_dull": {
-        "name": "Remove Dull Colors",
+        "name": "Filter Dull Colors",
         "description": "Remove gray, muddy, and low-saturation tones."
       },
       "filter_bright_white": {
-        "name": "Reduce Harsh Whites",
+        "name": "Filter Harsh Whites",
         "description": "Reduce pure/cool whites while keeping cream and warm whites."
       },
       "low_color_handling": {
-        "name": "Stabilize Low-Color Artwork",
+        "name": "Stabilize Low-Color Art",
         "description": "Keep nearly monochrome covers from becoming overly saturated."
       },
       "cache": {

@@ -9,10 +9,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(
         [
             SonosHueSyncButton(coordinator, entry, "Refresh Colors", "extract_now", "mdi:image-sync"),
-            SonosHueSyncButton(coordinator, entry, "Reapply Colors", "apply_last_palette", "mdi:palette"),
+            SonosHueSyncButton(coordinator, entry, "Rotate Colors", "apply_last_palette", "mdi:palette"),
             SonosHueSyncButton(coordinator, entry, "Test Lighting", "test_rainbow", "mdi:rainbow"),
-            SonosHueSyncButton(coordinator, entry, "Help & Guide", "show_help", "mdi:help-circle-outline"),
             SonosHueSyncButton(coordinator, entry, "Health Check", "health_check", "mdi:heart-pulse"),
+            SonosHueSyncButton(coordinator, entry, "Help & Guide", "show_help", "mdi:help-circle-outline"),
         ],
         True,
     )
