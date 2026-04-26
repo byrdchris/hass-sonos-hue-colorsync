@@ -1,0 +1,268 @@
+{
+  "title": "Sonos Hue Sync",
+  "config": {
+    "flow_title": "Sonos Hue Sync",
+    "step": {
+      "user": {
+        "title": "Sonos Hue Sync",
+        "description": "Update the speaker, Hue targets, and palette behavior.",
+        "data": {
+          "sonos_entity": "Sonos speaker",
+          "light_entities": "Hue lights / groups",
+          "group_entities": "Additional Hue groups to expand",
+          "member_light_entities": "Additional member lights",
+          "color_count": "Color count",
+          "transition": "Transition time",
+          "filter_dull": "Filter dull colors",
+          "filter_bright_white": "Filter bright whites",
+          "monochrome_mode": "Black & White Handling",
+          "low_color_handling": "Handle low-color album art",
+          "cache": "Cache album colors",
+          "expand_groups": "Distribute colors across group members",
+          "assignment_strategy": "Color Distribution Mode",
+          "true_gradient_mode": "Enable True Gradient",
+          "gradient_color_points": "Gradient Detail Level",
+          "gradient_order_mode": "Gradient Color Order",
+          "min_brightness": "Minimum Brightness",
+          "max_brightness": "Maximum Brightness",
+          "gradient_brightness": "Gradient Brightness",
+          "exclude_light_entities": "Excluded Lights",
+          "restore_delay": "Restore Delay",
+          "artwork_fallback_mode": "Artwork fallback behavior",
+          "airplay_poll_interval": "AirPlay Metadata Check Interval"
+        },
+        "data_description": {
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main targets to control. Select the Hue room/group you normally want synced, or select individual lights. If a selected room/group exposes its member lights, colors are distributed across those members.",
+          "group_entities": "Optional additive workaround. Add real Hue room, zone, or group entities only when the main Hue lights / groups selection does not expose all of its members. These are added to the main targets, not used instead of them. Avoid adding helper zones here if you do not want the entire zone treated as one target.",
+          "member_light_entities": "Optional additive override. Add specific individual lights that should always be controlled directly. Use this for missing bulbs or Hue Play lights when group expansion does not resolve them. Do not add room/group helper entities here.",
+          "color_count": "Number of colors to extract from album art. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds for each light change. Higher values are smoother but slower; lower values respond faster.",
+          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping useful color tones.",
+          "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
+          "monochrome_mode": "Controls black, white, or grayscale album art handling.",
+          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated.",
+          "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
+          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
+          "assignment_strategy": "Controls how extracted colors are distributed across selected lights.",
+          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
+          "gradient_color_points": "Number of color points sent to supported gradient lights.",
+          "gradient_order_mode": "Controls whether gradient-capable lights use the same color order or rotated color points.",
+          "min_brightness": "Lowest brightness Sonos Hue Sync may apply to standard lights.",
+          "max_brightness": "Highest brightness Sonos Hue Sync may apply to standard lights.",
+          "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
+          "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
+          "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled.",
+          "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved.",
+          "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sonos Hue Sync options",
+        "description": "Update the speaker, Hue targets, and palette behavior.",
+        "data": {
+          "sonos_entity": "Sonos speaker",
+          "light_entities": "Hue lights / groups",
+          "group_entities": "Additional Hue groups to expand",
+          "member_light_entities": "Additional member lights",
+          "color_count": "Color count",
+          "transition": "Transition time",
+          "filter_dull": "Filter dull colors",
+          "filter_bright_white": "Filter bright whites",
+          "monochrome_mode": "Black & White Handling",
+          "low_color_handling": "Handle low-color album art",
+          "cache": "Cache album colors",
+          "expand_groups": "Distribute colors across group members",
+          "assignment_strategy": "Color Distribution Mode",
+          "true_gradient_mode": "Enable True Gradient",
+          "gradient_color_points": "Gradient Detail Level",
+          "gradient_order_mode": "Gradient Color Order",
+          "min_brightness": "Minimum Brightness",
+          "max_brightness": "Maximum Brightness",
+          "gradient_brightness": "Gradient Brightness",
+          "exclude_light_entities": "Excluded Lights",
+          "restore_delay": "Restore Delay",
+          "artwork_fallback_mode": "Artwork fallback behavior",
+          "airplay_poll_interval": "AirPlay Metadata Check Interval"
+        },
+        "data_description": {
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main targets to control. Select the Hue room/group you normally want synced, or select individual lights. If a selected room/group exposes its member lights, colors are distributed across those members.",
+          "group_entities": "Optional additive workaround. Add real Hue room, zone, or group entities only when the main Hue lights / groups selection does not expose all of its members. These are added to the main targets, not used instead of them. Avoid adding helper zones here if you do not want the entire zone treated as one target.",
+          "member_light_entities": "Optional additive override. Add specific individual lights that should always be controlled directly. Use this for missing bulbs or Hue Play lights when group expansion does not resolve them. Do not add room/group helper entities here.",
+          "color_count": "Number of colors to extract from album art. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds for each light change. Higher values are smoother but slower; lower values respond faster.",
+          "filter_dull": "Remove black, gray, muddy, or very dark colors while keeping useful color tones.",
+          "filter_bright_white": "Remove harsh pure or cool white colors while keeping warmer cream and soft white tones.",
+          "monochrome_mode": "Controls black, white, or grayscale album art handling.",
+          "low_color_handling": "When album art has only subtle color, use a restrained muted palette instead of allowing tiny color noise to become overly saturated.",
+          "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
+          "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
+          "assignment_strategy": "Controls how extracted colors are distributed across selected lights.",
+          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
+          "gradient_color_points": "Number of color points sent to supported gradient lights.",
+          "gradient_order_mode": "Controls whether gradient-capable lights use the same color order or rotated color points.",
+          "min_brightness": "Lowest brightness Sonos Hue Sync may apply to standard lights.",
+          "max_brightness": "Highest brightness Sonos Hue Sync may apply to standard lights.",
+          "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
+          "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
+          "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled.",
+          "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved.",
+          "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent."
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "extract_now": {
+        "name": "Refresh Colors",
+        "description": "Force fresh album-art extraction and apply colors immediately."
+      },
+      "apply_last_palette": {
+        "name": "Reapply Colors",
+        "description": "Rotate the current palette across the selected lights and reapply it."
+      },
+      "test_rainbow": {
+        "name": "Test Lighting",
+        "description": "Apply a test palette to verify target distribution."
+      },
+      "show_help": {
+        "name": "Help & Guide",
+        "description": "Open a quick guide with setup, troubleshooting, and diagnostics instructions."
+      },
+      "health_check": {
+        "name": "Health Check",
+        "description": "Check Sonos, Hue, targets, gradients, and recent processing status."
+      }
+    },
+    "sensor": {
+      "palette": {
+        "name": "Status"
+      },
+      "target_preview": {
+        "name": "Targets"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Sync Enabled",
+        "description": "Enable or disable automatic light syncing."
+      },
+      "filter_dull": {
+        "name": "Remove Dull Colors",
+        "description": "Remove gray, muddy, and low-saturation tones."
+      },
+      "filter_bright_white": {
+        "name": "Reduce Harsh Whites",
+        "description": "Reduce pure/cool whites while keeping cream and warm whites."
+      },
+      "low_color_handling": {
+        "name": "Stabilize Low-Color Artwork",
+        "description": "Keep nearly monochrome covers from becoming overly saturated."
+      },
+      "cache": {
+        "name": "Cache Album Colors",
+        "description": "Reuse processed album-art color palettes."
+      },
+      "expand_groups": {
+        "name": "Distribute Across Group Lights",
+        "description": "Apply colors to individual lights inside groups when available."
+      },
+      "true_gradient_mode": {
+        "name": "Enable True Gradient",
+        "description": "Use Hue direct control for supported gradient lights."
+      }
+    },
+    "select": {
+      "assignment_strategy": {
+        "name": "Color Distribution Mode",
+        "description": "Choose how extracted colors are distributed across lights."
+      },
+      "monochrome_mode": {
+        "name": "Black & White Handling",
+        "description": "Choose how black-and-white album art becomes light colors."
+      },
+      "gradient_order_mode": {
+        "name": "Gradient Pattern",
+        "description": "Choose the color order used by supported gradient lights."
+      }
+    },
+    "number": {
+      "color_count": {
+        "name": "Number of Colors",
+        "description": "Set the number of colors extracted from album art."
+      },
+      "transition": {
+        "name": "Transition Time",
+        "description": "Set the fade duration for light changes."
+      },
+      "gradient_color_points": {
+        "name": "Gradient Detail Level",
+        "description": "Set the number of color points sent to gradient lights."
+      },
+      "min_brightness": {
+        "name": "Minimum Brightness",
+        "description": "Lowest brightness Sonos Hue Sync may apply to standard lights."
+      },
+      "max_brightness": {
+        "name": "Maximum Brightness",
+        "description": "Highest brightness Sonos Hue Sync may apply to standard lights."
+      },
+      "gradient_brightness": {
+        "name": "Gradient Brightness",
+        "description": "Maximum brightness used for supported gradient lights when True Gradient is enabled."
+      },
+      "restore_delay": {
+        "name": "Restore Delay",
+        "description": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled."
+      }
+    }
+  },
+  "selector": {
+    "assignment_strategy": {
+      "options": {
+        "balanced": "Balanced",
+        "sequential": "Sequential",
+        "alternating": "Alternating bright / dim",
+        "brightness": "Brightness order"
+      }
+    },
+    "monochrome_mode": {
+      "options": {
+        "warm_neutral": "Warm neutral",
+        "grayscale": "Preserve grayscale",
+        "muted_accent": "Muted accent",
+        "disabled": "Disabled"
+      }
+    },
+    "min_brightness": "Minimum Brightness",
+    "max_brightness": "Maximum Brightness",
+    "gradient_brightness": "Gradient Brightness",
+    "exclude_light_entities": "Excluded Lights",
+    "restore_delay": "Restore Delay"
+  },
+  "services": {
+    "show_help": {
+      "name": "Show help",
+      "description": "Show a Sonos Hue Sync guide, including diagnostics instructions."
+    },
+    "health_check": {
+      "name": "Health check",
+      "description": "Run a Sonos Hue Sync health check and show the result as a Home Assistant notification."
+    }
+  },
+  "common": {
+    "min_brightness": "Minimum Brightness",
+    "max_brightness": "Maximum Brightness",
+    "gradient_brightness": "Gradient Brightness",
+    "exclude_light_entities": "Excluded Lights",
+    "restore_delay": "Restore Delay",
+    "artwork_fallback_mode": "Artwork fallback behavior",
+    "airplay_poll_interval": "AirPlay Metadata Check Interval"
+  }
+}
