@@ -2,6 +2,7 @@
 
 Sonos Hue Sync is a Home Assistant custom integration that extracts colors from the currently playing Sonos album art and applies them to Philips Hue lights, rooms, zones, and supported gradient lights.
 
+
 ---
 
 ## Requirements
