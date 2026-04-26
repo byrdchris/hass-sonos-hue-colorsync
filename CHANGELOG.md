@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.15
+
+### Changed
+- Changed select-option config controls from dropdown mode to list mode where applicable.
+- Improves dark-theme readability for selector fields.
+
+### Notes
+- This is a UI/UX-only patch. No color extraction, Hue control, fallback, or resolver behavior changed.
+
 ## v2.3.14
 
 ### Fixed

@@ -94,7 +94,7 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
         vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": ARTWORK_FALLBACK_MODE_LABELS[key]} for key in ARTWORK_FALLBACK_MODES], mode=selector.SelectSelectorMode.DROPDOWN)),
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": ARTWORK_FALLBACK_MODE_LABELS[key]} for key in ARTWORK_FALLBACK_MODES], mode=selector.SelectSelectorMode.LIST)),
 
         vol.Optional(CONF_MONOCHROME_MODE, default=defaults.get(CONF_MONOCHROME_MODE, DEFAULT_MONOCHROME_MODE)):
             selector.SelectSelector(
@@ -105,7 +105,7 @@ def build_schema(defaults: dict):
                         selector.SelectOptionDict(value=MONOCHROME_MODE_MUTED_ACCENT, label="Muted accent"),
                         selector.SelectOptionDict(value=MONOCHROME_MODE_DISABLED, label="Disabled"),
                     ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    mode=selector.SelectSelectorMode.LIST,
                 )
             ),
         vol.Optional(CONF_LOW_COLOR_HANDLING, default=defaults.get(CONF_LOW_COLOR_HANDLING, DEFAULT_LOW_COLOR_HANDLING)): bool,
@@ -113,7 +113,7 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_GRADIENT_COLOR_POINTS, default=defaults.get(CONF_GRADIENT_COLOR_POINTS, DEFAULT_GRADIENT_COLOR_POINTS)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=5, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_GRADIENT_ORDER_MODE, default=defaults.get(CONF_GRADIENT_ORDER_MODE, DEFAULT_GRADIENT_ORDER_MODE)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": GRADIENT_ORDER_MODE_LABELS[key]} for key in GRADIENT_ORDER_MODES], mode=selector.SelectSelectorMode.DROPDOWN)),
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": GRADIENT_ORDER_MODE_LABELS[key]} for key in GRADIENT_ORDER_MODES], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
         vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
         vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):
@@ -125,7 +125,7 @@ def build_schema(defaults: dict):
                         selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright / dim"),
                         selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BRIGHTNESS, label="Brightness order"),
                     ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    mode=selector.SelectSelectorMode.LIST,
                 )
             ),
     })

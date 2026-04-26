@@ -928,3 +928,21 @@ preview_group_resolution:
 ```
 
 These diagnostics show declared group members, resolved members, and missing/skipped members.
+
+
+## v2.3.15
+
+### Dark-theme selector cleanup
+
+Changes option selectors from dropdown mode to list mode where applicable.
+
+Why:
+
+Some Home Assistant frontend views render dropdown selectors with a light text field even when using a dark theme. List mode avoids the poor contrast issue and better matches the rest of the integration controls.
+
+Affected selector-style settings include:
+
+- Black & White Handling
+- Color Distribution Mode
+- Gradient Color Order
+- Artwork fallback behavior
