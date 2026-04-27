@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.1.9
+
+### Fixed
+- Added an empty-palette safeguard for aggressive white filtering so all-white or mostly white artwork cannot collapse to an empty palette.
+- Ensured Black & White Handling still has usable palette input after White Color Handling runs.
+
+### Changed
+- Clarified White Color Handling behavior for all-white, grayscale, and black-and-white album art.
+
+
+## v1.1.8
+
+### Added
+- Added **Color Rotation Mode** with options for track-change rotation, timed auto-rotation, both, or no rotation.
+- Added **White Color Handling** with contextual white suppression, aggressive white filtering, or allowing whites.
+
+### Changed
+- New tracks can now shift palette assignments so individual lights are not pinned to the same palette slot across albums.
+- White/cream colors are now suppressed only when real colors are present by default, preserving grayscale/black-and-white album art behavior.
+- Palette cache keys now include the selected White Color Handling mode.
+
+
 ## v1.1.7
 
 ### Improved

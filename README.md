@@ -13,6 +13,7 @@ The integration is designed for Home Assistant installations running in containe
 - Restores the previous lighting scene when playback stops or sync is turned off.
 - Includes AirPlay/Sonos artwork fallback handling to reduce flicker and bad palette overwrites.
 - Provides Home Assistant controls, diagnostics, health checks, and target previews.
+- **Color Rotation Mode** can shift color assignments on each track change, run timed auto-rotation, use both, or disable rotation.
 - Optional **Auto Rotate Colors** mode cycles the active palette while music is playing, with a user-adjustable interval.
 - Palette ordering can prioritize either vivid visual variety or the most dominant album-art colors first.
 
@@ -69,7 +70,8 @@ During setup and in options, you can configure:
 - **Artwork Fallback**: controls what happens when Sonos artwork is missing or unavailable.
 - **Color Distribution Mode**: controls how the extracted palette is assigned across multiple lights. Use **Sequential** if you want lights to follow the selected Palette Ordering directly.
 - **Enable True Gradient**: uses multi-color Hue gradient behavior for capable lights while standard lights in the same group continue using normal color updates.
-- **Auto Rotate Colors**: automatically cycles the current palette while music is playing.
+- **Color Rotation Mode**: controls whether color assignments rotate on track changes, timed auto-rotation, both, or not at all.
+- **Auto Rotate Colors**: automatically cycles the current palette while music is playing. This remains available as a simple timed-rotation switch.
 - **Auto Rotation Interval**: total cycle time between automatic rotation starts, adjustable from 1 to 60 seconds. Transition Time is treated as the fade portion of the cycle, with an internal safety buffer to avoid overlapping Hue updates.
 - **Gradient Detail Level**: controls the number of gradient points.
 - **Gradient Order Mode**: controls gradient ordering across lights.
@@ -132,7 +134,7 @@ When playback stops, pauses, or the primary sync control is turned off, the inte
 
 Excluded lights are removed after group expansion. This means a light can be part of a selected Hue room or zone and still be protected from control.
 
-When **Auto Rotate Colors** is enabled, the integration periodically reuses the same internal path as **Rotate Colors**. It does not recompute the palette. The current **Transition Time** value controls the fade. **Auto Rotation Interval** is treated as the total cycle time between rotation starts; the fade time and a conservative internal safety buffer are reserved inside that cycle. If the interval is shorter than the fade plus buffer, the integration waits long enough to avoid overlapping Hue updates. Interval and transition changes take effect while auto-rotation is already running.
+When timed rotation is enabled by **Auto Rotate Colors** or **Color Rotation Mode**, the integration periodically reuses the same internal path as **Rotate Colors**. It does not recompute the palette. The current **Transition Time** value controls the fade. **Auto Rotation Interval** is treated as the total cycle time between rotation starts; the fade time and a conservative internal safety buffer are reserved inside that cycle. If the interval is shorter than the fade plus buffer, the integration waits long enough to avoid overlapping Hue updates. Interval and transition changes take effect while auto-rotation is already running.
 
 
 ## Palette Ordering vs. Distribution
@@ -183,13 +185,35 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.7` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.9` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.1.7
-git push origin v1.1.7
+git tag v1.1.9
+git push origin v1.1.9
 ```
 
 ## License
 
 MIT License. See `LICENSE`.
+
+
+## v1.1.9 behavior notes
+
+### Color Rotation Mode
+
+**Rotate on Track Change** is the default. On each new track, the integration shifts the palette assignment by one slot before applying the new album colors. This prevents the same physical lamps from repeatedly receiving the same palette position when different albums have similar dominant color structure.
+
+Modes:
+- **Rotate on Track Change**: shift assignments only when the track changes.
+- **No Rotation**: keep deterministic palette-to-light assignment.
+- **Auto Rotate Only**: use timed palette rotation while music is playing.
+- **Track Change and Auto Rotate**: shift on each track and keep timed rotation active.
+
+### White Color Handling
+
+**Suppress Whites When Colors Exist** is the default. It keeps white, cream, and grayscale tones for black-and-white or monochrome artwork, but removes near-white tones when the artwork also contains real chromatic colors. This prevents color albums from being dominated by white/cream highlights while preserving grayscale album art behavior.
+
+Modes:
+- **Suppress Whites When Colors Exist**: contextual default.
+- **Always Filter Whites**: removes white/cream tones aggressively. If that would remove every color, the original palette is restored so black-and-white or all-white artwork still has usable colors.
+- **Allow Whites**: keeps white/cream tones in extracted palettes.

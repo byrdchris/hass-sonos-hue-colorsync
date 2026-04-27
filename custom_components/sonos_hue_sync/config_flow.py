@@ -71,6 +71,14 @@ from .const import (
     MAX_AUTO_ROTATE_INTERVAL,
     PALETTE_ORDERING_LABELS,
     PALETTE_ORDERING_OPTIONS,
+    CONF_WHITE_HANDLING,
+    DEFAULT_WHITE_HANDLING,
+    WHITE_HANDLING_OPTIONS,
+    WHITE_HANDLING_LABELS,
+    CONF_ROTATION_MODE,
+    DEFAULT_ROTATION_MODE,
+    ROTATION_MODE_OPTIONS,
+    ROTATION_MODE_LABELS,
 )
 
 def build_schema(defaults: dict):
@@ -87,6 +95,8 @@ def build_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": PALETTE_ORDERING_LABELS[key]} for key in PALETTE_ORDERING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": WHITE_HANDLING_LABELS[key]} for key in WHITE_HANDLING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):
@@ -106,6 +116,8 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_AUTO_ROTATE_COLORS, default=defaults.get(CONF_AUTO_ROTATE_COLORS, DEFAULT_AUTO_ROTATE_COLORS)): bool,
         vol.Optional(CONF_AUTO_ROTATE_INTERVAL, default=defaults.get(CONF_AUTO_ROTATE_INTERVAL, DEFAULT_AUTO_ROTATE_INTERVAL)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=MIN_AUTO_ROTATE_INTERVAL, max=MAX_AUTO_ROTATE_INTERVAL, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_ROTATION_MODE, default=defaults.get(CONF_ROTATION_MODE, DEFAULT_ROTATION_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": ROTATION_MODE_LABELS[key]} for key in ROTATION_MODE_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
         vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):

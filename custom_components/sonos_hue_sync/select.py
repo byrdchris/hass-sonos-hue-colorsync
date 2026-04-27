@@ -8,22 +8,26 @@ from .const import (
     ASSIGNMENT_STRATEGY_BRIGHTNESS,
     ASSIGNMENT_STRATEGY_SEQUENTIAL,
     CONF_ASSIGNMENT_STRATEGY,
+    CONF_ARTWORK_FALLBACK_MODE,
+    CONF_GRADIENT_ORDER_MODE,
     CONF_PALETTE_ORDERING,
-    DEFAULT_PALETTE_ORDERING,
-    PALETTE_ORDERING_LABELS,
-    PALETTE_ORDERING_OPTIONS,
+    CONF_ROTATION_MODE,
+    CONF_WHITE_HANDLING,
     DOMAIN,
     MONOCHROME_MODE_DISABLED,
     MONOCHROME_MODE_GRAYSCALE,
     MONOCHROME_MODE_MUTED_ACCENT,
     MONOCHROME_MODE_WARM_NEUTRAL,
-    CONF_GRADIENT_ORDER_MODE,
-    CONF_ARTWORK_FALLBACK_MODE,
-    DEFAULT_GRADIENT_ORDER_MODE,
-    GRADIENT_ORDER_MODE_LABELS,
-    GRADIENT_ORDER_MODES,
     ARTWORK_FALLBACK_MODE_LABELS,
     ARTWORK_FALLBACK_MODES,
+    GRADIENT_ORDER_MODE_LABELS,
+    GRADIENT_ORDER_MODES,
+    PALETTE_ORDERING_LABELS,
+    PALETTE_ORDERING_OPTIONS,
+    ROTATION_MODE_LABELS,
+    ROTATION_MODE_OPTIONS,
+    WHITE_HANDLING_LABELS,
+    WHITE_HANDLING_OPTIONS,
 )
 
 ASSIGNMENT_OPTIONS = [
@@ -54,6 +58,7 @@ MONOCHROME_LABELS = {
     MONOCHROME_MODE_DISABLED: "Disabled",
 }
 
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
@@ -75,6 +80,24 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 options=ASSIGNMENT_OPTIONS,
                 labels=ASSIGNMENT_LABELS,
                 icon="mdi:palette-swatch",
+            ),
+            SonosHueSelect(
+                coordinator,
+                entry,
+                key=CONF_ROTATION_MODE,
+                name="Color Rotation Mode",
+                options=ROTATION_MODE_OPTIONS,
+                labels=ROTATION_MODE_LABELS,
+                icon="mdi:rotate-3d-variant",
+            ),
+            SonosHueSelect(
+                coordinator,
+                entry,
+                key=CONF_WHITE_HANDLING,
+                name="White Color Handling",
+                options=WHITE_HANDLING_OPTIONS,
+                labels=WHITE_HANDLING_LABELS,
+                icon="mdi:white-balance-sunny",
             ),
             SonosHueSelect(
                 coordinator,
@@ -106,6 +129,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ],
         True,
     )
+
 
 class SonosHueSelect(SelectEntity):
     _attr_has_entity_name = True

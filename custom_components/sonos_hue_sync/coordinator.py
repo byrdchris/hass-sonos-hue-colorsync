@@ -36,6 +36,11 @@ from .const import (
     MIN_AUTO_ROTATE_INTERVAL,
     MAX_AUTO_ROTATE_INTERVAL,
     AUTO_ROTATE_SAFETY_BUFFER_SECONDS,
+    CONF_WHITE_HANDLING,
+    CONF_ROTATION_MODE,
+    ROTATION_MODE_TRACK_CHANGE,
+    ROTATION_MODE_AUTO,
+    ROTATION_MODE_TRACK_AND_AUTO,
 )
 from .applier import clear_apply_cache
 from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
@@ -49,6 +54,7 @@ PALETTE_AFFECTING_OPTIONS = {
     CONF_PALETTE_ORDERING,
     "filter_dull",
     "filter_bright_white",
+    CONF_WHITE_HANDLING,
     "monochrome_mode",
     "low_color_handling",
 }
@@ -168,6 +174,7 @@ class SonosHueCoordinator:
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
+            "white_color_handling": self.config.get(CONF_WHITE_HANDLING, "suppress_when_color_exists"),
             ATTR_PALETTE_PREVIEW: self._palette_preview(),
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
@@ -206,6 +213,8 @@ class SonosHueCoordinator:
             "excluded_lights": self.config.get("exclude_light_entities", []),
             "restore_delay": self.config.get("restore_delay", 0),
             "auto_rotate_colors": self.config.get(CONF_AUTO_ROTATE_COLORS, False),
+            "color_rotation_mode": self._rotation_mode(),
+            "rotate_on_track_change": self._rotate_on_track_change_enabled(),
             "auto_rotate_interval_seconds": self._auto_rotate_interval_seconds(),
             "auto_rotate_active": bool(self._auto_rotate_task and not self._auto_rotate_task.done()),
             "auto_rotation_timing": self._auto_rotation_timing(),
@@ -494,6 +503,7 @@ class SonosHueCoordinator:
             f"ordering={self.config.get(CONF_PALETTE_ORDERING, 'vivid_first')}",
             f"filter_dull={self.config.get('filter_dull', True)}",
             f"filter_white={self.config.get('filter_bright_white', True)}",
+            f"white_handling={self.config.get(CONF_WHITE_HANDLING, 'suppress_when_color_exists')}",
             f"mono={self.config.get('monochrome_mode', 'warm_neutral')}",
             f"low_color={self.config.get('low_color_handling', True)}",
         ]
@@ -514,8 +524,14 @@ class SonosHueCoordinator:
         if key == "cache":
             from .cache import PaletteCache
             self.cache = PaletteCache() if value else None
+        if key == CONF_ROTATION_MODE:
+            if self._auto_rotate_enabled():
+                self._maybe_start_auto_rotate()
+            else:
+                self._stop_auto_rotate()
+
         if key == CONF_AUTO_ROTATE_COLORS:
-            if value:
+            if self._auto_rotate_enabled():
                 self._maybe_start_auto_rotate()
             else:
                 self._stop_auto_rotate()
@@ -563,7 +579,8 @@ class SonosHueCoordinator:
 - **Number of Colors**: number of album-art colors to extract. If there are more lights than colors, colors repeat.
 - **Palette Ordering**: choose whether extracted palettes keep the most dominant artwork colors first or prioritize vivid, visually distinct colors.
 - **Filter Dull Colors**: removes dark, gray, muddy, or low-saturation tones.
-- **Filter Bright Whites**: removes harsh pure/cool whites while keeping cream and soft warm whites.
+- **White Color Handling**: choose whether whites are allowed, always filtered, or suppressed only when album art also contains real colors.
+- **Filter Bright Whites**: legacy simple white filter used if White Color Handling is not set.
 - **Black-and-White Album Handling**: controls grayscale covers so they do not produce random neon colors.
 - **Handle Low-Color Album Art**: keeps nearly monochrome covers restrained instead of over-saturating tiny color noise.
 
@@ -574,7 +591,8 @@ class SonosHueCoordinator:
   - **Alternating bright / dim**: alternates light and dark tones.
   - **Brightness order**: sorts colors by lightness; can make similar hues dominate.
 - **Transition Time**: fade duration for light changes.
-- **Auto Rotate Colors**: automatically cycles the current palette while music is playing.
+- **Color Rotation Mode**: choose whether color assignments rotate on track change, timed auto-rotation, both, or not at all.
+- **Auto Rotate Colors**: simple timed-rotation switch that cycles the current palette while music is playing.
 - **Auto Rotation Interval**: total cycle time between automatic rotation starts. The current **Transition Time** is treated as the fade portion of that cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while auto-rotation is running.
 - **Gradient Pattern**: choose whether gradient lights use the same order, offset order per light, or random order per track.
 - **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
@@ -611,6 +629,13 @@ Tokens and artwork URLs are redacted.
             blocking=False,
         )
 
+    def _advance_rotation_offset(self, reason: str) -> None:
+        palette_len = len(self.last_palette or [])
+        resolved_len = len(self.last_resolved_lights or [])
+        rotate_size = max(palette_len, resolved_len, 1)
+        self.reapply_rotation_offset = (int(self.reapply_rotation_offset or 0) + 1) % rotate_size
+        self.runtime_options["last_rotation_reason"] = reason
+
     async def async_apply_last_palette(self, reason: str = "button_reapply_rotate_colors"):
         """Rotate the current color assignment across lights and reapply.
 
@@ -628,10 +653,7 @@ Tokens and artwork URLs are redacted.
                 self._notify()
                 return
 
-        palette_len = len(self.last_palette or [])
-        resolved_len = len(self.last_resolved_lights or [])
-        rotate_size = max(palette_len, resolved_len, 1)
-        self.reapply_rotation_offset = (int(self.reapply_rotation_offset or 0) + 1) % rotate_size
+        self._advance_rotation_offset(reason)
         self.last_processing_reason = reason
 
         await self._apply_palette_to_lights(force_apply=True)
@@ -751,10 +773,20 @@ Tokens and artwork URLs are redacted.
             value = DEFAULT_AUTO_ROTATE_INTERVAL
         return max(MIN_AUTO_ROTATE_INTERVAL, min(MAX_AUTO_ROTATE_INTERVAL, value))
 
+    def _rotation_mode(self) -> str:
+        return str(self.config.get(CONF_ROTATION_MODE, ROTATION_MODE_TRACK_CHANGE) or ROTATION_MODE_TRACK_CHANGE)
+
+    def _auto_rotate_enabled(self) -> bool:
+        mode = self._rotation_mode()
+        return bool(self.config.get(CONF_AUTO_ROTATE_COLORS, False) or mode in (ROTATION_MODE_AUTO, ROTATION_MODE_TRACK_AND_AUTO))
+
+    def _rotate_on_track_change_enabled(self) -> bool:
+        return self._rotation_mode() in (ROTATION_MODE_TRACK_CHANGE, ROTATION_MODE_TRACK_AND_AUTO)
+
     def _auto_rotate_allowed(self) -> bool:
         return bool(
             self.enabled
-            and self.config.get(CONF_AUTO_ROTATE_COLORS, False)
+            and self._auto_rotate_enabled()
             and self.last_palette
             and self._is_currently_playing()
         )
@@ -923,11 +955,15 @@ Tokens and artwork URLs are redacted.
             return
 
         track_key = self._track_key(state)
-        if not force and track_key == self.last_track_key:
+        previous_track_key = self.last_track_key
+        if not force and track_key == previous_track_key:
             return
+        is_new_track = bool(previous_track_key and track_key and track_key != previous_track_key)
         self.last_track_key = track_key
         self._frozen_track_key = None
         self._frozen_resolve_result = None
+        if is_new_track and self._rotate_on_track_change_enabled() and self.last_palette:
+            self._advance_rotation_offset("track_change")
 
         if not self.scene:
             snapshot_targets = self._resolved_control_targets().lights

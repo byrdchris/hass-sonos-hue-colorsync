@@ -8,6 +8,13 @@ from io import BytesIO
 from colorthief import ColorThief
 from PIL import Image
 
+from .const import (
+    CONF_WHITE_HANDLING,
+    WHITE_HANDLING_CONTEXTUAL,
+    WHITE_HANDLING_ALWAYS_FILTER,
+    WHITE_HANDLING_ALLOW,
+)
+
 def _hsv(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
     r, g, b = [x / 255 for x in rgb]
     return colorsys.rgb_to_hsv(r, g, b)
@@ -32,6 +39,40 @@ def is_bright_white(rgb: tuple[int, int, int]) -> bool:
     if r - b >= 10:
         return False
     return True
+
+
+def is_soft_or_bright_white(rgb: tuple[int, int, int]) -> bool:
+    """Return True for white, cream, beige, or other near-white tones."""
+    _h, s, v = _hsv(rgb)
+    return v >= 0.78 and s <= 0.24
+
+
+def is_real_color(rgb: tuple[int, int, int]) -> bool:
+    """Return True for chromatic colors that should count as real album colors."""
+    _h, s, v = _hsv(rgb)
+    return s >= 0.22 and 0.18 <= v <= 0.96
+
+
+def _apply_white_handling(candidates: list[tuple[int, int, int]], config: dict) -> list[tuple[int, int, int]]:
+    """Apply White Color Handling without allowing an empty palette."""
+    original = list(candidates)
+    if not original:
+        return original
+    white_mode = config.get(CONF_WHITE_HANDLING)
+    if white_mode is None:
+        white_mode = WHITE_HANDLING_CONTEXTUAL if config.get("filter_bright_white", True) else WHITE_HANDLING_ALLOW
+    filtered: list[tuple[int, int, int]] | None = None
+    if white_mode == WHITE_HANDLING_ALWAYS_FILTER:
+        filtered = [c for c in original if not is_soft_or_bright_white(c)]
+    elif white_mode == WHITE_HANDLING_CONTEXTUAL:
+        has_color = any(is_real_color(c) and not is_soft_or_bright_white(c) for c in original)
+        if has_color:
+            filtered = [c for c in original if not is_soft_or_bright_white(c)]
+    elif white_mode != WHITE_HANDLING_ALLOW and config.get("filter_bright_white", True):
+        filtered = [c for c in original if not is_bright_white(c)]
+    if filtered is None:
+        return original
+    return filtered or original
 
 def luminance(rgb: tuple[int, int, int]) -> float:
     r, g, b = [x / 255 for x in rgb]
@@ -287,9 +328,7 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[i
         filtered = [c for c in candidates if not is_dull(c)]
         candidates = filtered or candidates
 
-    if config.get("filter_bright_white", True):
-        filtered = [c for c in candidates if not is_bright_white(c)]
-        candidates = filtered or candidates
+    candidates = _apply_white_handling(candidates, config)
 
     if ordering == "dominant_first":
         dominant = _dominant_select(candidates, desired)
