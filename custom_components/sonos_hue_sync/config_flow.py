@@ -12,6 +12,7 @@ from .const import (
     CONF_ASSIGNMENT_STRATEGY,
     CONF_CACHE,
     CONF_COLOR_COUNT,
+    CONF_PALETTE_ORDERING,
     CONF_EXPAND_GROUPS,
     CONF_FILTER_DULL,
     CONF_FILTER_BRIGHT_WHITE,
@@ -29,6 +30,7 @@ from .const import (
     DEFAULT_ASSIGNMENT_STRATEGY,
     DEFAULT_CACHE,
     DEFAULT_COLOR_COUNT,
+    DEFAULT_PALETTE_ORDERING,
     DEFAULT_EXPAND_GROUPS,
     DEFAULT_FILTER_DULL,
     DEFAULT_FILTER_BRIGHT_WHITE,
@@ -61,6 +63,14 @@ from .const import (
     ARTWORK_FALLBACK_MODE_LABELS,
     CONF_AIRPLAY_POLL_INTERVAL,
     DEFAULT_AIRPLAY_POLL_INTERVAL,
+    CONF_AUTO_ROTATE_COLORS,
+    DEFAULT_AUTO_ROTATE_COLORS,
+    CONF_AUTO_ROTATE_INTERVAL,
+    DEFAULT_AUTO_ROTATE_INTERVAL,
+    MIN_AUTO_ROTATE_INTERVAL,
+    MAX_AUTO_ROTATE_INTERVAL,
+    PALETTE_ORDERING_LABELS,
+    PALETTE_ORDERING_OPTIONS,
 )
 
 def build_schema(defaults: dict):
@@ -75,6 +85,8 @@ def build_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_COLOR_COUNT, default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": PALETTE_ORDERING_LABELS[key]} for key in PALETTE_ORDERING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):
@@ -91,6 +103,9 @@ def build_schema(defaults: dict):
         vol.Optional(CONF_AIRPLAY_POLL_INTERVAL, default=defaults.get(CONF_AIRPLAY_POLL_INTERVAL, DEFAULT_AIRPLAY_POLL_INTERVAL)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
 
+        vol.Optional(CONF_AUTO_ROTATE_COLORS, default=defaults.get(CONF_AUTO_ROTATE_COLORS, DEFAULT_AUTO_ROTATE_COLORS)): bool,
+        vol.Optional(CONF_AUTO_ROTATE_INTERVAL, default=defaults.get(CONF_AUTO_ROTATE_INTERVAL, DEFAULT_AUTO_ROTATE_INTERVAL)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=MIN_AUTO_ROTATE_INTERVAL, max=MAX_AUTO_ROTATE_INTERVAL, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
         vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
         vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):

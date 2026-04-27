@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.1.4
+
+### Changed
+- Refined **Auto Rotate Colors** timing so **Auto Rotation Interval** is treated as the total cycle time between rotation starts.
+- Reserved the current **Transition Time** plus a small internal safety buffer inside each auto-rotation cycle to avoid overlapping Hue updates.
+- Auto-rotation timing now wakes and recalculates immediately when interval or transition settings change.
+
+### Added
+- Added auto-rotation diagnostics for configured interval, transition time, safety buffer, calculated hold time, effective cycle time, active-update waiting, and last rotation timestamps.
+
+## v1.1.3
+
+### Added
+- Added **Auto Rotation Interval** slider to control how often **Auto Rotate Colors** cycles the current palette.
+
+### Changed
+- Auto-rotation timing now updates immediately when **Auto Rotation Interval** changes while auto-rotation is already running.
+- Diagnostics now show the active auto-rotation interval from the user setting.
+
+
+## v1.1.2
+
+### Added
+- Added **Palette Ordering** select with **Vivid Colors First** and **Dominant Colors First** modes.
+- Added diagnostics showing the active palette ordering mode.
+
+### Changed
+- **Number of Colors** now works with **Dominant Colors First** as the top N dominant usable album-art colors.
+- Palette cache keys now include palette-affecting extraction options so cached colors do not mask ordering/filter changes.
+- Updated README, Help & Guide, and Home Assistant labels/descriptions to explain Palette Ordering, Color Distribution Mode, and Gradient Pattern as separate controls.
+
+## v1.1.1
+
+### Added
+- Added **Auto Rotate Colors** switch to automatically cycle the current palette while music is playing.
+
+### Changed
+- Auto rotation reuses the existing **Rotate Colors** path, including the current **Transition Time** setting for smooth fades.
+
 ## v1.1.0
 
 ### Added

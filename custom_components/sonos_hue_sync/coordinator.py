@@ -28,6 +28,14 @@ from .const import (
     CONF_MEMBER_LIGHT_ENTITIES,
     CONF_LIGHT_GROUP,
     CONF_SONOS_ENTITY,
+    CONF_PALETTE_ORDERING,
+    CONF_TRANSITION,
+    CONF_AUTO_ROTATE_COLORS,
+    CONF_AUTO_ROTATE_INTERVAL,
+    DEFAULT_AUTO_ROTATE_INTERVAL,
+    MIN_AUTO_ROTATE_INTERVAL,
+    MAX_AUTO_ROTATE_INTERVAL,
+    AUTO_ROTATE_SAFETY_BUFFER_SECONDS,
 )
 from .applier import clear_apply_cache
 from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
@@ -38,6 +46,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PALETTE_AFFECTING_OPTIONS = {
     "color_count",
+    CONF_PALETTE_ORDERING,
     "filter_dull",
     "filter_bright_white",
     "monochrome_mode",
@@ -58,6 +67,12 @@ class SonosHueCoordinator:
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
         self._restore_delay_task = None
+        self._auto_rotate_task = None
+        self._auto_rotate_wake_event = asyncio.Event()
+        self.last_auto_rotation_started = None
+        self.last_auto_rotation_completed = None
+        self.last_auto_rotation_skipped_reason = None
+        self.last_auto_rotation_timing = {}
         self._listeners = []
         self.last_palette = []
         self.last_image = None
@@ -152,6 +167,7 @@ class SonosHueCoordinator:
             ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
+            "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             ATTR_PALETTE_PREVIEW: self._palette_preview(),
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
@@ -189,6 +205,15 @@ class SonosHueCoordinator:
             "brightness_limits": {"minimum": self.config.get("min_brightness", 30), "maximum": self.config.get("max_brightness", 255), "gradient": self.config.get("gradient_brightness", 255)},
             "excluded_lights": self.config.get("exclude_light_entities", []),
             "restore_delay": self.config.get("restore_delay", 0),
+            "auto_rotate_colors": self.config.get(CONF_AUTO_ROTATE_COLORS, False),
+            "auto_rotate_interval_seconds": self._auto_rotate_interval_seconds(),
+            "auto_rotate_active": bool(self._auto_rotate_task and not self._auto_rotate_task.done()),
+            "auto_rotation_timing": self._auto_rotation_timing(),
+            "auto_rotation_last_timing": self.last_auto_rotation_timing,
+            "auto_rotation_apply_in_progress": self._apply_in_progress,
+            "auto_rotation_last_started": self.last_auto_rotation_started,
+            "auto_rotation_last_completed": self.last_auto_rotation_completed,
+            "auto_rotation_last_skipped_reason": self.last_auto_rotation_skipped_reason,
             "timings": self.last_timings,
             "cache_result": self.last_cache_result,
             "restore_snapshot_count": self.last_restore_snapshot_count,
@@ -302,6 +327,7 @@ class SonosHueCoordinator:
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
         self._restore_delay_task = None
+        self._stop_auto_rotate()
 
     async def async_refresh_listener(self):
         if self._remove_listener:
@@ -314,6 +340,7 @@ class SonosHueCoordinator:
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
         self._restore_delay_task = None
+        self._stop_auto_rotate()
         _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)
         self._ensure_polling()
         self._remove_listener = async_track_state_change_event(self.hass, [self.sonos_entity], self._handle)
@@ -455,6 +482,23 @@ class SonosHueCoordinator:
             "media_content_id", "entity_picture", "media_title", "media_artist", "media_album_name"
         ))
 
+    def _palette_cache_key(self, art: str) -> str:
+        """Include palette-affecting options in cache identity.
+
+        This prevents switching Palette Ordering, filters, or Color Count from
+        reusing an older palette generated with different extraction settings.
+        """
+        parts = [
+            art or "",
+            f"count={self.config.get('color_count', 3)}",
+            f"ordering={self.config.get(CONF_PALETTE_ORDERING, 'vivid_first')}",
+            f"filter_dull={self.config.get('filter_dull', True)}",
+            f"filter_white={self.config.get('filter_bright_white', True)}",
+            f"mono={self.config.get('monochrome_mode', 'warm_neutral')}",
+            f"low_color={self.config.get('low_color_handling', True)}",
+        ]
+        return "|".join(str(part) for part in parts)
+
     async def async_process_current_state(self, reason="manual", bypass_cache=False, force_apply=False):
         state = self.hass.states.get(self.sonos_entity)
         if state is None:
@@ -470,8 +514,20 @@ class SonosHueCoordinator:
         if key == "cache":
             from .cache import PaletteCache
             self.cache = PaletteCache() if value else None
+        if key == CONF_AUTO_ROTATE_COLORS:
+            if value:
+                self._maybe_start_auto_rotate()
+            else:
+                self._stop_auto_rotate()
+
+        if key in (CONF_AUTO_ROTATE_INTERVAL, CONF_TRANSITION):
+            self._wake_auto_rotate_timer()
+            self._maybe_start_auto_rotate()
 
         self._notify()
+
+        if key in (CONF_AUTO_ROTATE_COLORS, CONF_AUTO_ROTATE_INTERVAL):
+            return
 
         if not reapply:
             return
@@ -504,7 +560,8 @@ class SonosHueCoordinator:
 - **Additional member lights**: add specific individual lights that should always be controlled directly.
 
 ### Palette controls
-- **Color Count**: number of album-art colors to extract. If there are more lights than colors, colors repeat.
+- **Number of Colors**: number of album-art colors to extract. If there are more lights than colors, colors repeat.
+- **Palette Ordering**: choose whether extracted palettes keep the most dominant artwork colors first or prioritize vivid, visually distinct colors.
 - **Filter Dull Colors**: removes dark, gray, muddy, or low-saturation tones.
 - **Filter Bright Whites**: removes harsh pure/cool whites while keeping cream and soft warm whites.
 - **Black-and-White Album Handling**: controls grayscale covers so they do not produce random neon colors.
@@ -513,17 +570,19 @@ class SonosHueCoordinator:
 ### Light behavior
 - **Assignment Strategy**:
   - **Balanced**: best default for visible color variety.
-  - **Sequential**: applies colors in palette order.
+  - **Sequential**: applies colors in the selected palette order. With **Dominant Colors First**, this preserves dominance order across lights.
   - **Alternating bright / dim**: alternates light and dark tones.
   - **Brightness order**: sorts colors by lightness; can make similar hues dominate.
 - **Transition Time**: fade duration for light changes.
+- **Auto Rotate Colors**: automatically cycles the current palette while music is playing.
+- **Auto Rotation Interval**: total cycle time between automatic rotation starts. The current **Transition Time** is treated as the fade portion of that cycle, with a small internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while auto-rotation is running.
 - **Gradient Pattern**: choose whether gradient lights use the same order, offset order per light, or random order per track.
 - **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
 
 ### Troubleshooting
 - Use **Targets** to check which lights will be controlled before a song changes.
 - If lights are missing, add them under **Additional member lights**.
-- If everything looks like one color, try **Balanced** assignment.
+- If everything looks like one color, try **Vivid Colors First** palette ordering or **Balanced** assignment.
 - If black-and-white art looks too colorful, use **Warm neutral** or **Preserve grayscale**.
 
 ### Download diagnostics
@@ -552,7 +611,7 @@ Tokens and artwork URLs are redacted.
             blocking=False,
         )
 
-    async def async_apply_last_palette(self):
+    async def async_apply_last_palette(self, reason: str = "button_reapply_rotate_colors"):
         """Rotate the current color assignment across lights and reapply.
 
         This intentionally does not re-extract album art. It uses the current
@@ -573,7 +632,7 @@ Tokens and artwork URLs are redacted.
         resolved_len = len(self.last_resolved_lights or [])
         rotate_size = max(palette_len, resolved_len, 1)
         self.reapply_rotation_offset = (int(self.reapply_rotation_offset or 0) + 1) % rotate_size
-        self.last_processing_reason = "button_reapply_rotate_colors"
+        self.last_processing_reason = reason
 
         await self._apply_palette_to_lights(force_apply=True)
 
@@ -678,6 +737,152 @@ Tokens and artwork URLs are redacted.
                     self.last_apply_queue_status = "rerun_latest"
             finally:
                 self._apply_in_progress = False
+                self._maybe_start_auto_rotate()
+
+    def _is_currently_playing(self) -> bool:
+        state = self.hass.states.get(self.sonos_entity)
+        return bool(state is not None and state.state == "playing")
+
+    def _auto_rotate_interval_seconds(self) -> int:
+        value = self.config.get(CONF_AUTO_ROTATE_INTERVAL, DEFAULT_AUTO_ROTATE_INTERVAL)
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            value = DEFAULT_AUTO_ROTATE_INTERVAL
+        return max(MIN_AUTO_ROTATE_INTERVAL, min(MAX_AUTO_ROTATE_INTERVAL, value))
+
+    def _auto_rotate_allowed(self) -> bool:
+        return bool(
+            self.enabled
+            and self.config.get(CONF_AUTO_ROTATE_COLORS, False)
+            and self.last_palette
+            and self._is_currently_playing()
+        )
+
+    def _maybe_start_auto_rotate(self):
+        if not self._auto_rotate_allowed():
+            return
+        if self._auto_rotate_task and not self._auto_rotate_task.done():
+            return
+        self._auto_rotate_task = self.hass.loop.create_task(self._auto_rotate_loop())
+        self._notify()
+
+    def _stop_auto_rotate(self):
+        if self._auto_rotate_task and not self._auto_rotate_task.done():
+            self._auto_rotate_task.cancel()
+        self._auto_rotate_task = None
+
+    def _wake_auto_rotate_timer(self):
+        """Wake the active auto-rotation loop so timing changes apply immediately."""
+        try:
+            self._auto_rotate_wake_event.set()
+        except Exception:
+            pass
+
+    def _transition_seconds(self) -> float:
+        value = self.config.get(CONF_TRANSITION, 0)
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            value = 0.0
+        return max(0.0, min(60.0, value))
+
+    def _auto_rotation_timing(self) -> dict:
+        """Return cycle timing for auto rotation.
+
+        Auto Rotation Interval is treated as the total time between rotation
+        starts. Transition Time is the fade portion of that cycle. A small
+        internal buffer accounts for Home Assistant/Hue service-call latency.
+        """
+        interval = float(self._auto_rotate_interval_seconds())
+        transition = self._transition_seconds()
+        safety_buffer = float(AUTO_ROTATE_SAFETY_BUFFER_SECONDS)
+        protected_time = transition + safety_buffer
+        hold_time = max(0.0, interval - protected_time)
+        effective_cycle = protected_time + hold_time
+        limited_by_transition = interval < protected_time
+        return {
+            "configured_interval_seconds": interval,
+            "transition_time_seconds": transition,
+            "safety_buffer_seconds": safety_buffer,
+            "calculated_hold_seconds": round(hold_time, 3),
+            "effective_cycle_seconds": round(effective_cycle, 3),
+            "limited_by_transition": limited_by_transition,
+        }
+
+    async def _auto_rotate_wait(self, seconds: float) -> bool:
+        """Wait for auto-rotation timing, waking early on option changes.
+
+        Returns True if an option change woke the timer, False if the timeout
+        completed normally. The short polling cadence lets pause/stop/disable
+        take effect promptly without waiting for the full interval.
+        """
+        if seconds <= 0:
+            return False
+
+        deadline = time.monotonic() + seconds
+        while self._auto_rotate_allowed():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            self._auto_rotate_wake_event.clear()
+            try:
+                await asyncio.wait_for(
+                    self._auto_rotate_wake_event.wait(),
+                    timeout=min(1.0, remaining),
+                )
+                return True
+            except asyncio.TimeoutError:
+                continue
+        return False
+
+    async def _wait_for_apply_idle(self) -> bool:
+        """Wait briefly for a current light update to finish before rotating."""
+        while self._apply_in_progress:
+            self.last_auto_rotation_skipped_reason = "waiting_for_active_light_update"
+            self._notify()
+            changed = await self._auto_rotate_wait(0.25)
+            if changed:
+                return False
+            if not self._auto_rotate_allowed():
+                return False
+        return True
+
+    async def _auto_rotate_loop(self):
+        try:
+            while self._auto_rotate_allowed():
+                timing = self._auto_rotation_timing()
+                self.last_auto_rotation_timing = timing
+                self.last_auto_rotation_skipped_reason = None
+                self._notify()
+
+                changed = await self._auto_rotate_wait(timing["effective_cycle_seconds"])
+                if changed:
+                    continue
+                if not self._auto_rotate_allowed():
+                    break
+
+                if not await self._wait_for_apply_idle():
+                    continue
+                if not self._auto_rotate_allowed():
+                    break
+
+                self.last_auto_rotation_started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self.last_auto_rotation_skipped_reason = None
+                self._notify()
+                await self.async_apply_last_palette(reason="auto_rotate_colors")
+                self.last_auto_rotation_completed = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self._notify()
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:
+            self.last_error = f"auto_rotate_failed: {err}"
+            self.last_auto_rotation_skipped_reason = f"error:{type(err).__name__}"
+            _LOGGER.exception("Auto Rotate Colors failed")
+            self._notify()
+        finally:
+            self._auto_rotate_task = None
+            self._notify()
 
     async def _handle(self, event):
         new_state = event.data.get("new_state")
@@ -706,11 +911,13 @@ Tokens and artwork URLs are redacted.
             force_apply = True
 
         if not self.enabled:
+            self._stop_auto_rotate()
             self.last_error = "disabled"
             self._notify()
             return
 
         if state.state != "playing":
+            self._stop_auto_rotate()
             self.last_error = f"not_playing:{state.state}"
             self._notify()
             return
@@ -748,9 +955,10 @@ Tokens and artwork URLs are redacted.
         self.last_error = None
 
         try:
-            if self.cache and not bypass_cache and self.cache.exists(art):
+            cache_key = self._palette_cache_key(art)
+            if self.cache and not bypass_cache and self.cache.exists(cache_key):
                 self.last_cache_result = 'hit'
-                palette = self.cache.get(art)
+                palette = self.cache.get(cache_key)
             else:
                 self.last_cache_result = 'disabled' if not self.cache else 'miss'
                 fetch_started = time.perf_counter()
@@ -779,7 +987,7 @@ Tokens and artwork URLs are redacted.
                 palette = extract_palette_from_bytes(image_bytes, self.config)
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
-                    self.cache.set(art, palette)
+                    self.cache.set(cache_key, palette)
 
             if not palette:
                 self.last_palette_error = "palette_empty"
@@ -829,6 +1037,7 @@ Tokens and artwork URLs are redacted.
             raise
 
     async def _handle_stop(self):
+        self._stop_auto_rotate()
         delay = float(self.config.get("restore_delay", 0) or 0)
         self._cancel_pending_restore()
         self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
@@ -898,6 +1107,7 @@ Tokens and artwork URLs are redacted.
     async def async_disable(self):
         self.last_processing_reason = "sync_disabled"
         self.enabled = False
+        self._stop_auto_rotate()
         self._stop_polling()
         await self._handle_stop()
         self._notify()

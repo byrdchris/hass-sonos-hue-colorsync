@@ -2,7 +2,17 @@ from __future__ import annotations
 
 from homeassistant.components.number import NumberEntity, NumberMode
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    DEFAULT_COLOR_COUNT,
+    DEFAULT_TRANSITION,
+    DEFAULT_MIN_BRIGHTNESS,
+    DEFAULT_MAX_BRIGHTNESS,
+    DEFAULT_GRADIENT_BRIGHTNESS,
+    DEFAULT_GRADIENT_COLOR_POINTS,
+    DEFAULT_RESTORE_DELAY,
+    DEFAULT_AUTO_ROTATE_INTERVAL,
+)
 
 NUMBERS = [
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
@@ -12,7 +22,20 @@ NUMBERS = [
     ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
     ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
     ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
+    ("auto_rotate_interval", "Auto Rotation Interval", "mdi:timer-sync-outline", 1, 60, 1),
 ]
+
+
+NUMBER_DEFAULTS = {
+    "color_count": DEFAULT_COLOR_COUNT,
+    "transition": DEFAULT_TRANSITION,
+    "min_brightness": DEFAULT_MIN_BRIGHTNESS,
+    "max_brightness": DEFAULT_MAX_BRIGHTNESS,
+    "gradient_brightness": DEFAULT_GRADIENT_BRIGHTNESS,
+    "gradient_color_points": DEFAULT_GRADIENT_COLOR_POINTS,
+    "restore_delay": DEFAULT_RESTORE_DELAY,
+    "auto_rotate_interval": DEFAULT_AUTO_ROTATE_INTERVAL,
+}
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
@@ -43,13 +66,13 @@ class SonosHueNumber(NumberEntity):
 
     @property
     def native_value(self):
-        return self._coordinator.config.get(self._key)
+        return self._coordinator.config.get(self._key, NUMBER_DEFAULTS.get(self._key))
 
     @property
     def device_info(self):
         return {"identifiers": {(DOMAIN, self._entry.entry_id)}, "name": self._entry.title or "Sonos Hue Sync"}
 
     async def async_set_native_value(self, value):
-        if self._key == "color_count":
+        if self._attr_native_step == 1:
             value = int(value)
         await self._coordinator.async_set_runtime_option(self._key, value)

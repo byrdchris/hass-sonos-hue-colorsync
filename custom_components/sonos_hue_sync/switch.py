@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from homeassistant.components.switch import SwitchEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_AUTO_ROTATE_COLORS
 
 OPTION_SWITCHES = [
+    (CONF_AUTO_ROTATE_COLORS, "Auto Rotate Colors", "mdi:autorenew"),
     ("filter_dull", "Filter Dull Colors", "mdi:palette-outline"),
     ("filter_bright_white", "Filter Harsh Whites", "mdi:white-balance-sunny"),
     ("low_color_handling", "Stabilize Low-Color Art", "mdi:contrast-circle"),
@@ -72,7 +73,8 @@ class SonosHueSyncOptionSwitch(SwitchEntity):
 
     @property
     def is_on(self):
-        return bool(self._coordinator.config.get(self._key, True))
+        default = False if self._key == CONF_AUTO_ROTATE_COLORS else True
+        return bool(self._coordinator.config.get(self._key, default))
 
     @property
     def device_info(self):

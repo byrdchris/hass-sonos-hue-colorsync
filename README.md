@@ -13,6 +13,8 @@ The integration is designed for Home Assistant installations running in containe
 - Restores the previous lighting scene when playback stops or sync is turned off.
 - Includes AirPlay/Sonos artwork fallback handling to reduce flicker and bad palette overwrites.
 - Provides Home Assistant controls, diagnostics, health checks, and target previews.
+- Optional **Auto Rotate Colors** mode cycles the active palette while music is playing, with a user-adjustable interval.
+- Palette ordering can prioritize either vivid visual variety or the most dominant album-art colors first.
 
 ## Requirements
 
@@ -54,6 +56,7 @@ During setup and in options, you can configure:
 - **Additional Member Lights**: optional direct lights to include.
 - **Excluded Lights**: lights that should never be controlled, even if included through a selected room or zone.
 - **Number of Colors**: palette size from 1 to 10.
+- **Palette Ordering**: choose whether the extracted palette favors vivid, visually distinct colors or keeps the most dominant album-art colors first.
 - **Transition Time**: fade time for light changes.
 - **Minimum Brightness**: lower brightness limit for standard lights.
 - **Maximum Brightness**: upper brightness limit for standard lights.
@@ -64,8 +67,10 @@ During setup and in options, you can configure:
 - **Stabilize Low-Color Art**: improves behavior for simple or monochrome album art.
 - **Black & White Handling**: controls how monochrome artwork is translated into light colors.
 - **Artwork Fallback**: controls what happens when Sonos artwork is missing or unavailable.
-- **Color Distribution Mode**: controls how colors are assigned across multiple lights.
+- **Color Distribution Mode**: controls how the extracted palette is assigned across multiple lights. Use **Sequential** if you want lights to follow the selected Palette Ordering directly.
 - **Enable True Gradient**: uses supported Hue gradient behavior when available.
+- **Auto Rotate Colors**: automatically cycles the current palette while music is playing.
+- **Auto Rotation Interval**: total cycle time between automatic rotation starts, adjustable from 1 to 60 seconds. Transition Time is treated as the fade portion of the cycle, with an internal safety buffer to avoid overlapping Hue updates.
 - **Gradient Detail Level**: controls the number of gradient points.
 - **Gradient Order Mode**: controls gradient ordering across lights.
 - **Cache Album Colors**: stores album palettes for faster repeat playback.
@@ -85,9 +90,11 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 - **Cache Album Colors**
 - **Distribute Across Group Lights**
 - **Enable True Gradient**
+- **Auto Rotate Colors**
 
 ### Selects
 
+- **Palette Ordering**
 - **Color Distribution Mode**
 - **Black & White Handling**
 - **Artwork Fallback**
@@ -102,6 +109,7 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 - **Gradient Brightness**
 - **Gradient Detail Level**
 - **Restore Delay**
+- **Auto Rotation Interval**
 
 ### Buttons
 
@@ -123,6 +131,20 @@ When the selected Sonos entity starts playing, the integration snapshots the cur
 When playback stops, pauses, or the primary sync control is turned off, the integration restores the previous lighting scene. If **Restore Delay** is set and playback resumes before the delay expires, the pending restore is cancelled.
 
 Excluded lights are removed after group expansion. This means a light can be part of a selected Hue room or zone and still be protected from control.
+
+When **Auto Rotate Colors** is enabled, the integration periodically reuses the same internal path as **Rotate Colors**. It does not recompute the palette. The current **Transition Time** value controls the fade. **Auto Rotation Interval** is treated as the total cycle time between rotation starts; the fade time and a small internal safety buffer are reserved inside that cycle. If the interval is shorter than the fade plus buffer, the integration waits long enough to avoid overlapping Hue updates. Interval and transition changes take effect while auto-rotation is already running.
+
+
+## Palette Ordering vs. Distribution
+
+**Palette Ordering** controls the order of colors produced by album-art extraction before any lights are updated.
+
+- **Vivid Colors First** is the default and preserves the existing behavior. It favors saturated, visually distinct colors that usually look better on lights, even if those colors are not the most common colors in the artwork.
+- **Dominant Colors First** keeps the most common usable album-art colors first. With this mode, **Number of Colors** behaves as “top N dominant colors.” For example, choosing 3 keeps the top 3 dominant usable colors; choosing 6 adds the next most dominant usable colors.
+
+**Color Distribution Mode** is separate. It controls how the selected palette is assigned to lights. **Sequential** preserves Palette Ordering most directly. Balanced, Alternating, and Brightness modes may rearrange colors for visual spread.
+
+**Gradient Pattern** is also separate. It controls how supported gradient lights arrange the selected palette across gradient points.
 
 ## Gradient Lights
 
@@ -152,11 +174,11 @@ Confirm the light is a Hue gradient-capable device and review diagnostics for gr
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.0` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.4` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.4
+git push origin v1.1.4
 ```
 
 ## License

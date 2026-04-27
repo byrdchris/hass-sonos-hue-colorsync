@@ -56,6 +56,22 @@ def _hue_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     diff = abs(ha - hb)
     return min(diff, 1 - diff) * 360
 
+def _dominant_select(candidates: list[tuple[int, int, int]], desired: int) -> list[tuple[int, int, int]]:
+    """Return the first usable candidates in ColorThief dominance order.
+
+    ColorThief returns palette candidates in dominance order. This mode keeps
+    that order after filtering, so Number of Colors means top N dominant usable
+    colors rather than most vivid or most visually distinct colors.
+    """
+    selected: list[tuple[int, int, int]] = []
+    for color in candidates:
+        if color not in selected:
+            selected.append(color)
+        if len(selected) >= desired:
+            break
+    return selected[:desired]
+
+
 def _clustered_select(candidates: list[tuple[int, int, int]], desired: int) -> list[tuple[int, int, int]]:
     if not candidates:
         return []
@@ -257,8 +273,9 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[i
 
     ct = ColorThief(BytesIO(image_bytes))
     candidates = ct.get_palette(color_count=max(desired * 6, 20), quality=3)
+    ordering = config.get("palette_ordering", "vivid_first")
 
-    if color_class == "low_color" and config.get("low_color_handling", True):
+    if color_class == "low_color" and config.get("low_color_handling", True) and ordering != "dominant_first":
         # Prefer preserving real accent colors on mostly dark/neutral artwork
         # before falling back to generic muted low-color handling.
         accent_palette = _accent_preserving_low_color_palette(candidates, desired)
@@ -273,6 +290,10 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[tuple[i
     if config.get("filter_bright_white", True):
         filtered = [c for c in candidates if not is_bright_white(c)]
         candidates = filtered or candidates
+
+    if ordering == "dominant_first":
+        dominant = _dominant_select(candidates, desired)
+        return dominant[:desired] or [(220, 198, 176)]
 
     clustered = _clustered_select(candidates, desired)
     return clustered[:desired] or [(220, 198, 176)]
