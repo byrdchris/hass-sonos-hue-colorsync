@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 from homeassistant.core import HomeAssistant
 
+from .hue_capabilities import gradient_capability_from_ha
+
 def hue_bridge_summary(hass: HomeAssistant) -> dict[str, Any]:
     bridges = []
     try:
@@ -36,10 +38,14 @@ def _capabilities(hass: HomeAssistant, entity_ids: list[str]) -> dict[str, Any]:
         if state.state in ("unknown", "unavailable"):
             unavailable.append(entity_id)
         attrs = state.attributes
-        name = str(attrs.get("friendly_name", "")).lower()
-        effects = " ".join(str(x).lower() for x in (attrs.get("effect_list") or []))
-        if "gradient" in entity_id.lower() or "gradient" in name or "prism" in effects:
-            gradient_like.append(entity_id)
+        gradient_capability = gradient_capability_from_ha(hass, entity_id)
+        if gradient_capability.capable:
+            gradient_like.append({
+                "entity_id": entity_id,
+                "source": gradient_capability.source,
+                "model": gradient_capability.model,
+                "model_id": gradient_capability.model_id,
+            })
         modes = attrs.get("supported_color_modes") or []
         if any(mode in modes for mode in ("xy", "rgb", "hs")):
             color_capable.append(entity_id)

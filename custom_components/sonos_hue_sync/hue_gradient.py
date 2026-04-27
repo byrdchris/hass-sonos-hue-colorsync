@@ -6,9 +6,10 @@ import random
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from .hue_capabilities import gradient_capability_from_ha
+
 _LOGGER = logging.getLogger(__name__)
 
-GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
 
 def rgb_to_xy(rgb: tuple[int, int, int]) -> tuple[float, float]:
     """Approximate sRGB to CIE 1931 xy conversion."""
@@ -81,21 +82,7 @@ def gradient_palette_for_light(
     return points
 
 def _entity_looks_gradient(hass, entity_id: str) -> bool:
-    state = hass.states.get(entity_id)
-    registry = er.async_get(hass)
-    entry = registry.async_get(entity_id)
-    haystack = " ".join(str(x or "").lower() for x in (
-        entity_id,
-        state.attributes.get("friendly_name") if state else "",
-        entry.name if entry else "",
-        entry.original_name if entry else "",
-        entry.unique_id if entry else "",
-        state.attributes.get("model") if state else "",
-    ))
-    effects = state.attributes.get("effect_list") if state else []
-    if isinstance(effects, list):
-        haystack += " " + " ".join(str(e).lower() for e in effects)
-    return any(hint in haystack for hint in GRADIENT_HINTS)
+    return gradient_capability_from_ha(hass, entity_id).capable
 
 def _walk_bridge_candidates(hass):
     """Find Home Assistant Hue bridge runtime objects.
@@ -343,17 +330,19 @@ async def try_apply_gradient(
         return False, diagnostics
 
     gradient_info = _resource_gradient_info(resource)
-    looks_gradient = _entity_looks_gradient(hass, entity_id)
+    capability = gradient_capability_from_ha(hass, entity_id, gradient_info)
 
     diagnostics["hue_resource_id"] = resource_id
     diagnostics["hue_resource_name"] = _resource_name(resource)
     diagnostics["hue_gradient_info"] = str(gradient_info)
-    diagnostics["entity_looks_gradient"] = looks_gradient
+    diagnostics["gradient_capability"] = capability.as_dict()
+    diagnostics["entity_looks_gradient"] = capability.capable
+    diagnostics["gradient_detection_source"] = capability.source
 
-    # Some HA/aiohue versions parse gradient data as invalid dicts. Do not block
-    # attempts on parsed model quality when the entity itself looks like a
-    # gradient device.
-    if gradient_info is None and not looks_gradient:
+    # Some HA/aiohue versions parse gradient data as invalid or incomplete
+    # objects. Do not block attempts when the device registry model ID or a
+    # strong product-name hint indicates a known Hue gradient product.
+    if not capability.capable:
         diagnostics["gradient_error"] = "resource_has_no_gradient_feature"
         _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
         return False, diagnostics

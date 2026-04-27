@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import math
 
-from homeassistant.helpers import entity_registry as er
-
 from .const import (
     ASSIGNMENT_STRATEGY_ALTERNATING,
     ASSIGNMENT_STRATEGY_BALANCED,
@@ -12,30 +10,11 @@ from .const import (
 )
 from .palette import luminance
 
-GRADIENT_HINTS = ("gradient", "signe", "play gradient", "lightstrip plus gradient")
+from .hue_capabilities import is_gradient_capable_entity
+
 
 def is_gradient_entity(hass, entity_id: str) -> bool:
-    state = hass.states.get(entity_id)
-    registry = er.async_get(hass)
-    entry = registry.async_get(entity_id)
-
-    haystack = " ".join(
-        str(x or "").lower()
-        for x in (
-            entity_id,
-            state.attributes.get("friendly_name") if state else "",
-            entry.name if entry else "",
-            entry.original_name if entry else "",
-            entry.unique_id if entry else "",
-            state.attributes.get("model") if state else "",
-        )
-    )
-
-    effects = state.attributes.get("effect_list") if state else []
-    if isinstance(effects, list):
-        haystack += " " + " ".join(str(e).lower() for e in effects)
-
-    return any(hint in haystack for hint in GRADIENT_HINTS)
+    return is_gradient_capable_entity(hass, entity_id)
 
 def _color_score(color: tuple[int, int, int]) -> float:
     r, g, b = [x / 255 for x in color]

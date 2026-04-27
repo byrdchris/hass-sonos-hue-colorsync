@@ -49,12 +49,12 @@
           "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
           "assignment_strategy": "Controls how the already-extracted palette is distributed across selected lights. Sequential preserves the selected Palette Ordering most directly.",
-          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
+          "true_gradient_mode": "Use Hue direct control for supported gradient lights. Mixed groups keep standard lights on normal color updates.",
           "gradient_color_points": "Number of color points sent to supported gradient lights.",
           "gradient_order_mode": "Controls how supported gradient lights arrange the already-extracted palette across their gradient points.",
           "min_brightness": "Lowest brightness Sonos Hue Sync may apply to standard lights.",
           "max_brightness": "Highest brightness Sonos Hue Sync may apply to standard lights.",
-          "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
+          "gradient_brightness": "Maximum brightness used for detected gradient-capable lights when True Gradient is enabled.",
           "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
           "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled.",
           "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved.",
@@ -114,12 +114,12 @@
           "cache": "Reuse colors for album art that has already been processed. Disable while tuning palette behavior if you want every extraction recalculated.",
           "expand_groups": "When enabled, colors are applied to individual lights inside selected groups when Home Assistant exposes those members. Disable only if you want one color applied to each selected group entity.",
           "assignment_strategy": "Controls how the already-extracted palette is distributed across selected lights. Sequential preserves the selected Palette Ordering most directly.",
-          "true_gradient_mode": "Experimental. Use Hue direct control for supported gradient lights.",
+          "true_gradient_mode": "Use Hue direct control for supported gradient lights. Mixed groups keep standard lights on normal color updates.",
           "gradient_color_points": "Number of color points sent to supported gradient lights.",
           "gradient_order_mode": "Controls how supported gradient lights arrange the already-extracted palette across their gradient points.",
           "min_brightness": "Lowest brightness Sonos Hue Sync may apply to standard lights.",
           "max_brightness": "Highest brightness Sonos Hue Sync may apply to standard lights.",
-          "gradient_brightness": "Maximum brightness used for supported gradient lights when True Gradient is enabled.",
+          "gradient_brightness": "Maximum brightness used for detected gradient-capable lights when True Gradient is enabled.",
           "exclude_light_entities": "Lights that should never be controlled, even if they are part of a selected group.",
           "restore_delay": "Seconds to wait after music stops before restoring the previous light state. If music resumes during the delay, restore is cancelled.",
           "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved.",
@@ -207,7 +207,7 @@
       },
       "gradient_order_mode": {
         "name": "Gradient Pattern",
-        "description": "Choose how supported gradient lights arrange the selected palette across gradient points."
+        "description": "Choose how detected gradient-capable lights arrange the selected palette across gradient points."
       },
       "palette_ordering": {
         "name": "Palette Ordering",
@@ -229,7 +229,7 @@
       },
       "gradient_color_points": {
         "name": "Gradient Detail Level",
-        "description": "Set the number of color points sent to gradient lights."
+        "description": "Set the number of color points sent to detected gradient-capable lights."
       },
       "min_brightness": {
         "name": "Minimum Brightness",
@@ -241,7 +241,7 @@
       },
       "gradient_brightness": {
         "name": "Gradient Brightness",
-        "description": "Maximum brightness used for supported gradient lights when True Gradient is enabled."
+        "description": "Maximum brightness used for detected gradient-capable lights when True Gradient is enabled."
       },
       "restore_delay": {
         "name": "Restore Delay",

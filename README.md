@@ -9,7 +9,7 @@ The integration is designed for Home Assistant installations running in containe
 - Extracts color palettes from Sonos album artwork.
 - Applies album-inspired colors to Philips Hue lights.
 - Supports individual Hue lights, Hue rooms, Hue zones, and expanded group members.
-- Supports gradient-aware Hue lighting with true-gradient mode where supported.
+- Supports Hue gradient devices with model-based fallback detection when Home Assistant capability metadata is incomplete.
 - Restores the previous lighting scene when playback stops or sync is turned off.
 - Includes AirPlay/Sonos artwork fallback handling to reduce flicker and bad palette overwrites.
 - Provides Home Assistant controls, diagnostics, health checks, and target previews.
@@ -68,7 +68,7 @@ During setup and in options, you can configure:
 - **Black & White Handling**: controls how monochrome artwork is translated into light colors.
 - **Artwork Fallback**: controls what happens when Sonos artwork is missing or unavailable.
 - **Color Distribution Mode**: controls how the extracted palette is assigned across multiple lights. Use **Sequential** if you want lights to follow the selected Palette Ordering directly.
-- **Enable True Gradient**: uses supported Hue gradient behavior when available.
+- **Enable True Gradient**: uses multi-color Hue gradient behavior for capable lights while standard lights in the same group continue using normal color updates.
 - **Auto Rotate Colors**: automatically cycles the current palette while music is playing.
 - **Auto Rotation Interval**: total cycle time between automatic rotation starts, adjustable from 1 to 60 seconds. Transition Time is treated as the fade portion of the cycle, with an internal safety buffer to avoid overlapping Hue updates.
 - **Gradient Detail Level**: controls the number of gradient points.
@@ -148,7 +148,16 @@ When **Auto Rotate Colors** is enabled, the integration periodically reuses the 
 
 ## Gradient Lights
 
-Gradient support depends on Hue device and Home Assistant Hue integration capabilities. When true gradient control is unavailable or rejected by the Hue API, the integration falls back to standard light color control where possible.
+Gradient support uses both Home Assistant/Hue capability metadata and a model-based fallback for known Hue gradient devices such as Signe lamps, Play gradient lightstrips, and Play gradient tubes. In mixed groups, capable gradient lights receive multi-point gradient updates while standard Hue lights receive normal single-color updates from the same palette. If a gradient update is rejected by the Hue API, only that light falls back to standard color control; the rest of the group continues normally.
+
+### Mixed groups
+
+A selected Hue room or zone can contain both gradient-capable lights and regular color lights. Sonos Hue Sync applies the same album palette through two clean paths:
+
+- gradient-capable lights receive multi-point gradient updates when **Enable True Gradient** is on;
+- standard lights receive normal single-color updates from the same palette and distribution mode.
+
+This avoids downgrading an entire room to single-color just because some lights are not gradient-capable.
 
 ## Troubleshooting
 
@@ -170,15 +179,15 @@ AirPlay-to-Sonos artwork can be unreliable. Use **Artwork Fallback** and **Cache
 
 ### Gradient behavior is inconsistent
 
-Confirm the light is a Hue gradient-capable device and review diagnostics for gradient fallback information.
+Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capability`, `gradient_detection_source`, and per-light fallback information. Known Hue gradient models are detected even when Home Assistant exposes incomplete gradient capability metadata.
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.6` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.7` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.1.6
-git push origin v1.1.6
+git tag v1.1.7
+git push origin v1.1.7
 ```
 
 ## License

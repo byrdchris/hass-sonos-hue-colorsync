@@ -9,6 +9,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
+from .hue_capabilities import gradient_capability_from_ha
 
 TO_REDACT = {
     "token",
@@ -203,7 +204,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry) -> dict
             "domain": DOMAIN,
             "entry_id": entry.entry_id,
             "title": entry.title,
-            "version": "1.1.6",
+            "version": "1.1.7",
         },
         "config_entry": {
             "data": deepcopy(dict(entry.data)),
@@ -220,6 +221,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry) -> dict
                 "state": _safe_state(hass, entity_id),
                 "entity_registry": _entity_registry_info(hass, entity_id),
                 "device_registry": _device_registry_info(hass, entity_id),
+                "gradient_capability": gradient_capability_from_ha(hass, entity_id).as_dict() if entity_id.startswith("light.") else None,
             }
             for entity_id in entity_ids
         },
@@ -236,6 +238,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry) -> dict
                         "state": _safe_state(hass, entity_id),
                         "entity_registry": _entity_registry_info(hass, entity_id),
                         "device_registry": _device_registry_info(hass, entity_id),
+                        "gradient_capability": gradient_capability_from_ha(hass, entity_id).as_dict() if entity_id.startswith("light.") else None,
                     }
     except Exception:
         pass

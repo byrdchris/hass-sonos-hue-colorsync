@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.7
+
+### Improved
+- Tightened Hue gradient detection with a model-based fallback for known Hue gradient devices, including Play gradient lightstrips and Play gradient tubes, when Home Assistant/aiohue capability metadata is incomplete.
+- Added per-light gradient capability diagnostics showing detection source, model, model ID, and fallback reason.
+- Clarified mixed-group handling so gradient-capable lights use true gradient updates while standard lights in the same Hue room or zone continue receiving normal color updates from the same palette.
+
+### Changed
+- Gradient fallback is now explicitly per-light: a failed gradient update falls back only for that light and does not affect the rest of the target group.
+
 ## v1.1.6
 
 ### Changed

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from .assignment import is_gradient_entity
+from .hue_capabilities import gradient_capability_from_ha
 from .palette import luminance
 from .hue_gradient import try_apply_gradient
 
@@ -83,7 +83,8 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
             skipped.append({"entity_id": entity_id, "reason": f"{state.state}_at_apply"})
             continue
 
-        gradient_aware = is_gradient_entity(hass, entity_id)
+        gradient_capability = gradient_capability_from_ha(hass, entity_id)
+        gradient_aware = bool(gradient_capability.capable)
         true_gradient_enabled = bool((config or {}).get("true_gradient_mode", False))
         gradient_diag = None
 
@@ -103,6 +104,9 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
             if success:
                 gradient_diag["assignment_strategy"] = strategy
                 gradient_diag["gradient_aware"] = True
+                gradient_diag["gradient_detection_source"] = gradient_capability.source
+                gradient_diag["gradient_capability"] = gradient_capability.as_dict()
+                gradient_diag["apply_mode"] = "true_gradient"
                 gradient_diag["apply_reason"] = "true_gradient"
                 gradient_diag["rgb_color"] = list(color)
                 sent.append(gradient_diag)
@@ -118,6 +122,8 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 "entity_id": entity_id,
                 "reason": "true_gradient_fallback",
                 "detail": gradient_diag.get("gradient_error") if gradient_diag else None,
+                "gradient_detection_source": gradient_capability.source,
+                "gradient_capability": gradient_capability.as_dict(),
             })
 
         service_data = build_service_data(state, color, transition, config=config, gradient_aware=gradient_aware)
@@ -126,7 +132,10 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
         diagnostic_data = dict(service_data)
         diagnostic_data["assignment_strategy"] = strategy
         diagnostic_data["gradient_aware"] = gradient_aware
+        diagnostic_data["gradient_detection_source"] = gradient_capability.source
+        diagnostic_data["gradient_capability"] = gradient_capability.as_dict()
         diagnostic_data["true_gradient_mode"] = true_gradient_enabled
+        diagnostic_data["apply_mode"] = "standard_color_fallback" if gradient_diag else "standard_color"
         diagnostic_data["apply_reason"] = reason
         diagnostic_data["assignment_rotation_offset"] = int((config or {}).get("_rotation_offset", 0) or 0)
         if gradient_diag:
