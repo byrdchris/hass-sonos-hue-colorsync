@@ -6,9 +6,6 @@ from .const import DOMAIN, CONF_AUTO_ROTATE_COLORS
 
 OPTION_SWITCHES = [
     (CONF_AUTO_ROTATE_COLORS, "Auto Rotate Colors", "mdi:autorenew"),
-    ("filter_dull", "Filter Dull Colors", "mdi:palette-outline"),
-    ("filter_bright_white", "Filter Harsh Whites", "mdi:white-balance-sunny"),
-    ("low_color_handling", "Stabilize Low-Color Art", "mdi:contrast-circle"),
     ("cache", "Cache Album Colors", "mdi:cached"),
     ("expand_groups", "Distribute Across Group Lights", "mdi:lightbulb-group"),
     ("true_gradient_mode", "Enable True Gradient", "mdi:gradient-horizontal"),

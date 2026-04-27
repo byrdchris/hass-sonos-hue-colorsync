@@ -13,9 +13,8 @@ from .const import (
     CONF_CACHE,
     CONF_COLOR_COUNT,
     CONF_PALETTE_ORDERING,
+    CONF_COLOR_ACCURACY_MODE,
     CONF_EXPAND_GROUPS,
-    CONF_FILTER_DULL,
-    CONF_FILTER_BRIGHT_WHITE,
     CONF_MONOCHROME_MODE,
     CONF_LOW_COLOR_HANDLING,
     CONF_TRUE_GRADIENT_MODE,
@@ -32,8 +31,6 @@ from .const import (
     DEFAULT_COLOR_COUNT,
     DEFAULT_PALETTE_ORDERING,
     DEFAULT_EXPAND_GROUPS,
-    DEFAULT_FILTER_DULL,
-    DEFAULT_FILTER_BRIGHT_WHITE,
     DEFAULT_MONOCHROME_MODE,
     DEFAULT_LOW_COLOR_HANDLING,
     DEFAULT_TRUE_GRADIENT_MODE,
@@ -71,14 +68,9 @@ from .const import (
     MAX_AUTO_ROTATE_INTERVAL,
     PALETTE_ORDERING_LABELS,
     PALETTE_ORDERING_OPTIONS,
-    CONF_WHITE_HANDLING,
-    CONF_WHITE_FILTER_STRENGTH,
-    DEFAULT_WHITE_HANDLING,
-    DEFAULT_WHITE_FILTER_STRENGTH,
-    WHITE_HANDLING_OPTIONS,
-    WHITE_HANDLING_LABELS,
-    WHITE_FILTER_STRENGTH_OPTIONS,
-    WHITE_FILTER_STRENGTH_LABELS,
+    DEFAULT_COLOR_ACCURACY_MODE,
+    COLOR_ACCURACY_MODE_LABELS,
+    COLOR_ACCURACY_MODE_OPTIONS,
     CONF_ROTATION_MODE,
     DEFAULT_ROTATION_MODE,
     ROTATION_MODE_OPTIONS,
@@ -99,10 +91,8 @@ def build_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": PALETTE_ORDERING_LABELS[key]} for key in PALETTE_ORDERING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": WHITE_HANDLING_LABELS[key]} for key in WHITE_HANDLING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_WHITE_FILTER_STRENGTH, default=defaults.get(CONF_WHITE_FILTER_STRENGTH, DEFAULT_WHITE_FILTER_STRENGTH)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": WHITE_FILTER_STRENGTH_LABELS[key]} for key in WHITE_FILTER_STRENGTH_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": COLOR_ACCURACY_MODE_LABELS[key]} for key in COLOR_ACCURACY_MODE_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):
@@ -124,8 +114,6 @@ def build_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=MIN_AUTO_ROTATE_INTERVAL, max=MAX_AUTO_ROTATE_INTERVAL, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_ROTATION_MODE, default=defaults.get(CONF_ROTATION_MODE, DEFAULT_ROTATION_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": ROTATION_MODE_LABELS[key]} for key in ROTATION_MODE_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_FILTER_DULL, default=defaults.get(CONF_FILTER_DULL, DEFAULT_FILTER_DULL)): bool,
-        vol.Optional(CONF_FILTER_BRIGHT_WHITE, default=defaults.get(CONF_FILTER_BRIGHT_WHITE, DEFAULT_FILTER_BRIGHT_WHITE)): bool,
         vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": ARTWORK_FALLBACK_MODE_LABELS[key]} for key in ARTWORK_FALLBACK_MODES], mode=selector.SelectSelectorMode.LIST)),
 

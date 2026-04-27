@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.1.12
+
+### Added
+- Added **Color Accuracy Mode** with **Natural**, **Vivid**, and **Album Accurate** options.
+- Added expanded `PROJECT_STATE.md` with current feature coverage, architecture notes, and release handoff requirements.
+
+### Changed
+- Consolidated the visible color-filtering UI so users tune overall extraction behavior from one friendly control instead of separate dull-color, white-handling, white-strength, and low-color switches/selects.
+- Existing saved filter options remain tolerated for compatibility, but the selected Color Accuracy Mode now drives active extraction behavior.
+- README was updated incrementally and prior changelog content was preserved.
+
+## v1.1.11
+
+### Added
+- Improved album art color accuracy using perceptual extraction:
+  - Edge-aware sampling
+  - Saturation-based weighting
+  - Neutral/background suppression
+  - Reduced black/white dominance
+  - Warm/accent color preservation
+
+### Fixed
+- Improved color matching for album art with large neutral backgrounds, heavy black areas, or small but visually important warm/accent details.
+
 ## v1.1.10
 
 ### Added

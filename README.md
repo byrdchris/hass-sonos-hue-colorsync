@@ -58,14 +58,12 @@ During setup and in options, you can configure:
 - **Excluded Lights**: lights that should never be controlled, even if included through a selected room or zone.
 - **Number of Colors**: palette size from 1 to 10.
 - **Palette Ordering**: choose whether the extracted palette favors vivid, visually distinct colors or keeps the most dominant album-art colors first.
+- **Color Accuracy Mode**: choose Natural, Vivid, or Album Accurate extraction. Natural is the default balanced mode, Vivid favors saturated accents, and Album Accurate preserves more muted artwork tones.
 - **Transition Time**: fade time for light changes.
 - **Minimum Brightness**: lower brightness limit for standard lights.
 - **Maximum Brightness**: upper brightness limit for standard lights.
 - **Gradient Brightness**: upper brightness limit for supported gradient lights.
 - **Restore Delay**: wait time before restoring the previous scene after playback stops.
-- **Filter Dull Colors**: removes dull or gray-heavy colors.
-- **Filter Harsh Whites**: avoids overly bright white palette entries.
-- **Stabilize Low-Color Art**: improves behavior for simple or monochrome album art.
 - **Black & White Handling**: controls how monochrome artwork is translated into light colors.
 - **Artwork Fallback**: controls what happens when Sonos artwork is missing or unavailable.
 - **Color Distribution Mode**: controls how the extracted palette is assigned across multiple lights. Use **Sequential** if you want lights to follow the selected Palette Ordering directly.
@@ -86,9 +84,6 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 ### Switches
 
 - **Sync Active**: primary on/off control.
-- **Filter Dull Colors**
-- **Filter Harsh Whites**
-- **Stabilize Low-Color Art**
 - **Cache Album Colors**
 - **Distribute Across Group Lights**
 - **Enable True Gradient**
@@ -96,6 +91,7 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 
 ### Selects
 
+- **Color Accuracy Mode**
 - **Palette Ordering**
 - **Color Distribution Mode**
 - **Black & White Handling**
@@ -185,11 +181,11 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.10` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.12` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.1.10
-git push origin v1.1.10
+git tag v1.1.12
+git push origin v1.1.12
 ```
 
 ## License
@@ -197,7 +193,7 @@ git push origin v1.1.10
 MIT License. See `LICENSE`.
 
 
-## v1.1.10 behavior notes
+## Behavior notes
 
 ### Color Rotation Mode
 
@@ -209,21 +205,13 @@ Modes:
 - **Auto Rotate Only**: use timed palette rotation while music is playing.
 - **Track Change and Auto Rotate**: shift on each track and keep timed rotation active.
 
-### White Color Handling
+### Color Accuracy Mode
 
-**Suppress Whites When Colors Exist** is the default. It keeps white, cream, and grayscale tones for black-and-white or monochrome artwork, but removes near-white tones when the artwork also contains real chromatic colors. This prevents color albums from being dominated by white/cream highlights while preserving grayscale album art behavior.
+**Natural** is the default and balances album accuracy with usable Hue output. It applies perceptual extraction, dull-color filtering, contextual white suppression, and balanced neutral handling.
 
 Modes:
-- **Suppress Whites When Colors Exist**: contextual default.
-- **Always Filter Whites**: removes white/cream tones aggressively. If that would remove every color, the original palette is restored so black-and-white or all-white artwork still has usable colors.
-- **Allow Whites**: keeps white/cream tones in extracted palettes.
+- **Natural**: balanced default for most album art.
+- **Vivid**: favors saturated subject and accent colors, with stronger neutral and white suppression.
+- **Album Accurate**: preserves more muted background and neutral tones for artwork where the overall album mood matters more than high saturation.
 
-### White Filtering Strength
-
-Controls how aggressively white-like colors are removed when white filtering is active:
-
-- **Gentle**: original conservative behavior; removes obvious white, cream, and very pale tones.
-- **Balanced**: default; also removes pale neutrals and blue-gray tones that Hue can render as bright white.
-- **Strong**: most aggressive; removes broader low-saturation pale colors for more vivid output.
-
-This setting does not override **White Color Handling**. It only controls the threshold used when whites are being suppressed or filtered.
+This replaces the earlier separate dull-color, white-handling, white-strength, and low-color stabilization controls in the main UI. Existing saved values are still tolerated for compatibility, but the selected Color Accuracy Mode now drives the active extraction behavior.
