@@ -204,3 +204,38 @@ ROTATION_MODE_LABELS = {
     ROTATION_MODE_AUTO: "Auto Rotate Only",
     ROTATION_MODE_TRACK_AND_AUTO: "Track Change and Auto Rotate",
 }
+
+CONF_CONTROL_MODE = "control_mode"
+CONTROL_MODE_BASIC = "basic"
+CONTROL_MODE_ADVANCED = "advanced_custom"
+DEFAULT_CONTROL_MODE = CONTROL_MODE_BASIC
+CONTROL_MODE_OPTIONS = [CONTROL_MODE_BASIC, CONTROL_MODE_ADVANCED]
+CONTROL_MODE_LABELS = {
+    CONTROL_MODE_BASIC: "Basic",
+    CONTROL_MODE_ADVANCED: "Advanced (Custom)",
+}
+
+CONF_BRIGHTNESS_LEVEL = "brightness_level"
+BRIGHTNESS_LEVEL_LOW = "low"
+BRIGHTNESS_LEVEL_MEDIUM = "medium"
+BRIGHTNESS_LEVEL_HIGH = "high"
+BRIGHTNESS_LEVEL_MAXIMUM = "maximum"
+DEFAULT_BRIGHTNESS_LEVEL = BRIGHTNESS_LEVEL_HIGH
+BRIGHTNESS_LEVEL_OPTIONS = [
+    BRIGHTNESS_LEVEL_LOW,
+    BRIGHTNESS_LEVEL_MEDIUM,
+    BRIGHTNESS_LEVEL_HIGH,
+    BRIGHTNESS_LEVEL_MAXIMUM,
+]
+BRIGHTNESS_LEVEL_LABELS = {
+    BRIGHTNESS_LEVEL_LOW: "Low",
+    BRIGHTNESS_LEVEL_MEDIUM: "Medium",
+    BRIGHTNESS_LEVEL_HIGH: "High",
+    BRIGHTNESS_LEVEL_MAXIMUM: "Maximum",
+}
+BRIGHTNESS_LEVEL_PRESETS = {
+    BRIGHTNESS_LEVEL_LOW: {"min_brightness": 20, "max_brightness": 96, "gradient_brightness": 96},
+    BRIGHTNESS_LEVEL_MEDIUM: {"min_brightness": 30, "max_brightness": 160, "gradient_brightness": 160},
+    BRIGHTNESS_LEVEL_HIGH: {"min_brightness": 40, "max_brightness": 224, "gradient_brightness": 224},
+    BRIGHTNESS_LEVEL_MAXIMUM: {"min_brightness": 50, "max_brightness": 255, "gradient_brightness": 255},
+}

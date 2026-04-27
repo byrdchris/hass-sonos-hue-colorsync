@@ -40,6 +40,9 @@ from .const import (
     CONF_WHITE_HANDLING,
     CONF_WHITE_FILTER_STRENGTH,
     CONF_ROTATION_MODE,
+    CONF_CONTROL_MODE,
+    CONF_BRIGHTNESS_LEVEL,
+    BRIGHTNESS_LEVEL_PRESETS,
     ROTATION_MODE_TRACK_CHANGE,
     ROTATION_MODE_AUTO,
     ROTATION_MODE_TRACK_AND_AUTO,
@@ -173,8 +176,10 @@ class SonosHueCoordinator:
             ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
+            "control_mode": self.config.get(CONF_CONTROL_MODE, "basic"),
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             "color_accuracy_mode": self.config.get(CONF_COLOR_ACCURACY_MODE, "natural"),
+            "brightness_level": self.config.get(CONF_BRIGHTNESS_LEVEL, "high"),
             ATTR_PALETTE_PREVIEW: self._palette_preview(),
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
@@ -522,6 +527,16 @@ class SonosHueCoordinator:
         if key == "cache":
             from .cache import PaletteCache
             self.cache = PaletteCache() if value else None
+        if key == CONF_BRIGHTNESS_LEVEL:
+            preset = BRIGHTNESS_LEVEL_PRESETS.get(value)
+            if preset:
+                self.runtime_options.update(preset)
+
+        if key == CONF_CONTROL_MODE and value == "basic":
+            preset = BRIGHTNESS_LEVEL_PRESETS.get(self.config.get(CONF_BRIGHTNESS_LEVEL, "high"))
+            if preset:
+                self.runtime_options.update(preset)
+
         if key == CONF_ROTATION_MODE:
             if self._auto_rotate_enabled():
                 self._maybe_start_auto_rotate()

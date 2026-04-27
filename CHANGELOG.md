@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.1.13
+
+### Added
+- Added **Control Mode** with **Basic** and **Advanced (Custom)** options.
+- Added **Brightness Level** presets: **Low**, **Medium**, **High**, and **Maximum**.
+
+### Changed
+- Basic mode is now guided rather than bare-bones: users keep core everyday controls such as Color Accuracy Mode, Number of Colors, Transition Time, Brightness Level, Auto Rotate Colors, Auto Rotation Interval, Restore Delay, Health Check, Status, and Targets.
+- Advanced (Custom) keeps the full tuning surface for palette ordering, distribution, gradient detail, white/neutral handling, fallback behavior, and per-brightness caps.
+- Selecting a Brightness Level applies coordinated standard-light and gradient-light brightness caps while preserving Advanced (Custom) granular controls.
+
 ## v1.1.12
 
 ### Added

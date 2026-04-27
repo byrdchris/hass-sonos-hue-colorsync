@@ -14,6 +14,8 @@ from .const import (
     CONF_COLOR_COUNT,
     CONF_PALETTE_ORDERING,
     CONF_COLOR_ACCURACY_MODE,
+    CONF_CONTROL_MODE,
+    CONF_BRIGHTNESS_LEVEL,
     CONF_EXPAND_GROUPS,
     CONF_MONOCHROME_MODE,
     CONF_LOW_COLOR_HANDLING,
@@ -75,6 +77,12 @@ from .const import (
     DEFAULT_ROTATION_MODE,
     ROTATION_MODE_OPTIONS,
     ROTATION_MODE_LABELS,
+    DEFAULT_CONTROL_MODE,
+    CONTROL_MODE_LABELS,
+    CONTROL_MODE_OPTIONS,
+    DEFAULT_BRIGHTNESS_LEVEL,
+    BRIGHTNESS_LEVEL_LABELS,
+    BRIGHTNESS_LEVEL_OPTIONS,
 )
 
 def build_schema(defaults: dict):
@@ -83,6 +91,8 @@ def build_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),
         vol.Required(CONF_LIGHT_ENTITIES, default=defaults.get(CONF_LIGHT_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
+        vol.Optional(CONF_CONTROL_MODE, default=defaults.get(CONF_CONTROL_MODE, DEFAULT_CONTROL_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": CONTROL_MODE_LABELS[key]} for key in CONTROL_MODE_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_GROUP_ENTITIES, default=defaults.get(CONF_GROUP_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_MEMBER_LIGHT_ENTITIES, default=defaults.get(CONF_MEMBER_LIGHT_ENTITIES, [])):
@@ -93,6 +103,8 @@ def build_schema(defaults: dict):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": PALETTE_ORDERING_LABELS[key]} for key in PALETTE_ORDERING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": COLOR_ACCURACY_MODE_LABELS[key]} for key in COLOR_ACCURACY_MODE_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_BRIGHTNESS_LEVEL, default=defaults.get(CONF_BRIGHTNESS_LEVEL, DEFAULT_BRIGHTNESS_LEVEL)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": BRIGHTNESS_LEVEL_LABELS[key]} for key in BRIGHTNESS_LEVEL_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):

@@ -81,6 +81,32 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 
 ## Home Assistant Controls
 
+### Guided control modes
+
+Sonos Hue Sync now includes **Control Mode**:
+
+- **Basic**: guided everyday control without removing useful options. Recommended for normal use.
+- **Advanced (Custom)**: exposes the full tuning surface for detailed palette, gradient, fallback, and brightness behavior.
+
+Basic mode keeps the practical controls most users need:
+
+- Sync Active
+- Sonos speaker and Hue target selection
+- Color Accuracy Mode
+- Number of Colors
+- Transition Time
+- Brightness Level
+- Auto Rotate Colors
+- Auto Rotation Interval
+- Restore Delay
+- Health Check
+- Status and Targets diagnostics
+
+Advanced (Custom) is intended for tuning white/neutral handling, palette ordering, color distribution, gradient detail, artwork fallback, individual brightness caps, exclusions, and advanced target expansion.
+
+**Brightness Level** provides simple presets: **Low**, **Medium**, **High**, and **Maximum**. These presets coordinate standard-light and gradient-light brightness caps so Basic mode remains easy to tune without exposing several separate brightness controls.
+
+
 ### Switches
 
 - **Sync Active**: primary on/off control.

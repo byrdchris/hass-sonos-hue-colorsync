@@ -31,7 +31,9 @@
           "auto_rotate_interval": "Auto Rotation Interval",
           "palette_ordering": "Palette Ordering",
           "color_accuracy_mode": "Color Accuracy Mode",
-          "rotation_mode": "Color Rotation Mode"
+          "rotation_mode": "Color Rotation Mode",
+          "control_mode": "Control Mode",
+          "brightness_level": "Brightness Level"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -58,7 +60,9 @@
           "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
           "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors.",
           "color_accuracy_mode": "Choose the overall color extraction style. Natural is balanced for most albums, Vivid favors saturated accent colors, and Album Accurate keeps more muted or neutral artwork tones.",
-          "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums."
+          "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums.",
+          "control_mode": "Choose Basic for guided everyday controls or Advanced (Custom) when you want every tuning control available.",
+          "brightness_level": "Simple brightness preset used by Basic mode. Advanced users can still tune minimum, maximum, and gradient brightness separately."
         }
       }
     }
@@ -93,7 +97,9 @@
           "auto_rotate_interval": "Auto Rotation Interval",
           "palette_ordering": "Palette Ordering",
           "color_accuracy_mode": "Color Accuracy Mode",
-          "rotation_mode": "Color Rotation Mode"
+          "rotation_mode": "Color Rotation Mode",
+          "control_mode": "Control Mode",
+          "brightness_level": "Brightness Level"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -120,7 +126,9 @@
           "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
           "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors.",
           "color_accuracy_mode": "Choose the overall color extraction style. Natural is balanced for most albums, Vivid favors saturated accent colors, and Album Accurate keeps more muted or neutral artwork tones.",
-          "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums."
+          "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums.",
+          "control_mode": "Choose Basic for guided everyday controls or Advanced (Custom) when you want every tuning control available.",
+          "brightness_level": "Simple brightness preset used by Basic mode. Advanced users can still tune minimum, maximum, and gradient brightness separately."
         }
       }
     }
@@ -225,6 +233,14 @@
       },
       "color_accuracy_mode": {
         "name": "Color Accuracy Mode"
+      },
+      "control_mode": {
+        "name": "Control Mode",
+        "description": "Choose Basic for guided everyday controls or Advanced (Custom) for full tuning."
+      },
+      "brightness_level": {
+        "name": "Brightness Level",
+        "description": "Set a simple overall brightness preset for synced lights."
       }
     },
     "number": {
@@ -303,6 +319,20 @@
         "vivid": "Vivid",
         "album_accurate": "Album Accurate"
       }
+    },
+    "control_mode": {
+      "options": {
+        "basic": "Basic",
+        "advanced_custom": "Advanced (Custom)"
+      }
+    },
+    "brightness_level": {
+      "options": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "maximum": "Maximum"
+      }
     }
   },
   "services": {
@@ -324,6 +354,8 @@
     "artwork_fallback_mode": "Artwork fallback behavior",
     "airplay_poll_interval": "AirPlay Metadata Check Interval",
     "palette_ordering": "Palette Ordering",
-    "auto_rotate_interval": "Auto Rotation Interval"
+    "auto_rotate_interval": "Auto Rotation Interval",
+    "control_mode": "Control Mode",
+    "brightness_level": "Brightness Level"
   }
 }
