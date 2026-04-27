@@ -60,7 +60,7 @@
           "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved.",
           "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent.",
           "auto_rotate_colors": "Automatically cycles the current color palette while music is playing.",
-          "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a small internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
+          "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
           "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors."
         }
       }
@@ -125,7 +125,7 @@
           "artwork_fallback_mode": "Controls what happens when album art cannot be retrieved.",
           "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent.",
           "auto_rotate_colors": "Automatically cycles the current color palette while music is playing.",
-          "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a small internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
+          "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
           "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors."
         }
       }
@@ -249,7 +249,7 @@
       },
       "auto_rotate_interval": {
         "name": "Auto Rotation Interval",
-        "description": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a small internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running."
+        "description": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running."
       }
     }
   },

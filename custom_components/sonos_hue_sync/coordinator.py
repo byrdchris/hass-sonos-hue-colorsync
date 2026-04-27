@@ -58,7 +58,7 @@ class SonosHueCoordinator:
         self.hass = hass
         self.entry = entry
         self.scene = None
-        self.enabled = True
+        self.enabled = False
         self._remove_listener = None
         self._poll_remove = None
         self._apply_lock = asyncio.Lock()
@@ -575,7 +575,7 @@ class SonosHueCoordinator:
   - **Brightness order**: sorts colors by lightness; can make similar hues dominate.
 - **Transition Time**: fade duration for light changes.
 - **Auto Rotate Colors**: automatically cycles the current palette while music is playing.
-- **Auto Rotation Interval**: total cycle time between automatic rotation starts. The current **Transition Time** is treated as the fade portion of that cycle, with a small internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while auto-rotation is running.
+- **Auto Rotation Interval**: total cycle time between automatic rotation starts. The current **Transition Time** is treated as the fade portion of that cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while auto-rotation is running.
 - **Gradient Pattern**: choose whether gradient lights use the same order, offset order per light, or random order per track.
 - **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
 

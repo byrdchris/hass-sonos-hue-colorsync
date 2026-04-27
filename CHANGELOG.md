@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.1.6
+
+### Changed
+- Increased the internal **Auto Rotate Colors** safety buffer from 0.75 seconds to 2.0 seconds to better account for Hue bridge, Home Assistant service-call, group, and gradient update latency.
+- Auto-rotation now more conservatively extends the effective cycle time when **Transition Time** plus the safety buffer is longer than the configured **Auto Rotation Interval**.
+
+### Improved
+- Strengthened shared light-apply coordination so normal palette applies, manual rotation, auto-rotation, and test lighting do not stack overlapping Hue updates.
+- Updated diagnostics and documentation to describe configured interval, effective cycle time, hold time, transition time, and safety buffer behavior more clearly.
+
+## v1.1.5
+
+### Changed
+- Set **Dominant Colors First** as the default palette ordering for new installs.
+- Set **Sync Active** to start off after Home Assistant restarts or HACS upgrades.
+
 ## v1.1.4
 
 ### Changed
