@@ -3,55 +3,46 @@ from __future__ import annotations
 from homeassistant.components.number import NumberEntity, NumberMode
 
 from .const import (
-    DOMAIN,
-    CONF_CONTROL_MODE,
+    DEFAULT_AUTO_ROTATE_INTERVAL,
     DEFAULT_COLOR_COUNT,
-    DEFAULT_TRANSITION,
-    DEFAULT_MIN_BRIGHTNESS,
-    DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_GRADIENT_BRIGHTNESS,
     DEFAULT_GRADIENT_COLOR_POINTS,
+    DEFAULT_MAX_BRIGHTNESS,
+    DEFAULT_MIN_BRIGHTNESS,
     DEFAULT_RESTORE_DELAY,
-    DEFAULT_AUTO_ROTATE_INTERVAL,
+    DEFAULT_TRANSITION,
+    DOMAIN,
 )
 
-CONTROL_MODE_ADVANCED_VALUE = "advanced_custom"
-
-BASIC_NUMBERS = [
+NUMBERS = [
+    # Primary/everyday controls first
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
     ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
-    ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
     ("auto_rotate_interval", "Auto Rotation Interval", "mdi:timer-sync-outline", 1, 60, 1),
-]
-
-ADVANCED_NUMBERS = [
+    ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
+    # Advanced tuning
+    ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
+    ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
     ("min_brightness", "Minimum Brightness", "mdi:brightness-5", 1, 255, 1),
     ("max_brightness", "Maximum Brightness", "mdi:brightness-7", 1, 255, 1),
-    ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
-    ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
 ]
 
 NUMBER_DEFAULTS = {
     "color_count": DEFAULT_COLOR_COUNT,
     "transition": DEFAULT_TRANSITION,
+    "auto_rotate_interval": DEFAULT_AUTO_ROTATE_INTERVAL,
+    "restore_delay": DEFAULT_RESTORE_DELAY,
+    "gradient_color_points": DEFAULT_GRADIENT_COLOR_POINTS,
+    "gradient_brightness": DEFAULT_GRADIENT_BRIGHTNESS,
     "min_brightness": DEFAULT_MIN_BRIGHTNESS,
     "max_brightness": DEFAULT_MAX_BRIGHTNESS,
-    "gradient_brightness": DEFAULT_GRADIENT_BRIGHTNESS,
-    "gradient_color_points": DEFAULT_GRADIENT_COLOR_POINTS,
-    "restore_delay": DEFAULT_RESTORE_DELAY,
-    "auto_rotate_interval": DEFAULT_AUTO_ROTATE_INTERVAL,
 }
 
 
-def _is_advanced(coordinator):
-    return coordinator.config.get(CONF_CONTROL_MODE) == CONTROL_MODE_ADVANCED_VALUE
-
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    numbers = list(BASIC_NUMBERS)
-    if _is_advanced(coordinator):
-        numbers.extend(ADVANCED_NUMBERS)
-    async_add_entities([SonosHueNumber(coordinator, entry, *args) for args in numbers], True)
+    async_add_entities([SonosHueNumber(coordinator, entry, *args) for args in NUMBERS], True)
+
 
 class SonosHueNumber(NumberEntity):
     _attr_has_entity_name = True

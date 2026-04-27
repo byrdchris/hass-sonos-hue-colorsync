@@ -13,6 +13,7 @@ The integration is designed for Home Assistant installations running in containe
 - Restores the previous lighting scene when playback stops or sync is turned off.
 - Includes AirPlay/Sonos artwork fallback handling to reduce flicker and bad palette overwrites.
 - Provides Home Assistant controls, diagnostics, health checks, and target previews.
+- **Update Lights Now** manually applies the effective current settings without enabling continuous sync.
 - **Color Rotation Mode** can shift color assignments on each track change, run timed auto-rotation, use both, or disable rotation.
 - Optional **Auto Rotate Colors** mode cycles the active palette while music is playing, with a user-adjustable interval.
 - Palette ordering can prioritize either vivid visual variety or the most dominant album-art colors first.
@@ -72,7 +73,7 @@ During setup and in options, you can configure:
 - **Auto Rotate Colors**: automatically cycles the current palette while music is playing. This remains available as a simple timed-rotation switch.
 - **Auto Rotation Interval**: total cycle time between automatic rotation starts, adjustable from 1 to 60 seconds. Transition Time is treated as the fade portion of the cycle, with an internal safety buffer to avoid overlapping Hue updates.
 - **Gradient Detail Level**: controls the number of gradient points.
-- **Gradient Order Mode**: controls gradient ordering across lights.
+- **Gradient Pattern**: controls gradient ordering across lights.
 - **Cache Album Colors**: stores album palettes for faster repeat playback.
 - **Distribute Across Group Lights**: expands supported Hue groups to their member lights.
 - **AirPlay Poll Interval**: fallback polling interval for metadata/artwork cases that do not emit reliable events.
@@ -106,7 +107,7 @@ Advanced (Custom) is intended for tuning white/neutral handling, palette orderin
 
 **Brightness Level** provides simple presets: **Low**, **Medium**, **High**, and **Maximum**. These presets coordinate standard-light and gradient-light brightness caps so Basic mode remains easy to tune without exposing several separate brightness controls.
 
-Changing **Control Mode** rebuilds the integration control surface. Basic mode loads only guided everyday controls; Advanced (Custom) loads the full tuning set. If the device page is already open, refresh it after switching modes so Home Assistant shows the rebuilt entity list.
+All controls remain visible for Home Assistant stability. **Control Mode** determines which settings are authoritative at apply time: Basic uses guided controls such as Color Accuracy Mode, White Handling, and Brightness Level; Advanced (Custom) uses the detailed tuning controls instead. The Status sensor reports the effective mode, brightness source, white-handling source, and ignored advanced controls.
 
 
 ### Switches
@@ -119,12 +120,14 @@ Changing **Control Mode** rebuilds the integration control surface. Basic mode l
 
 ### Selects
 
+- **Control Mode**
 - **Color Accuracy Mode**
+- **White Handling**
 - **Palette Ordering**
 - **Color Distribution Mode**
 - **Black & White Handling**
 - **Artwork Fallback**
-- **Gradient Order Mode**
+- **Gradient Pattern**
 
 ### Numbers
 
@@ -139,6 +142,7 @@ Changing **Control Mode** rebuilds the integration control surface. Basic mode l
 
 ### Buttons
 
+- **Update Lights Now**: manually runs the current apply pipeline, even if Sync Active is off.
 - **Refresh Colors**: extracts and applies the current track palette.
 - **Rotate Colors**: rotates the current palette across selected lights.
 - **Test Lighting**: applies a test palette.

@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.1.15
+
+### Added
+- Added **Update Lights Now** as a top-level manual apply action.
+- Added simplified **White Handling** for guided Basic control.
+
+### Changed
+- Reverted from dynamic Basic/Advanced UI hiding to a stable single visible control surface.
+- **Control Mode** now resolves precedence at apply time instead of rebuilding Home Assistant entities.
+- Basic mode uses guided controls as the source of truth; Advanced (Custom) uses detailed tuning controls.
+- Status diagnostics now expose effective control mode, brightness source, white-handling source, and ignored advanced controls.
+- Shortened **Gradient Pattern** option labels to avoid column wrapping.
+
+### Fixed
+- Avoids Home Assistant UI instability caused by toggling Basic/Advanced visibility.
+- Prevents Basic and Advanced settings from racing by resolving one effective configuration per apply cycle.
+
 ## v1.1.14
 
 ### Fixed

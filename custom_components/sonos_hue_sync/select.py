@@ -7,36 +7,44 @@ from .const import (
     ASSIGNMENT_STRATEGY_BALANCED,
     ASSIGNMENT_STRATEGY_BRIGHTNESS,
     ASSIGNMENT_STRATEGY_SEQUENTIAL,
-    CONF_ASSIGNMENT_STRATEGY,
+    ARTWORK_FALLBACK_MODE_LABELS,
+    ARTWORK_FALLBACK_MODES,
+    BASIC_WHITE_HANDLING_LABELS,
+    BASIC_WHITE_HANDLING_OPTIONS,
+    BRIGHTNESS_LEVEL_LABELS,
+    BRIGHTNESS_LEVEL_OPTIONS,
+    COLOR_ACCURACY_MODE_LABELS,
+    COLOR_ACCURACY_MODE_OPTIONS,
     CONF_ARTWORK_FALLBACK_MODE,
-    CONF_GRADIENT_ORDER_MODE,
-    CONF_PALETTE_ORDERING,
+    CONF_ASSIGNMENT_STRATEGY,
+    CONF_BASIC_WHITE_HANDLING,
+    CONF_BRIGHTNESS_LEVEL,
     CONF_COLOR_ACCURACY_MODE,
     CONF_CONTROL_MODE,
-    CONF_BRIGHTNESS_LEVEL,
+    CONF_GRADIENT_ORDER_MODE,
+    CONF_MONOCHROME_MODE,
+    CONF_PALETTE_ORDERING,
     CONF_ROTATION_MODE,
+    CONF_WHITE_FILTER_STRENGTH,
+    CONF_WHITE_HANDLING,
+    CONTROL_MODE_LABELS,
+    CONTROL_MODE_OPTIONS,
     DOMAIN,
+    GRADIENT_ORDER_MODE_LABELS,
+    GRADIENT_ORDER_MODES,
     MONOCHROME_MODE_DISABLED,
     MONOCHROME_MODE_GRAYSCALE,
     MONOCHROME_MODE_MUTED_ACCENT,
     MONOCHROME_MODE_WARM_NEUTRAL,
-    ARTWORK_FALLBACK_MODE_LABELS,
-    ARTWORK_FALLBACK_MODES,
-    COLOR_ACCURACY_MODE_LABELS,
-    COLOR_ACCURACY_MODE_OPTIONS,
-    CONTROL_MODE_LABELS,
-    CONTROL_MODE_OPTIONS,
-    BRIGHTNESS_LEVEL_LABELS,
-    BRIGHTNESS_LEVEL_OPTIONS,
-    GRADIENT_ORDER_MODE_LABELS,
-    GRADIENT_ORDER_MODES,
     PALETTE_ORDERING_LABELS,
     PALETTE_ORDERING_OPTIONS,
     ROTATION_MODE_LABELS,
     ROTATION_MODE_OPTIONS,
+    WHITE_FILTER_STRENGTH_LABELS,
+    WHITE_FILTER_STRENGTH_OPTIONS,
+    WHITE_HANDLING_LABELS,
+    WHITE_HANDLING_OPTIONS,
 )
-
-CONTROL_MODE_ADVANCED_VALUE = "advanced_custom"
 
 ASSIGNMENT_OPTIONS = [
     ASSIGNMENT_STRATEGY_BALANCED,
@@ -67,26 +75,24 @@ MONOCHROME_LABELS = {
 }
 
 
-def _is_advanced(coordinator):
-    return coordinator.config.get(CONF_CONTROL_MODE) == CONTROL_MODE_ADVANCED_VALUE
-
-
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [
+        # Primary/everyday controls first
         SonosHueSelect(coordinator, entry, CONF_CONTROL_MODE, "Control Mode", CONTROL_MODE_OPTIONS, CONTROL_MODE_LABELS, "mdi:tune-variant"),
         SonosHueSelect(coordinator, entry, CONF_COLOR_ACCURACY_MODE, "Color Accuracy Mode", COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS, "mdi:palette-advanced"),
+        SonosHueSelect(coordinator, entry, CONF_BASIC_WHITE_HANDLING, "White Handling", BASIC_WHITE_HANDLING_OPTIONS, BASIC_WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
         SonosHueSelect(coordinator, entry, CONF_BRIGHTNESS_LEVEL, "Brightness Level", BRIGHTNESS_LEVEL_OPTIONS, BRIGHTNESS_LEVEL_LABELS, "mdi:brightness-6"),
         SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation Mode", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
+        # Advanced tuning remains visible but is only authoritative in Advanced (Custom) mode.
+        SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
+        SonosHueSelect(coordinator, entry, CONF_PALETTE_ORDERING, "Palette Ordering", PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS, "mdi:sort"),
+        SonosHueSelect(coordinator, entry, CONF_GRADIENT_ORDER_MODE, "Gradient Pattern", GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS, "mdi:gradient-horizontal"),
+        SonosHueSelect(coordinator, entry, CONF_WHITE_HANDLING, "White Color Handling", WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
+        SonosHueSelect(coordinator, entry, CONF_WHITE_FILTER_STRENGTH, "White Filtering Strength", WHITE_FILTER_STRENGTH_OPTIONS, WHITE_FILTER_STRENGTH_LABELS, "mdi:tune-variant"),
+        SonosHueSelect(coordinator, entry, CONF_MONOCHROME_MODE, "Black & White Handling", MONOCHROME_OPTIONS, MONOCHROME_LABELS, "mdi:circle-opacity"),
+        SonosHueSelect(coordinator, entry, CONF_ARTWORK_FALLBACK_MODE, "Artwork Fallback", ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS, "mdi:image-sync"),
     ]
-    if _is_advanced(coordinator):
-        entities.extend([
-            SonosHueSelect(coordinator, entry, CONF_PALETTE_ORDERING, "Palette Ordering", PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS, "mdi:sort"),
-            SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
-            SonosHueSelect(coordinator, entry, CONF_ARTWORK_FALLBACK_MODE, "Artwork Fallback", ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS, "mdi:image-sync"),
-            SonosHueSelect(coordinator, entry, CONF_GRADIENT_ORDER_MODE, "Gradient Pattern", GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS, "mdi:gradient-horizontal"),
-            SonosHueSelect(coordinator, entry, "monochrome_mode", "Black & White Handling", MONOCHROME_OPTIONS, MONOCHROME_LABELS, "mdi:circle-opacity"),
-        ])
     async_add_entities(entities, True)
 
 
@@ -129,7 +135,4 @@ class SonosHueSelect(SelectEntity):
         value = self._label_to_option.get(option)
         if value is None:
             return
-        reload_needed = self._key == CONF_CONTROL_MODE and value != self._coordinator.config.get(CONF_CONTROL_MODE)
         await self._coordinator.async_set_runtime_option(self._key, value)
-        if reload_needed:
-            self.hass.async_create_task(self.hass.config_entries.async_reload(self._entry.entry_id))

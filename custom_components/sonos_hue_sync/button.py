@@ -8,6 +8,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
         [
+            SonosHueSyncButton(coordinator, entry, "Update Lights Now", "update_lights_now", "mdi:lightbulb-on"),
             SonosHueSyncButton(coordinator, entry, "Refresh Colors", "extract_now", "mdi:image-sync"),
             SonosHueSyncButton(coordinator, entry, "Rotate Colors", "apply_last_palette", "mdi:palette"),
             SonosHueSyncButton(coordinator, entry, "Test Lighting", "test_rainbow", "mdi:rainbow"),
@@ -33,7 +34,9 @@ class SonosHueSyncButton(ButtonEntity):
         return {"identifiers": {(DOMAIN, self._entry.entry_id)}, "name": self._entry.title or "Sonos Hue Sync"}
 
     async def async_press(self):
-        if self._action == "extract_now":
+        if self._action == "update_lights_now":
+            await self._coordinator.async_update_lights_now()
+        elif self._action == "extract_now":
             await self._coordinator.async_process_current_state(reason="button_extract_now", bypass_cache=True, force_apply=True)
         elif self._action == "apply_last_palette":
             await self._coordinator.async_apply_last_palette()

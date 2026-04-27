@@ -42,7 +42,20 @@ from .const import (
     CONF_ROTATION_MODE,
     CONF_CONTROL_MODE,
     CONF_BRIGHTNESS_LEVEL,
+    CONF_BASIC_WHITE_HANDLING,
+    BASIC_WHITE_NATURAL,
+    BASIC_WHITE_REDUCE,
+    BASIC_WHITE_ALLOW,
     BRIGHTNESS_LEVEL_PRESETS,
+    CONTROL_MODE_BASIC,
+    CONTROL_MODE_ADVANCED,
+    DEFAULT_ASSIGNMENT_STRATEGY,
+    DEFAULT_PALETTE_ORDERING,
+    WHITE_HANDLING_CONTEXTUAL,
+    WHITE_HANDLING_ALWAYS_FILTER,
+    WHITE_HANDLING_ALLOW,
+    WHITE_FILTER_STRENGTH_BALANCED,
+    WHITE_FILTER_STRENGTH_STRONG,
     ROTATION_MODE_TRACK_CHANGE,
     ROTATION_MODE_AUTO,
     ROTATION_MODE_TRACK_AND_AUTO,
@@ -120,6 +133,60 @@ class SonosHueCoordinator:
             config["assignment_strategy"] = self.runtime_assignment_strategy
         return config
 
+    def effective_config(self) -> dict:
+        """Resolve the one authoritative config used for palette/apply work.
+
+        Basic and Advanced settings are stored independently. Basic mode ignores
+        advanced equivalents at apply time rather than trying to synchronize
+        values in both directions, which prevents setting-change loops and race
+        conditions.
+        """
+        config = dict(self.config)
+        mode = config.get(CONF_CONTROL_MODE, CONTROL_MODE_BASIC)
+        effective = dict(config)
+        effective["_control_mode"] = mode
+
+        if mode != CONTROL_MODE_ADVANCED:
+            brightness_level = config.get(CONF_BRIGHTNESS_LEVEL, "high")
+            preset = BRIGHTNESS_LEVEL_PRESETS.get(brightness_level, BRIGHTNESS_LEVEL_PRESETS["high"])
+            effective.update(preset)
+            effective["_effective_brightness_source"] = "Brightness Level"
+
+            basic_white = config.get(CONF_BASIC_WHITE_HANDLING, BASIC_WHITE_NATURAL)
+            if basic_white == BASIC_WHITE_ALLOW:
+                effective["filter_bright_white"] = False
+                effective["white_handling"] = WHITE_HANDLING_ALLOW
+                effective["white_filter_strength"] = WHITE_FILTER_STRENGTH_BALANCED
+            elif basic_white == BASIC_WHITE_REDUCE:
+                effective["filter_bright_white"] = True
+                effective["white_handling"] = WHITE_HANDLING_ALWAYS_FILTER
+                effective["white_filter_strength"] = WHITE_FILTER_STRENGTH_STRONG
+            else:
+                effective["filter_bright_white"] = True
+                effective["white_handling"] = WHITE_HANDLING_CONTEXTUAL
+                effective["white_filter_strength"] = WHITE_FILTER_STRENGTH_BALANCED
+            effective["_effective_white_source"] = "White Handling"
+            effective["assignment_strategy"] = DEFAULT_ASSIGNMENT_STRATEGY
+            effective["palette_ordering"] = DEFAULT_PALETTE_ORDERING
+            effective["group_entities"] = []
+            effective["member_light_entities"] = []
+            effective["exclude_light_entities"] = []
+            effective["_ignored_advanced_controls"] = [
+                "Minimum Brightness",
+                "Maximum Brightness",
+                "Gradient Brightness",
+                "Color Distribution Mode",
+                "Palette Ordering",
+                "White Color Handling",
+                "White Filtering Strength",
+            ]
+        else:
+            effective["_effective_brightness_source"] = "Advanced brightness controls"
+            effective["_effective_white_source"] = "Advanced white controls"
+            effective["_ignored_advanced_controls"] = []
+
+        return effective
+
     @property
     def sonos_entity(self):
         return self.config[CONF_SONOS_ENTITY]
@@ -147,8 +214,14 @@ class SonosHueCoordinator:
         # - Member lights override acts as an explicit additional direct list
         #
         # The resolver deduplicates after expansion, so overlapping groups are safe.
+        effective = self.effective_config()
         entities = []
-        for entity_id in self.light_entities + self.group_entities + self.member_light_entities:
+        source_entities = (
+            self.light_entities
+            + (effective.get(CONF_GROUP_ENTITIES, []) or [])
+            + (effective.get(CONF_MEMBER_LIGHT_ENTITIES, []) or [])
+        )
+        for entity_id in source_entities:
             if entity_id and entity_id not in entities:
                 entities.append(entity_id)
         return entities
@@ -158,9 +231,9 @@ class SonosHueCoordinator:
         result = resolve_light_entities_detailed(
             self.hass,
             self.expansion_entities,
-            expand_groups=self.config.get("expand_groups", True),
+            expand_groups=self.effective_config().get("expand_groups", True),
         )
-        excluded = set(self.config.get("exclude_light_entities", []) or [])
+        excluded = set(self.effective_config().get("exclude_light_entities", []) or [])
         if excluded:
             before = list(result.lights)
             result.lights = [entity_id for entity_id in result.lights if entity_id not in excluded]
@@ -172,14 +245,19 @@ class SonosHueCoordinator:
     @property
     def palette_attributes(self):
         hex_colors = [rgb_to_hex(c) for c in self.last_palette]
+        effective = self.effective_config()
         return {
             ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
             "control_mode": self.config.get(CONF_CONTROL_MODE, "basic"),
+            "effective_control_mode": effective.get("_control_mode"),
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             "color_accuracy_mode": self.config.get(CONF_COLOR_ACCURACY_MODE, "natural"),
             "brightness_level": self.config.get(CONF_BRIGHTNESS_LEVEL, "high"),
+            "effective_brightness_source": effective.get("_effective_brightness_source"),
+            "effective_white_source": effective.get("_effective_white_source"),
+            "ignored_advanced_controls": effective.get("_ignored_advanced_controls", []),
             ATTR_PALETTE_PREVIEW: self._palette_preview(),
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
@@ -214,7 +292,7 @@ class SonosHueCoordinator:
             "runtime_options": self.runtime_options,
             "reapply_rotation_offset": self.reapply_rotation_offset,
             "apply_queue_status": self.last_apply_queue_status,
-            "brightness_limits": {"minimum": self.config.get("min_brightness", 30), "maximum": self.config.get("max_brightness", 255), "gradient": self.config.get("gradient_brightness", 255)},
+            "brightness_limits": {"minimum": effective.get("min_brightness", 30), "maximum": effective.get("max_brightness", 255), "gradient": effective.get("gradient_brightness", 255)},
             "excluded_lights": self.config.get("exclude_light_entities", []),
             "restore_delay": self.config.get("restore_delay", 0),
             "auto_rotate_colors": self.config.get(CONF_AUTO_ROTATE_COLORS, False),
@@ -504,21 +582,23 @@ class SonosHueCoordinator:
         """
         parts = [
             art or "",
-            f"count={self.config.get('color_count', 3)}",
-            f"ordering={self.config.get(CONF_PALETTE_ORDERING, 'vivid_first')}",
-            f"color_accuracy={self.config.get(CONF_COLOR_ACCURACY_MODE, 'natural' )}",
-            f"mono={self.config.get('monochrome_mode', 'warm_neutral')}",
-            f"low_color={self.config.get('low_color_handling', True)}",
+            f"count={self.effective_config().get('color_count', 3)}",
+            f"ordering={self.effective_config().get(CONF_PALETTE_ORDERING, 'vivid_first')}",
+            f"color_accuracy={self.effective_config().get(CONF_COLOR_ACCURACY_MODE, 'natural' )}",
+            f"white={self.effective_config().get('white_handling', 'suppress_when_color_exists')}",
+            f"white_strength={self.effective_config().get('white_filter_strength', 'balanced')}",
+            f"mono={self.effective_config().get('monochrome_mode', 'warm_neutral')}",
+            f"low_color={self.effective_config().get('low_color_handling', True)}",
         ]
         return "|".join(str(part) for part in parts)
 
-    async def async_process_current_state(self, reason="manual", bypass_cache=False, force_apply=False):
+    async def async_process_current_state(self, reason="manual", bypass_cache=False, force_apply=False, allow_disabled=False):
         state = self.hass.states.get(self.sonos_entity)
         if state is None:
             self.last_error = "sonos_entity_not_found"
             self._notify()
             return
-        await self._process_state(state, reason=reason, force=True, bypass_cache=bypass_cache, force_apply=force_apply)
+        await self._process_state(state, reason=reason, force=True, bypass_cache=bypass_cache, force_apply=force_apply, allow_disabled=allow_disabled)
 
     async def async_set_runtime_option(self, key: str, value, reapply: bool = True):
         self.runtime_options[key] = value
@@ -533,16 +613,6 @@ class SonosHueCoordinator:
         if key == "cache":
             from .cache import PaletteCache
             self.cache = PaletteCache() if value else None
-        if key == CONF_BRIGHTNESS_LEVEL:
-            preset = BRIGHTNESS_LEVEL_PRESETS.get(value)
-            if preset:
-                self.runtime_options.update(preset)
-
-        if key == CONF_CONTROL_MODE and value == "basic":
-            preset = BRIGHTNESS_LEVEL_PRESETS.get(self.config.get(CONF_BRIGHTNESS_LEVEL, "high"))
-            if preset:
-                self.runtime_options.update(preset)
-
         if key == CONF_ROTATION_MODE:
             if self._auto_rotate_enabled():
                 self._maybe_start_auto_rotate()
@@ -656,6 +726,19 @@ Tokens and artwork URLs are redacted.
         self.reapply_rotation_offset = (int(self.reapply_rotation_offset or 0) + 1) % rotate_size
         self.runtime_options["last_rotation_reason"] = reason
 
+    async def async_update_lights_now(self):
+        """Manually update lights using the current track/artwork and effective settings.
+
+        This intentionally works even when Sync Active is off, so the button can
+        be used as a one-off test or manual refresh without enabling automation.
+        """
+        await self.async_process_current_state(
+            reason="manual_update",
+            bypass_cache=True,
+            force_apply=True,
+            allow_disabled=True,
+        )
+
     async def async_apply_last_palette(self, reason: str = "button_reapply_rotate_colors"):
         """Rotate the current color assignment across lights and reapply.
 
@@ -747,7 +830,7 @@ Tokens and artwork URLs are redacted.
                         if force_apply:
                             clear_apply_cache()
                         frozen = self._resolve_for_track()
-                        apply_config = dict(self.config)
+                        apply_config = dict(self.effective_config())
                         apply_config["_frozen_resolved_lights"] = frozen.lights
                         apply_config["_frozen_resolver_source"] = frozen.source
                         apply_config["_frozen_skipped_lights"] = frozen.skipped
@@ -950,7 +1033,7 @@ Tokens and artwork URLs are redacted.
         elif new_state.state in ["paused", "idle", "off"]:
             await self._handle_stop()
 
-    async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False):
+    async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False, allow_disabled=False):
         self._cancel_pending_restore()
         process_started = time.perf_counter()
         self.last_timings = {}
@@ -962,7 +1045,7 @@ Tokens and artwork URLs are redacted.
             bypass_cache = True
             force_apply = True
 
-        if not self.enabled:
+        if not self.enabled and not allow_disabled:
             self._stop_auto_rotate()
             self.last_error = "disabled"
             self._notify()
@@ -1040,7 +1123,7 @@ Tokens and artwork URLs are redacted.
                     self.last_timings["total_processing_ms"] = round((time.perf_counter() - process_started) * 1000, 1)
                     return
                 self.last_image = used_art or art
-                palette = extract_palette_from_bytes(image_bytes, self.config)
+                palette = extract_palette_from_bytes(image_bytes, self.effective_config())
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
                     self.cache.set(cache_key, palette)

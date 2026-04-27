@@ -92,18 +92,8 @@ def _select_options(options, labels):
     return [{"value": key, "label": labels[key]} for key in options]
 
 
-def _mode_from_defaults(defaults: dict) -> str:
-    mode = defaults.get(CONF_CONTROL_MODE, DEFAULT_CONTROL_MODE)
-    return mode if mode in CONTROL_MODE_OPTIONS else DEFAULT_CONTROL_MODE
-
-
-def _basic_schema(defaults: dict):
-    """Guided schema for everyday use.
-
-    Home Assistant does not live-hide fields inside an already-rendered form.
-    Reopening the options form after changing Control Mode will show the mode's
-    matching field set.
-    """
+def _full_schema(defaults: dict):
+    """Single stable schema ordered from everyday controls to advanced tuning."""
     return {
         vol.Required(CONF_CONTROL_MODE, default=defaults.get(CONF_CONTROL_MODE, DEFAULT_CONTROL_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(CONTROL_MODE_OPTIONS, CONTROL_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
@@ -113,6 +103,12 @@ def _basic_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional("basic_white_handling", default=defaults.get("basic_white_handling", "natural")):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[
+                selector.SelectOptionDict(value="natural", label="Natural"),
+                selector.SelectOptionDict(value="reduce_whites", label="Reduce Whites"),
+                selector.SelectOptionDict(value="allow_whites", label="Allow Whites"),
+            ], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_BRIGHTNESS_LEVEL, default=defaults.get(CONF_BRIGHTNESS_LEVEL, DEFAULT_BRIGHTNESS_LEVEL)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(BRIGHTNESS_LEVEL_OPTIONS, BRIGHTNESS_LEVEL_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_COLOR_COUNT, default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT)):
@@ -126,31 +122,46 @@ def _basic_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=MIN_AUTO_ROTATE_INTERVAL, max=MAX_AUTO_ROTATE_INTERVAL, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_RESTORE_DELAY, default=defaults.get(CONF_RESTORE_DELAY, DEFAULT_RESTORE_DELAY)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
-    }
-
-
-def _advanced_schema(defaults: dict):
-    schema = dict(_basic_schema(defaults))
-    schema.update({
         vol.Optional(CONF_GROUP_ENTITIES, default=defaults.get(CONF_GROUP_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_MEMBER_LIGHT_ENTITIES, default=defaults.get(CONF_MEMBER_LIGHT_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
+        vol.Optional(CONF_EXCLUDE_LIGHT_ENTITIES, default=defaults.get(CONF_EXCLUDE_LIGHT_ENTITIES, DEFAULT_EXCLUDE_LIGHT_ENTITIES)):
+            selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
+        vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[
+                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BALANCED, label="Balanced"),
+                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_SEQUENTIAL, label="Sequential"),
+                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright / dim"),
+                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BRIGHTNESS, label="Brightness order"),
+            ], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_TRUE_GRADIENT_MODE, default=defaults.get(CONF_TRUE_GRADIENT_MODE, DEFAULT_TRUE_GRADIENT_MODE)): bool,
+        vol.Optional(CONF_GRADIENT_ORDER_MODE, default=defaults.get(CONF_GRADIENT_ORDER_MODE, DEFAULT_GRADIENT_ORDER_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_GRADIENT_COLOR_POINTS, default=defaults.get(CONF_GRADIENT_COLOR_POINTS, DEFAULT_GRADIENT_COLOR_POINTS)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=5, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_GRADIENT_BRIGHTNESS, default=defaults.get(CONF_GRADIENT_BRIGHTNESS, DEFAULT_GRADIENT_BRIGHTNESS)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MAX_BRIGHTNESS, default=defaults.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional(CONF_GRADIENT_BRIGHTNESS, default=defaults.get(CONF_GRADIENT_BRIGHTNESS, DEFAULT_GRADIENT_BRIGHTNESS)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional(CONF_EXCLUDE_LIGHT_ENTITIES, default=defaults.get(CONF_EXCLUDE_LIGHT_ENTITIES, DEFAULT_EXCLUDE_LIGHT_ENTITIES)):
-            selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
-        vol.Optional(CONF_AIRPLAY_POLL_INTERVAL, default=defaults.get(CONF_AIRPLAY_POLL_INTERVAL, DEFAULT_AIRPLAY_POLL_INTERVAL)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional("filter_dull", default=defaults.get("filter_dull", True)): bool,
+        vol.Optional("filter_bright_white", default=defaults.get("filter_bright_white", True)): bool,
+        vol.Optional("white_handling", default=defaults.get("white_handling", "suppress_when_color_exists")):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[
+                selector.SelectOptionDict(value="suppress_when_color_exists", label="Suppress Whites When Colors Exist"),
+                selector.SelectOptionDict(value="always_filter", label="Always Filter Whites"),
+                selector.SelectOptionDict(value="allow_whites", label="Allow Whites"),
+            ], mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional("white_filter_strength", default=defaults.get("white_filter_strength", "balanced")):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[
+                selector.SelectOptionDict(value="gentle", label="Gentle"),
+                selector.SelectOptionDict(value="balanced", label="Balanced"),
+                selector.SelectOptionDict(value="strong", label="Strong"),
+            ], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_MONOCHROME_MODE, default=defaults.get(CONF_MONOCHROME_MODE, DEFAULT_MONOCHROME_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[
                 selector.SelectOptionDict(value=MONOCHROME_MODE_WARM_NEUTRAL, label="Warm neutral"),
@@ -159,26 +170,17 @@ def _advanced_schema(defaults: dict):
                 selector.SelectOptionDict(value=MONOCHROME_MODE_DISABLED, label="Disabled"),
             ], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_LOW_COLOR_HANDLING, default=defaults.get(CONF_LOW_COLOR_HANDLING, DEFAULT_LOW_COLOR_HANDLING)): bool,
-        vol.Optional(CONF_TRUE_GRADIENT_MODE, default=defaults.get(CONF_TRUE_GRADIENT_MODE, DEFAULT_TRUE_GRADIENT_MODE)): bool,
-        vol.Optional(CONF_GRADIENT_COLOR_POINTS, default=defaults.get(CONF_GRADIENT_COLOR_POINTS, DEFAULT_GRADIENT_COLOR_POINTS)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=5, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional(CONF_GRADIENT_ORDER_MODE, default=defaults.get(CONF_GRADIENT_ORDER_MODE, DEFAULT_GRADIENT_ORDER_MODE)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_ARTWORK_FALLBACK_MODE, default=defaults.get(CONF_ARTWORK_FALLBACK_MODE, DEFAULT_ARTWORK_FALLBACK_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_CACHE, default=defaults.get(CONF_CACHE, DEFAULT_CACHE)): bool,
         vol.Optional(CONF_EXPAND_GROUPS, default=defaults.get(CONF_EXPAND_GROUPS, DEFAULT_EXPAND_GROUPS)): bool,
-        vol.Optional(CONF_ASSIGNMENT_STRATEGY, default=defaults.get(CONF_ASSIGNMENT_STRATEGY, DEFAULT_ASSIGNMENT_STRATEGY)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[
-                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BALANCED, label="Balanced"),
-                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_SEQUENTIAL, label="Sequential"),
-                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright / dim"),
-                selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BRIGHTNESS, label="Brightness order"),
-            ], mode=selector.SelectSelectorMode.LIST)),
-    })
-    return schema
+        vol.Optional(CONF_AIRPLAY_POLL_INTERVAL, default=defaults.get(CONF_AIRPLAY_POLL_INTERVAL, DEFAULT_AIRPLAY_POLL_INTERVAL)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=2, max=60, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+    }
 
 
 def build_schema(defaults: dict):
-    mode = _mode_from_defaults(defaults)
-    return vol.Schema(_advanced_schema(defaults) if mode == CONTROL_MODE_ADVANCED_VALUE else _basic_schema(defaults))
+    return vol.Schema(_full_schema(defaults))
 
 
 class SonosHueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -201,10 +203,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         if user_input is not None:
             merged = {**self.entry.data, **self.entry.options, **user_input}
-            old_mode = _mode_from_defaults({**self.entry.data, **self.entry.options})
-            new_mode = _mode_from_defaults(merged)
-            if new_mode != old_mode and len(user_input) == 1:
-                return self.async_show_form(step_id="init", data_schema=build_schema(merged))
             return self.async_create_entry(title="", data=merged)
 
         defaults = {**self.entry.data, **self.entry.options}

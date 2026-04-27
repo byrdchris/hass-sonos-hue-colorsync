@@ -33,7 +33,8 @@
           "color_accuracy_mode": "Color Accuracy Mode",
           "rotation_mode": "Color Rotation Mode",
           "control_mode": "Control Mode",
-          "brightness_level": "Brightness Level"
+          "brightness_level": "Brightness Level",
+          "basic_white_handling": "White Handling"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -62,7 +63,8 @@
           "color_accuracy_mode": "Choose the overall color extraction style. Natural is balanced for most albums, Vivid favors saturated accent colors, and Album Accurate keeps more muted or neutral artwork tones.",
           "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums.",
           "control_mode": "Choose Basic for guided everyday controls or Advanced (Custom) when you want every tuning control available.",
-          "brightness_level": "Simple brightness preset used by Basic mode. Advanced users can still tune minimum, maximum, and gradient brightness separately."
+          "brightness_level": "Simple brightness preset used by Basic mode. Advanced users can still tune minimum, maximum, and gradient brightness separately.",
+          "basic_white_handling": "Choose simple white handling for Basic mode. Advanced white controls take over in Advanced (Custom) mode."
         }
       }
     }
@@ -99,7 +101,8 @@
           "color_accuracy_mode": "Color Accuracy Mode",
           "rotation_mode": "Color Rotation Mode",
           "control_mode": "Control Mode",
-          "brightness_level": "Brightness Level"
+          "brightness_level": "Brightness Level",
+          "basic_white_handling": "White Handling"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -128,7 +131,8 @@
           "color_accuracy_mode": "Choose the overall color extraction style. Natural is balanced for most albums, Vivid favors saturated accent colors, and Album Accurate keeps more muted or neutral artwork tones.",
           "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums.",
           "control_mode": "Choose Basic for guided everyday controls or Advanced (Custom) when you want every tuning control available.",
-          "brightness_level": "Simple brightness preset used by Basic mode. Advanced users can still tune minimum, maximum, and gradient brightness separately."
+          "brightness_level": "Simple brightness preset used by Basic mode. Advanced users can still tune minimum, maximum, and gradient brightness separately.",
+          "basic_white_handling": "Choose simple white handling for Basic mode. Advanced white controls take over in Advanced (Custom) mode."
         }
       }
     }
@@ -241,6 +245,9 @@
       "brightness_level": {
         "name": "Brightness Level",
         "description": "Set a simple overall brightness preset for synced lights."
+      },
+      "basic_white_handling": {
+        "name": "White Handling"
       }
     },
     "number": {
@@ -332,6 +339,13 @@
         "medium": "Medium",
         "high": "High",
         "maximum": "Maximum"
+      }
+    },
+    "basic_white_handling": {
+      "options": {
+        "natural": "Natural",
+        "reduce_whites": "Reduce Whites",
+        "allow_whites": "Allow Whites"
       }
     }
   },
