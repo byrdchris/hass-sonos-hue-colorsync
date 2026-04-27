@@ -34,7 +34,8 @@
           "auto_rotate_interval": "Auto Rotation Interval",
           "palette_ordering": "Palette Ordering",
           "white_handling": "White Color Handling",
-          "rotation_mode": "Color Rotation Mode"
+          "rotation_mode": "Color Rotation Mode",
+          "white_filter_strength": "White Filtering Strength"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -64,7 +65,8 @@
           "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
           "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors.",
           "white_handling": "Choose how white, cream, and near-white colors are handled. Suppress Whites When Colors Exist keeps whites for grayscale artwork but ignores them when real colors are available. Allow Whites keeps them in the palette.",
-          "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums."
+          "rotation_mode": "Choose whether color assignments shift on each track change, auto-rotate on a timer, both, or not at all. Track-change rotation prevents the same lights from staying tied to the same palette slot across albums.",
+          "white_filter_strength": "Choose how aggressively pale neutrals, cream tones, and blue-gray colors are treated as white."
         }
       }
     }
@@ -230,6 +232,10 @@
       "rotation_mode": {
         "name": "Color Rotation Mode",
         "description": "Controls whether colors rotate on track changes, on a timer, both, or not at all."
+      },
+      "white_filter_strength": {
+        "name": "White Filtering Strength",
+        "description": "Controls how aggressively pale whites, cream tones, blue-gray, and low-saturation colors are removed from the palette."
       }
     },
     "number": {
@@ -293,6 +299,13 @@
       "options": {
         "vivid_first": "Vivid Colors First",
         "dominant_first": "Dominant Colors First"
+      }
+    },
+    "white_filter_strength": {
+      "options": {
+        "gentle": "Gentle",
+        "balanced": "Balanced",
+        "strong": "Strong"
       }
     }
   },

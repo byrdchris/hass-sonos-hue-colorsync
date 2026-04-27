@@ -33,7 +33,7 @@
           "auto_rotate_colors": "Auto Rotate Colors",
           "auto_rotate_interval": "Auto Rotation Interval",
           "palette_ordering": "Palette Ordering",
-    "auto_rotate_interval": "Auto Rotation Interval"
+          "white_filter_strength": "White Filtering Strength"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -61,7 +61,8 @@
           "airplay_poll_interval": "How often to check the selected Sonos speaker while playing. Helps catch AirPlay metadata or artwork changes when Sonos events are inconsistent.",
           "auto_rotate_colors": "Automatically cycles the current color palette while music is playing.",
           "auto_rotate_interval": "Total cycle time between automatic color rotations. Transition Time is treated as the fade portion of this cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while Auto Rotate Colors is running.",
-          "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors."
+          "palette_ordering": "Choose how the extracted palette is ordered before colors are assigned to lights. Vivid Colors First keeps the existing behavior and favors saturated, visually distinct colors. Dominant Colors First keeps the most common usable album-art colors first, so a lower Number of Colors uses the top dominant colors.",
+          "white_filter_strength": "Choose how aggressively pale neutrals, cream tones, and blue-gray colors are treated as white."
         }
       }
     }
@@ -97,8 +98,7 @@
           "airplay_poll_interval": "AirPlay Metadata Check Interval",
           "auto_rotate_colors": "Auto Rotate Colors",
           "auto_rotate_interval": "Auto Rotation Interval",
-          "palette_ordering": "Palette Ordering",
-    "auto_rotate_interval": "Auto Rotation Interval"
+          "palette_ordering": "Palette Ordering"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -216,6 +216,10 @@
       "artwork_fallback_mode": {
         "name": "Artwork Fallback",
         "description": "Choose what happens when album art is missing or temporarily unavailable."
+      },
+      "white_filter_strength": {
+        "name": "White Filtering Strength",
+        "description": "Controls how aggressively pale whites, cream tones, blue-gray, and low-saturation colors are removed from the palette."
       }
     },
     "number": {
@@ -279,6 +283,13 @@
       "options": {
         "vivid_first": "Vivid Colors First",
         "dominant_first": "Dominant Colors First"
+      }
+    },
+    "white_filter_strength": {
+      "options": {
+        "gentle": "Gentle",
+        "balanced": "Balanced",
+        "strong": "Strong"
       }
     }
   },

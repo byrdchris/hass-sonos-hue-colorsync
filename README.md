@@ -185,11 +185,11 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.9` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.10` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.1.9
-git push origin v1.1.9
+git tag v1.1.10
+git push origin v1.1.10
 ```
 
 ## License
@@ -197,7 +197,7 @@ git push origin v1.1.9
 MIT License. See `LICENSE`.
 
 
-## v1.1.9 behavior notes
+## v1.1.10 behavior notes
 
 ### Color Rotation Mode
 
@@ -217,3 +217,13 @@ Modes:
 - **Suppress Whites When Colors Exist**: contextual default.
 - **Always Filter Whites**: removes white/cream tones aggressively. If that would remove every color, the original palette is restored so black-and-white or all-white artwork still has usable colors.
 - **Allow Whites**: keeps white/cream tones in extracted palettes.
+
+### White Filtering Strength
+
+Controls how aggressively white-like colors are removed when white filtering is active:
+
+- **Gentle**: original conservative behavior; removes obvious white, cream, and very pale tones.
+- **Balanced**: default; also removes pale neutrals and blue-gray tones that Hue can render as bright white.
+- **Strong**: most aggressive; removes broader low-saturation pale colors for more vivid output.
+
+This setting does not override **White Color Handling**. It only controls the threshold used when whites are being suppressed or filtered.

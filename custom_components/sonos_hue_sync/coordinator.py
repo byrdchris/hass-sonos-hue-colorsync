@@ -37,6 +37,7 @@ from .const import (
     MAX_AUTO_ROTATE_INTERVAL,
     AUTO_ROTATE_SAFETY_BUFFER_SECONDS,
     CONF_WHITE_HANDLING,
+    CONF_WHITE_FILTER_STRENGTH,
     CONF_ROTATION_MODE,
     ROTATION_MODE_TRACK_CHANGE,
     ROTATION_MODE_AUTO,
@@ -55,6 +56,7 @@ PALETTE_AFFECTING_OPTIONS = {
     "filter_dull",
     "filter_bright_white",
     CONF_WHITE_HANDLING,
+    CONF_WHITE_FILTER_STRENGTH,
     "monochrome_mode",
     "low_color_handling",
 }
@@ -175,6 +177,7 @@ class SonosHueCoordinator:
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             "white_color_handling": self.config.get(CONF_WHITE_HANDLING, "suppress_when_color_exists"),
+            "white_filtering_strength": self.config.get(CONF_WHITE_FILTER_STRENGTH, "balanced"),
             ATTR_PALETTE_PREVIEW: self._palette_preview(),
             ATTR_SOURCE_IMAGE: self.last_image,
             ATTR_RESOLVED_LIGHTS: self.last_resolved_lights,
@@ -504,6 +507,7 @@ class SonosHueCoordinator:
             f"filter_dull={self.config.get('filter_dull', True)}",
             f"filter_white={self.config.get('filter_bright_white', True)}",
             f"white_handling={self.config.get(CONF_WHITE_HANDLING, 'suppress_when_color_exists')}",
+            f"white_strength={self.config.get(CONF_WHITE_FILTER_STRENGTH, 'balanced')}",
             f"mono={self.config.get('monochrome_mode', 'warm_neutral')}",
             f"low_color={self.config.get('low_color_handling', True)}",
         ]
@@ -580,6 +584,7 @@ class SonosHueCoordinator:
 - **Palette Ordering**: choose whether extracted palettes keep the most dominant artwork colors first or prioritize vivid, visually distinct colors.
 - **Filter Dull Colors**: removes dark, gray, muddy, or low-saturation tones.
 - **White Color Handling**: choose whether whites are allowed, always filtered, or suppressed only when album art also contains real colors.
+- **White Filtering Strength**: adjusts how aggressively pale neutrals, cream tones, and blue-gray colors are treated as white.
 - **Filter Bright Whites**: legacy simple white filter used if White Color Handling is not set.
 - **Black-and-White Album Handling**: controls grayscale covers so they do not produce random neon colors.
 - **Handle Low-Color Album Art**: keeps nearly monochrome covers restrained instead of over-saturating tiny color noise.

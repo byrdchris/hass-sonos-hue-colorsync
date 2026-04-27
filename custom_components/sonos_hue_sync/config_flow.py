@@ -72,9 +72,13 @@ from .const import (
     PALETTE_ORDERING_LABELS,
     PALETTE_ORDERING_OPTIONS,
     CONF_WHITE_HANDLING,
+    CONF_WHITE_FILTER_STRENGTH,
     DEFAULT_WHITE_HANDLING,
+    DEFAULT_WHITE_FILTER_STRENGTH,
     WHITE_HANDLING_OPTIONS,
     WHITE_HANDLING_LABELS,
+    WHITE_FILTER_STRENGTH_OPTIONS,
+    WHITE_FILTER_STRENGTH_LABELS,
     CONF_ROTATION_MODE,
     DEFAULT_ROTATION_MODE,
     ROTATION_MODE_OPTIONS,
@@ -97,6 +101,8 @@ def build_schema(defaults: dict):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": PALETTE_ORDERING_LABELS[key]} for key in PALETTE_ORDERING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": WHITE_HANDLING_LABELS[key]} for key in WHITE_HANDLING_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_WHITE_FILTER_STRENGTH, default=defaults.get(CONF_WHITE_FILTER_STRENGTH, DEFAULT_WHITE_FILTER_STRENGTH)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=[{"value": key, "label": WHITE_FILTER_STRENGTH_LABELS[key]} for key in WHITE_FILTER_STRENGTH_OPTIONS], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MIN_BRIGHTNESS, default=defaults.get(CONF_MIN_BRIGHTNESS, DEFAULT_MIN_BRIGHTNESS)):

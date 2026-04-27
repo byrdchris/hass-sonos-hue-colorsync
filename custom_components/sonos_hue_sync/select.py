@@ -13,6 +13,7 @@ from .const import (
     CONF_PALETTE_ORDERING,
     CONF_ROTATION_MODE,
     CONF_WHITE_HANDLING,
+    CONF_WHITE_FILTER_STRENGTH,
     DOMAIN,
     MONOCHROME_MODE_DISABLED,
     MONOCHROME_MODE_GRAYSCALE,
@@ -28,6 +29,8 @@ from .const import (
     ROTATION_MODE_OPTIONS,
     WHITE_HANDLING_LABELS,
     WHITE_HANDLING_OPTIONS,
+    WHITE_FILTER_STRENGTH_LABELS,
+    WHITE_FILTER_STRENGTH_OPTIONS,
 )
 
 ASSIGNMENT_OPTIONS = [
@@ -98,6 +101,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 options=WHITE_HANDLING_OPTIONS,
                 labels=WHITE_HANDLING_LABELS,
                 icon="mdi:white-balance-sunny",
+            ),
+            SonosHueSelect(
+                coordinator,
+                entry,
+                key=CONF_WHITE_FILTER_STRENGTH,
+                name="White Filtering Strength",
+                options=WHITE_FILTER_STRENGTH_OPTIONS,
+                labels=WHITE_FILTER_STRENGTH_LABELS,
+                icon="mdi:tune-variant",
             ),
             SonosHueSelect(
                 coordinator,

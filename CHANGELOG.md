@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.10
+
+### Added
+- Added **White Filtering Strength** with **Gentle**, **Balanced**, and **Strong** options.
+- Added diagnostics/cache awareness for the selected white filtering strength.
+
+### Changed
+- Tightened the default balanced white filtering so pale blue-gray and low-saturation bright neutrals are treated as white-like colors.
+- **Always Filter Whites** and contextual white suppression now use the selected filtering strength while preserving the empty-palette safeguard.
+
 ## v1.1.9
 
 ### Fixed

@@ -10,6 +10,10 @@ from PIL import Image
 
 from .const import (
     CONF_WHITE_HANDLING,
+    CONF_WHITE_FILTER_STRENGTH,
+    WHITE_FILTER_STRENGTH_BALANCED,
+    WHITE_FILTER_STRENGTH_GENTLE,
+    WHITE_FILTER_STRENGTH_STRONG,
     WHITE_HANDLING_CONTEXTUAL,
     WHITE_HANDLING_ALWAYS_FILTER,
     WHITE_HANDLING_ALLOW,
@@ -41,10 +45,24 @@ def is_bright_white(rgb: tuple[int, int, int]) -> bool:
     return True
 
 
-def is_soft_or_bright_white(rgb: tuple[int, int, int]) -> bool:
-    """Return True for white, cream, beige, or other near-white tones."""
+def _white_filter_thresholds(config: dict | None = None) -> tuple[float, float]:
+    """Return value/saturation limits for white and pale-neutral filtering."""
+    strength = (config or {}).get(CONF_WHITE_FILTER_STRENGTH, WHITE_FILTER_STRENGTH_BALANCED)
+    if strength == WHITE_FILTER_STRENGTH_GENTLE:
+        # Original conservative behavior: only obvious white, cream, beige, and very pale tones.
+        return 0.78, 0.24
+    if strength == WHITE_FILTER_STRENGTH_STRONG:
+        # Aggressive behavior: also suppress brighter low-saturation grays and pale pastels.
+        return 0.62, 0.30
+    # Balanced behavior: suppress pale neutrals such as blue-gray that Hue can render as bright white.
+    return 0.70, 0.24
+
+
+def is_soft_or_bright_white(rgb: tuple[int, int, int], config: dict | None = None) -> bool:
+    """Return True for white, cream, beige, pale gray, or other near-white tones."""
     _h, s, v = _hsv(rgb)
-    return v >= 0.78 and s <= 0.24
+    min_value, max_saturation = _white_filter_thresholds(config)
+    return v >= min_value and s <= max_saturation
 
 
 def is_real_color(rgb: tuple[int, int, int]) -> bool:
@@ -63,11 +81,11 @@ def _apply_white_handling(candidates: list[tuple[int, int, int]], config: dict) 
         white_mode = WHITE_HANDLING_CONTEXTUAL if config.get("filter_bright_white", True) else WHITE_HANDLING_ALLOW
     filtered: list[tuple[int, int, int]] | None = None
     if white_mode == WHITE_HANDLING_ALWAYS_FILTER:
-        filtered = [c for c in original if not is_soft_or_bright_white(c)]
+        filtered = [c for c in original if not is_soft_or_bright_white(c, config)]
     elif white_mode == WHITE_HANDLING_CONTEXTUAL:
-        has_color = any(is_real_color(c) and not is_soft_or_bright_white(c) for c in original)
+        has_color = any(is_real_color(c) and not is_soft_or_bright_white(c, config) for c in original)
         if has_color:
-            filtered = [c for c in original if not is_soft_or_bright_white(c)]
+            filtered = [c for c in original if not is_soft_or_bright_white(c, config)]
     elif white_mode != WHITE_HANDLING_ALLOW and config.get("filter_bright_white", True):
         filtered = [c for c in original if not is_bright_white(c)]
     if filtered is None:
