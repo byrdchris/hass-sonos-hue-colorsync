@@ -522,6 +522,12 @@ class SonosHueCoordinator:
 
     async def async_set_runtime_option(self, key: str, value, reapply: bool = True):
         self.runtime_options[key] = value
+        try:
+            options = dict(self.entry.options)
+            options[key] = value
+            self.hass.config_entries.async_update_entry(self.entry, options=options)
+        except Exception:
+            pass
         self._frozen_track_key = None
         self._frozen_resolve_result = None
         if key == "cache":

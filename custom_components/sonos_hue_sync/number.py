@@ -4,6 +4,7 @@ from homeassistant.components.number import NumberEntity, NumberMode
 
 from .const import (
     DOMAIN,
+    CONF_CONTROL_MODE,
     DEFAULT_COLOR_COUNT,
     DEFAULT_TRANSITION,
     DEFAULT_MIN_BRIGHTNESS,
@@ -14,17 +15,21 @@ from .const import (
     DEFAULT_AUTO_ROTATE_INTERVAL,
 )
 
-NUMBERS = [
+CONTROL_MODE_ADVANCED_VALUE = "advanced_custom"
+
+BASIC_NUMBERS = [
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
     ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
-    ("min_brightness", "Minimum Brightness", "mdi:brightness-5", 1, 255, 1),
-    ("max_brightness", "Maximum Brightness", "mdi:brightness-7", 1, 255, 1),
-    ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
-    ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
     ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
     ("auto_rotate_interval", "Auto Rotation Interval", "mdi:timer-sync-outline", 1, 60, 1),
 ]
 
+ADVANCED_NUMBERS = [
+    ("min_brightness", "Minimum Brightness", "mdi:brightness-5", 1, 255, 1),
+    ("max_brightness", "Maximum Brightness", "mdi:brightness-7", 1, 255, 1),
+    ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
+    ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
+]
 
 NUMBER_DEFAULTS = {
     "color_count": DEFAULT_COLOR_COUNT,
@@ -37,9 +42,16 @@ NUMBER_DEFAULTS = {
     "auto_rotate_interval": DEFAULT_AUTO_ROTATE_INTERVAL,
 }
 
+
+def _is_advanced(coordinator):
+    return coordinator.config.get(CONF_CONTROL_MODE) == CONTROL_MODE_ADVANCED_VALUE
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([SonosHueNumber(coordinator, entry, *args) for args in NUMBERS], True)
+    numbers = list(BASIC_NUMBERS)
+    if _is_advanced(coordinator):
+        numbers.extend(ADVANCED_NUMBERS)
+    async_add_entities([SonosHueNumber(coordinator, entry, *args) for args in numbers], True)
 
 class SonosHueNumber(NumberEntity):
     _attr_has_entity_name = True

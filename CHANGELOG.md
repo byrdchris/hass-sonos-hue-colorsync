@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.14
+
+### Fixed
+- Control Mode now changes the actual visible Home Assistant control surface instead of only storing a preference.
+- Basic mode now loads only guided everyday controls; Advanced (Custom) loads the full tuning controls.
+
+### Changed
+- Control Mode changes are persisted immediately and trigger an integration reload so the entity list rebuilds for the selected mode.
+- Options flow now uses mode-dependent schemas, so Basic and Advanced (Custom) show different configuration fields.
+
 ## v1.1.13
 
 ### Added

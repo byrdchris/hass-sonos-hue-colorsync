@@ -2,19 +2,32 @@ from __future__ import annotations
 
 from homeassistant.components.switch import SwitchEntity
 
-from .const import DOMAIN, CONF_AUTO_ROTATE_COLORS
+from .const import DOMAIN, CONF_AUTO_ROTATE_COLORS, CONF_CONTROL_MODE
 
-OPTION_SWITCHES = [
+CONTROL_MODE_ADVANCED_VALUE = "advanced_custom"
+
+BASIC_SWITCHES = [
     (CONF_AUTO_ROTATE_COLORS, "Auto Rotate Colors", "mdi:autorenew"),
     ("cache", "Cache Album Colors", "mdi:cached"),
+]
+
+ADVANCED_SWITCHES = [
     ("expand_groups", "Distribute Across Group Lights", "mdi:lightbulb-group"),
     ("true_gradient_mode", "Enable True Gradient", "mdi:gradient-horizontal"),
 ]
 
+
+def _is_advanced(coordinator):
+    return coordinator.config.get(CONF_CONTROL_MODE) == CONTROL_MODE_ADVANCED_VALUE
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [SonosHueSyncEnableSwitch(coordinator, entry)]
-    entities.extend(SonosHueSyncOptionSwitch(coordinator, entry, key, name, icon) for key, name, icon in OPTION_SWITCHES)
+    switches = list(BASIC_SWITCHES)
+    if _is_advanced(coordinator):
+        switches.extend(ADVANCED_SWITCHES)
+    entities.extend(SonosHueSyncOptionSwitch(coordinator, entry, key, name, icon) for key, name, icon in switches)
     async_add_entities(entities, True)
 
 class SonosHueSyncEnableSwitch(SwitchEntity):

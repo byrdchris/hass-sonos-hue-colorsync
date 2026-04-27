@@ -106,6 +106,8 @@ Advanced (Custom) is intended for tuning white/neutral handling, palette orderin
 
 **Brightness Level** provides simple presets: **Low**, **Medium**, **High**, and **Maximum**. These presets coordinate standard-light and gradient-light brightness caps so Basic mode remains easy to tune without exposing several separate brightness controls.
 
+Changing **Control Mode** rebuilds the integration control surface. Basic mode loads only guided everyday controls; Advanced (Custom) loads the full tuning set. If the device page is already open, refresh it after switching modes so Home Assistant shows the rebuilt entity list.
+
 
 ### Switches
 
