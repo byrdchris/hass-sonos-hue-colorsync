@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Gradient support. Detects gradient-capable lights and builds native Hue gradient payloads with standard-light fallback.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import logging
 import random
 

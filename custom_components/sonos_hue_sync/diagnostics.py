@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Diagnostics export. Redacts sensitive data while reporting configuration, runtime state, targets, and Hue capabilities.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from copy import deepcopy
 from typing import Any
 

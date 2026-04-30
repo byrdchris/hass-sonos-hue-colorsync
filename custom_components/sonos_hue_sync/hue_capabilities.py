@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Hue capability helpers. Determines whether a light supports true gradients from Hue model and resource metadata.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from dataclasses import asdict, dataclass
 from typing import Any
 

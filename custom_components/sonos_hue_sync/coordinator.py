@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Runtime coordinator. Handles Sonos events, apply-time Basic/Advanced config resolution, palette updates, rotation, and scene restore.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import asyncio
 import logging
 import time
@@ -61,7 +64,7 @@ from .const import (
     ROTATION_MODE_TRACK_AND_AUTO,
 )
 from .applier import clear_apply_cache
-from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene
+from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene, _snapshot_count
 from .palette import extract_palette_from_bytes, rgb_to_hex, fallback_palette_from_metadata, warm_neutral_fallback_palette
 from .health import build_health_report, format_health_message
 
@@ -122,6 +125,7 @@ class SonosHueCoordinator:
         self.last_cache_result = None
         self.last_restore_result = None
         self.last_restore_snapshot_count = 0
+        self.last_restore_reason = None
         self.last_health_report = None
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
@@ -133,6 +137,8 @@ class SonosHueCoordinator:
             config["assignment_strategy"] = self.runtime_assignment_strategy
         return config
 
+    # Resolve one effective configuration immediately before light updates.
+    # This avoids race conditions by not syncing Basic and Advanced controls together.
     def effective_config(self) -> dict:
         """Resolve the one authoritative config used for palette/apply work.
 
@@ -310,6 +316,7 @@ class SonosHueCoordinator:
             "cache_result": self.last_cache_result,
             "restore_snapshot_count": self.last_restore_snapshot_count,
             "restore_last_result": self.last_restore_result,
+            "restore_last_reason": self.last_restore_reason,
             "health_report": self.last_health_report,
         }
 
@@ -592,6 +599,8 @@ class SonosHueCoordinator:
         ]
         return "|".join(str(part) for part in parts)
 
+    # Public apply trigger used by buttons, options changes, and other manual refresh paths.
+    # The actual apply pipeline resolves effective settings at runtime before touching lights.
     async def async_process_current_state(self, reason="manual", bypass_cache=False, force_apply=False, allow_disabled=False):
         state = self.hass.states.get(self.sonos_entity)
         if state is None:
@@ -726,6 +735,8 @@ Tokens and artwork URLs are redacted.
         self.reapply_rotation_offset = (int(self.reapply_rotation_offset or 0) + 1) % rotate_size
         self.runtime_options["last_rotation_reason"] = reason
 
+    # Manual Update Lights Now action.
+    # Runs the same apply pipeline as playback without requiring Sync to be enabled.
     async def async_update_lights_now(self):
         """Manually update lights using the current track/artwork and effective settings.
 
@@ -807,6 +818,8 @@ Tokens and artwork URLs are redacted.
         self.last_group_resolution = getattr(result, "group_diagnostics", {})
         return result
 
+    # Final light update step.
+    # Resolves current targets and sends either gradient or standard Hue updates.
     async def _apply_palette_to_lights(self, force_apply=False):
         """Apply current palette with a single-flight guard.
 
@@ -1031,8 +1044,10 @@ Tokens and artwork URLs are redacted.
         if new_state.state == "playing" and (old_state is None or old_state.state != "playing" or old_key != new_key):
             await self._process_state(new_state, reason="state_or_metadata_change", force=False)
         elif new_state.state in ["paused", "idle", "off"]:
-            await self._handle_stop()
+            await self._handle_stop(reason="playback_stopped")
 
+    # Main playback apply pipeline.
+    # Fetches artwork, resolves Basic/Advanced settings, extracts colors, and updates Hue targets.
     async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False, allow_disabled=False):
         self._cancel_pending_restore()
         process_started = time.perf_counter()
@@ -1156,17 +1171,19 @@ Tokens and artwork URLs are redacted.
             self._restore_delay_task.cancel()
         self._restore_delay_task = None
 
+    # Delay scene restore after playback stops.
+    # This prevents abrupt restore flicker during short pauses or track transitions.
     async def _restore_after_delay(self, delay: float):
         try:
             if delay > 0:
                 await asyncio.sleep(delay)
             if self.scene:
                 try:
-                    self.last_restore_snapshot_count = len(self.scene) if hasattr(self.scene, "__len__") else 1
-                    await restore_scene(self.hass, self.scene)
-                    self.last_restore_result = "restored"
+                    self.last_restore_snapshot_count = _snapshot_count(self.scene)
+                    restore_result = await restore_scene(self.hass, self.scene)
+                    self.last_restore_result = restore_result
                 except Exception as err:
-                    self.last_restore_result = f"failed: {err}"
+                    self.last_restore_result = {"failed": str(err)}
                     _LOGGER.exception("Failed restoring Sonos Hue Sync scene")
                 self.scene = None
             clear_apply_cache()
@@ -1175,8 +1192,9 @@ Tokens and artwork URLs are redacted.
             self.last_restore_result = "cancelled"
             raise
 
-    async def _handle_stop(self):
+    async def _handle_stop(self, reason="playback_stopped"):
         self._stop_auto_rotate()
+        self.last_restore_reason = reason
         delay = float(self.config.get("restore_delay", 0) or 0)
         self._cancel_pending_restore()
         self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
@@ -1237,16 +1255,37 @@ Tokens and artwork URLs are redacted.
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
 
+    # Capture original light state for later restore.
+    # Includes lights that are off so disabling sync can return them to off.
+    async def _capture_restore_snapshot(self, reason="snapshot"):
+        """Capture target light state before Sonos Hue Sync changes anything."""
+        targets = self._resolved_control_targets().lights
+        if not targets:
+            self.scene = None
+            self.last_restore_snapshot_count = 0
+            self.last_restore_result = "no_targets_to_snapshot"
+            self.last_restore_reason = reason
+            return
+        self.scene = await snapshot_scene(self.hass, targets)
+        self.last_restore_snapshot_count = _snapshot_count(self.scene)
+        self.last_restore_result = "snapshot_captured"
+        self.last_restore_reason = reason
+
+    # Enable sync and snapshot target lights before any changes.
+    # Capturing off-state here ensures disabled sync can restore lights that were originally off.
     async def async_enable(self):
         self.enabled = True
         self._ensure_polling()
+        await self._capture_restore_snapshot(reason="sync_enabled")
         self._notify()
         await self.async_process_current_state(reason="enabled")
 
+    # Disable sync and restore the saved light state.
+    # The snapshot is kept until restore finishes so partial failures can be diagnosed.
     async def async_disable(self):
         self.last_processing_reason = "sync_disabled"
         self.enabled = False
         self._stop_auto_rotate()
         self._stop_polling()
-        await self._handle_stop()
+        await self._handle_stop(reason="sync_disabled")
         self._notify()

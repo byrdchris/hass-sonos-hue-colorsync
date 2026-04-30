@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Light apply helpers. Converts palette assignments into Home Assistant light service payloads for standard lights.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import asyncio
 import logging
 

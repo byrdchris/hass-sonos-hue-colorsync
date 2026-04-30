@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Service registration. Exposes integration actions through Home Assistant services.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import logging
 import voluptuous as vol
 

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Health check helpers. Summarizes Sonos, Hue, target resolution, gradient capability, and recent runtime errors.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from typing import Any
 from homeassistant.core import HomeAssistant
 

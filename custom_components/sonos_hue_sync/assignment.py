@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Assignment strategies. Distributes palette colors across resolved lights using balanced, sequential, alternating, or brightness-based rules.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import math
 
 from .const import (

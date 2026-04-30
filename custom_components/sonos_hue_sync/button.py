@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Button entities. Provides manual actions such as Update Lights Now, Refresh Colors, Rotate Colors, Health Check, and Help.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from homeassistant.components.button import ButtonEntity
 
 from .const import DOMAIN

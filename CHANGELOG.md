@@ -1,4 +1,20 @@
 # Changelog
+## v1.1.16
+
+### Added
+- Added explicit restore snapshots when **Enable Sync** is turned on, before any light changes are applied.
+- Added per-light restore diagnostics including attempted restores, restored-on count, restored-off count, skipped lights, and failures.
+- Added bundled integration icon and logo assets at both the integration and repository roots to improve Home Assistant/HACS display behavior.
+
+### Changed
+- **Sync disabled** restore now uses the captured per-light state as the source of truth, including lights that were originally off.
+- Renamed the primary switch display name from **Sync Active** to **Enable Sync** for clearer UI language.
+
+### Fixed
+- Fixes cases where lights that were off before sync could remain on after disabling sync.
+- Improves restore reliability when sync is enabled but stopped before the first full palette apply.
+- Reduces the chance of Home Assistant showing “icon not available” for the custom integration.
+
 
 ## v1.1.15
 

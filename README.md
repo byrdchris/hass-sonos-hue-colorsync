@@ -247,3 +247,9 @@ Modes:
 - **Album Accurate**: preserves more muted background and neutral tones for artwork where the overall album mood matters more than high saturation.
 
 This replaces the earlier separate dull-color, white-handling, white-strength, and low-color stabilization controls in the main UI. Existing saved values are still tolerated for compatibility, but the selected Color Accuracy Mode now drives the active extraction behavior.
+
+## Restore and icon reliability
+
+v1.1.16 improves restore behavior by capturing the selected light state as soon as **Enable Sync** is turned on, before any album colors are applied. When sync is turned off, the integration restores that captured state, including lights that were originally off.
+
+The release also includes refreshed `icon.png` and `logo.png` assets in the integration package and repository root to improve Home Assistant/HACS icon display behavior. Home Assistant may still require a browser/app cache refresh before the icon appears.

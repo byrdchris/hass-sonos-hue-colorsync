@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Palette processing. Extracts album-art colors, suppresses low-value neutrals, handles white filtering, and preserves useful accent colors.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import colorsys
 import hashlib
 import math
@@ -26,6 +29,8 @@ from .const import (
 
 RGB = tuple[int, int, int]
 
+# Resolve palette behavior from Color Accuracy Mode and white handling settings.
+# Basic and Advanced modes both feed into this final extraction configuration.
 def _effective_color_config(config: dict | None) -> dict:
     effective = dict(config or {})
     mode = effective.get(CONF_COLOR_ACCURACY_MODE, COLOR_ACCURACY_MODE_NATURAL)
@@ -135,6 +140,8 @@ def _hue_distance(a: RGB, b: RGB) -> float:
     return min(diff, 1 - diff) * 360
 
 
+# Score colors by perceptual usefulness rather than raw area alone.
+# Warm accents are promoted while flat neutrals, black, and harsh whites are reduced.
 def _colorfulness_score(rgb: RGB) -> float:
     h, s, v = _hsv(rgb)
     lum = luminance(rgb)
@@ -380,6 +387,8 @@ def _rebalance_album_palette(candidates: list[RGB], image_bytes: bytes, desired:
     return _clustered_select(pool, desired)[:desired]
 
 
+# Extract the final Hue-ready palette from album art.
+# Combines quantization, perceptual scoring, filtering, fallback handling, and ordering.
 def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
     config = _effective_color_config(config)
     desired = int(config.get("color_count", 3))

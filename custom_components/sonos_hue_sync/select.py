@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Select entities. Provides mode choices for control style, accuracy, white handling, rotation, gradient pattern, and fallback behavior.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from homeassistant.components.select import SelectEntity
 
 from .const import (

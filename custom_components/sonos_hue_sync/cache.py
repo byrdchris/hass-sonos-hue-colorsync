@@ -1,6 +1,10 @@
+# Palette cache. Stores album palettes to avoid repeated image processing and reduce flicker.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
 import time
 from collections import OrderedDict
 
+# PaletteCache stores bounded album color results with a simple TTL.
+# This avoids repeated processing while preventing stale cache growth.
 class PaletteCache:
     def __init__(self, max_size=100, ttl=3600):
         self.cache = OrderedDict()

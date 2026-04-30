@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Integration lifecycle. Registers platforms and wires the config entry into Home Assistant.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import logging
 
 from homeassistant.config_entries import ConfigEntry

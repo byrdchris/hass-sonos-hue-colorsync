@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Config and options flow. Builds user-facing setup/options forms and stores backwards-compatible runtime settings.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector

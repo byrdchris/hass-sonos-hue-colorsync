@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Number entities. Provides sliders for palette size, transition timing, brightness, gradient detail, restore delay, and rotation speed.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from homeassistant.components.number import NumberEntity, NumberMode
 
 from .const import (

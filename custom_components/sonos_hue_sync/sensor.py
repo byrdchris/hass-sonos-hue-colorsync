@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Sensor entities. Exposes palette status, effective runtime settings, diagnostics, and target previews.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 from homeassistant.components.sensor import SensorEntity
 
 from .const import ATTR_HEX_COLORS, DOMAIN

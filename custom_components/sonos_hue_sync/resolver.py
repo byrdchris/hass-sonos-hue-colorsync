@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Target resolver. Expands Hue groups, deduplicates lights, records source mappings, and reports skipped targets.
+# brief-code-commented-build: moderate block-level comments added for maintainability.
+
 import logging
 from dataclasses import dataclass, field
 
