@@ -167,8 +167,8 @@ WHITE_HANDLING_OPTIONS = [
     WHITE_HANDLING_ALLOW,
 ]
 WHITE_HANDLING_LABELS = {
-    WHITE_HANDLING_CONTEXTUAL: "Suppress Whites When Colors Exist",
-    WHITE_HANDLING_ALWAYS_FILTER: "Always Filter Whites",
+    WHITE_HANDLING_CONTEXTUAL: "Natural",
+    WHITE_HANDLING_ALWAYS_FILTER: "Reduce Whites",
     WHITE_HANDLING_ALLOW: "Allow Whites",
 }
 
@@ -207,53 +207,13 @@ ROTATION_MODE_LABELS = {
     ROTATION_MODE_TRACK_AND_AUTO: "Track Change and Auto Rotate",
 }
 
-CONF_BASIC_WHITE_HANDLING = "basic_white_handling"
-BASIC_WHITE_NATURAL = "natural"
-BASIC_WHITE_REDUCE = "reduce_whites"
-BASIC_WHITE_ALLOW = "allow_whites"
-DEFAULT_BASIC_WHITE_HANDLING = BASIC_WHITE_NATURAL
-BASIC_WHITE_HANDLING_OPTIONS = [
-    BASIC_WHITE_NATURAL,
-    BASIC_WHITE_REDUCE,
-    BASIC_WHITE_ALLOW,
-]
-BASIC_WHITE_HANDLING_LABELS = {
-    BASIC_WHITE_NATURAL: "Natural",
-    BASIC_WHITE_REDUCE: "Reduce Whites",
-    BASIC_WHITE_ALLOW: "Allow Whites",
-}
+# User-facing palette tuning controls.
+# Color Purity controls how closely extracted colors follow the album art:
+# 0 favors only strong saturated colors; 100 preserves the album palette most faithfully.
+CONF_COLOR_PURITY = "color_purity"
+DEFAULT_COLOR_PURITY = 65
 
-CONF_CONTROL_MODE = "control_mode"
-CONTROL_MODE_BASIC = "basic"
-CONTROL_MODE_ADVANCED = "advanced_custom"
-DEFAULT_CONTROL_MODE = CONTROL_MODE_BASIC
-CONTROL_MODE_OPTIONS = [CONTROL_MODE_BASIC, CONTROL_MODE_ADVANCED]
-CONTROL_MODE_LABELS = {
-    CONTROL_MODE_BASIC: "Basic",
-    CONTROL_MODE_ADVANCED: "Advanced (Custom)",
-}
-
-CONF_BRIGHTNESS_LEVEL = "brightness_level"
-BRIGHTNESS_LEVEL_LOW = "low"
-BRIGHTNESS_LEVEL_MEDIUM = "medium"
-BRIGHTNESS_LEVEL_HIGH = "high"
-BRIGHTNESS_LEVEL_MAXIMUM = "maximum"
-DEFAULT_BRIGHTNESS_LEVEL = BRIGHTNESS_LEVEL_HIGH
-BRIGHTNESS_LEVEL_OPTIONS = [
-    BRIGHTNESS_LEVEL_LOW,
-    BRIGHTNESS_LEVEL_MEDIUM,
-    BRIGHTNESS_LEVEL_HIGH,
-    BRIGHTNESS_LEVEL_MAXIMUM,
-]
-BRIGHTNESS_LEVEL_LABELS = {
-    BRIGHTNESS_LEVEL_LOW: "Low",
-    BRIGHTNESS_LEVEL_MEDIUM: "Medium",
-    BRIGHTNESS_LEVEL_HIGH: "High",
-    BRIGHTNESS_LEVEL_MAXIMUM: "Maximum",
-}
-BRIGHTNESS_LEVEL_PRESETS = {
-    BRIGHTNESS_LEVEL_LOW: {"min_brightness": 20, "max_brightness": 96, "gradient_brightness": 96},
-    BRIGHTNESS_LEVEL_MEDIUM: {"min_brightness": 30, "max_brightness": 160, "gradient_brightness": 160},
-    BRIGHTNESS_LEVEL_HIGH: {"min_brightness": 40, "max_brightness": 224, "gradient_brightness": 224},
-    BRIGHTNESS_LEVEL_MAXIMUM: {"min_brightness": 50, "max_brightness": 255, "gradient_brightness": 255},
-}
+# White Level controls white/light-neutral suppression separately from color purity.
+# 0 preserves whites; 100 strongly suppresses white/light gray tones.
+CONF_WHITE_LEVEL = "white_level"
+DEFAULT_WHITE_LEVEL = 50

@@ -1,29 +1,37 @@
 from __future__ import annotations
 
-# Number entities. Provides sliders for palette size, transition timing, brightness, gradient detail, restore delay, and rotation speed.
+# Number entities. Provides sliders for palette size, color purity, white
+# suppression, transition timing, brightness, gradient detail, restore delay,
+# and rotation speed.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
 
 from homeassistant.components.number import NumberEntity, NumberMode
 
 from .const import (
+    CONF_COLOR_PURITY,
+    CONF_WHITE_LEVEL,
     DEFAULT_AUTO_ROTATE_INTERVAL,
     DEFAULT_COLOR_COUNT,
+    DEFAULT_COLOR_PURITY,
     DEFAULT_GRADIENT_BRIGHTNESS,
     DEFAULT_GRADIENT_COLOR_POINTS,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_MIN_BRIGHTNESS,
     DEFAULT_RESTORE_DELAY,
     DEFAULT_TRANSITION,
+    DEFAULT_WHITE_LEVEL,
     DOMAIN,
 )
 
 NUMBERS = [
-    # Primary/everyday controls first
+    # Primary/everyday controls first.
+    (CONF_COLOR_PURITY, "Color Purity", "mdi:palette-advanced", 0, 100, 1),
+    (CONF_WHITE_LEVEL, "White Level", "mdi:white-balance-sunny", 0, 100, 1),
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
     ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
     ("auto_rotate_interval", "Auto Rotation Interval", "mdi:timer-sync-outline", 1, 60, 1),
     ("restore_delay", "Restore Delay", "mdi:timer-sand", 0, 60, 1),
-    # Advanced tuning
+    # Advanced tuning.
     ("gradient_color_points", "Gradient Detail Level", "mdi:gradient-horizontal", 2, 5, 1),
     ("gradient_brightness", "Gradient Brightness", "mdi:gradient-horizontal", 1, 255, 1),
     ("min_brightness", "Minimum Brightness", "mdi:brightness-5", 1, 255, 1),
@@ -31,6 +39,8 @@ NUMBERS = [
 ]
 
 NUMBER_DEFAULTS = {
+    CONF_COLOR_PURITY: DEFAULT_COLOR_PURITY,
+    CONF_WHITE_LEVEL: DEFAULT_WHITE_LEVEL,
     "color_count": DEFAULT_COLOR_COUNT,
     "transition": DEFAULT_TRANSITION,
     "auto_rotate_interval": DEFAULT_AUTO_ROTATE_INTERVAL,
@@ -52,6 +62,8 @@ class SonosHueNumber(NumberEntity):
     _attr_mode = NumberMode.SLIDER
 
     def __init__(self, coordinator, entry, key, name, icon, minimum, maximum, step):
+        # Number entities all write through the coordinator so changes are
+        # debounced and can trigger a reapply using the current effective config.
         self._coordinator = coordinator
         self._entry = entry
         self._key = key

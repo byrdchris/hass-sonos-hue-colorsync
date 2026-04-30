@@ -1,3 +1,15 @@
+## v1.2.0
+
+- Removed Basic / Advanced control mode to avoid confusing Home Assistant UI behavior.
+- Added **Color Purity** slider:
+  - `0` keeps only strong saturated colors.
+  - `100` follows album art colors most closely.
+- Added **White Level** slider so white/light-neutral suppression remains separate from color purity.
+- Kept **White Handling** as a distinct control for Natural / Reduce Whites / Allow Whites behavior.
+- Removed redundant user-facing white controls and brightness presets from the UI surface.
+- Preserved v1.1.16 restore-on-disable behavior and commented code standard.
+- Updated README and PROJECT_STATE.md without replacing release history.
+
 # Changelog
 ## v1.1.16
 

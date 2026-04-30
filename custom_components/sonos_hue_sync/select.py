@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-# Select entities. Provides mode choices for control style, accuracy, white handling, rotation, gradient pattern, and fallback behavior.
+# Select entities. Provides advanced-only mode choices for palette ordering,
+# rotation, gradient behavior, white handling, and artwork fallback.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
 
 from homeassistant.components.select import SelectEntity
@@ -12,26 +13,16 @@ from .const import (
     ASSIGNMENT_STRATEGY_SEQUENTIAL,
     ARTWORK_FALLBACK_MODE_LABELS,
     ARTWORK_FALLBACK_MODES,
-    BASIC_WHITE_HANDLING_LABELS,
-    BASIC_WHITE_HANDLING_OPTIONS,
-    BRIGHTNESS_LEVEL_LABELS,
-    BRIGHTNESS_LEVEL_OPTIONS,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
     CONF_ARTWORK_FALLBACK_MODE,
     CONF_ASSIGNMENT_STRATEGY,
-    CONF_BASIC_WHITE_HANDLING,
-    CONF_BRIGHTNESS_LEVEL,
     CONF_COLOR_ACCURACY_MODE,
-    CONF_CONTROL_MODE,
     CONF_GRADIENT_ORDER_MODE,
     CONF_MONOCHROME_MODE,
     CONF_PALETTE_ORDERING,
     CONF_ROTATION_MODE,
-    CONF_WHITE_FILTER_STRENGTH,
     CONF_WHITE_HANDLING,
-    CONTROL_MODE_LABELS,
-    CONTROL_MODE_OPTIONS,
     DOMAIN,
     GRADIENT_ORDER_MODE_LABELS,
     GRADIENT_ORDER_MODES,
@@ -43,8 +34,6 @@ from .const import (
     PALETTE_ORDERING_OPTIONS,
     ROTATION_MODE_LABELS,
     ROTATION_MODE_OPTIONS,
-    WHITE_FILTER_STRENGTH_LABELS,
-    WHITE_FILTER_STRENGTH_OPTIONS,
     WHITE_HANDLING_LABELS,
     WHITE_HANDLING_OPTIONS,
 )
@@ -80,19 +69,16 @@ MONOCHROME_LABELS = {
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
+
+    # Keep all select controls visible and advanced; avoid Home Assistant form
+    # visibility modes that caused confusing legacy mode behavior.
     entities = [
-        # Primary/everyday controls first
-        SonosHueSelect(coordinator, entry, CONF_CONTROL_MODE, "Control Mode", CONTROL_MODE_OPTIONS, CONTROL_MODE_LABELS, "mdi:tune-variant"),
         SonosHueSelect(coordinator, entry, CONF_COLOR_ACCURACY_MODE, "Color Accuracy Mode", COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS, "mdi:palette-advanced"),
-        SonosHueSelect(coordinator, entry, CONF_BASIC_WHITE_HANDLING, "White Handling", BASIC_WHITE_HANDLING_OPTIONS, BASIC_WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
-        SonosHueSelect(coordinator, entry, CONF_BRIGHTNESS_LEVEL, "Brightness Level", BRIGHTNESS_LEVEL_OPTIONS, BRIGHTNESS_LEVEL_LABELS, "mdi:brightness-6"),
+        SonosHueSelect(coordinator, entry, CONF_WHITE_HANDLING, "White Handling", WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
         SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation Mode", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
-        # Advanced tuning remains visible but is only authoritative in Advanced (Custom) mode.
         SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
         SonosHueSelect(coordinator, entry, CONF_PALETTE_ORDERING, "Palette Ordering", PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS, "mdi:sort"),
         SonosHueSelect(coordinator, entry, CONF_GRADIENT_ORDER_MODE, "Gradient Pattern", GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS, "mdi:gradient-horizontal"),
-        SonosHueSelect(coordinator, entry, CONF_WHITE_HANDLING, "White Color Handling", WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
-        SonosHueSelect(coordinator, entry, CONF_WHITE_FILTER_STRENGTH, "White Filtering Strength", WHITE_FILTER_STRENGTH_OPTIONS, WHITE_FILTER_STRENGTH_LABELS, "mdi:tune-variant"),
         SonosHueSelect(coordinator, entry, CONF_MONOCHROME_MODE, "Black & White Handling", MONOCHROME_OPTIONS, MONOCHROME_LABELS, "mdi:circle-opacity"),
         SonosHueSelect(coordinator, entry, CONF_ARTWORK_FALLBACK_MODE, "Artwork Fallback", ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS, "mdi:image-sync"),
     ]
@@ -103,6 +89,8 @@ class SonosHueSelect(SelectEntity):
     _attr_has_entity_name = True
 
     def __init__(self, coordinator, entry, key, name, options, labels, icon):
+        # Store the config key and label map so UI labels stay friendly while
+        # internal values remain stable for backwards-compatible storage.
         self._coordinator = coordinator
         self._entry = entry
         self._key = key

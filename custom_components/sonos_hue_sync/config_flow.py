@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-# Config and options flow. Builds user-facing setup/options forms and stores backwards-compatible runtime settings.
+# Config and options flow. Builds one stable advanced setup/options form;
+# avoids legacy mode gating because Home Assistant entity controls do not
+# support reliable dynamic grouping/visibility.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
 
 import voluptuous as vol
@@ -12,108 +14,103 @@ from .const import (
     ASSIGNMENT_STRATEGY_BALANCED,
     ASSIGNMENT_STRATEGY_BRIGHTNESS,
     ASSIGNMENT_STRATEGY_SEQUENTIAL,
-    CONF_ASSIGNMENT_STRATEGY,
-    CONF_CACHE,
-    CONF_COLOR_COUNT,
-    CONF_PALETTE_ORDERING,
-    CONF_COLOR_ACCURACY_MODE,
-    CONF_CONTROL_MODE,
-    CONF_BRIGHTNESS_LEVEL,
-    CONF_EXPAND_GROUPS,
-    CONF_MONOCHROME_MODE,
-    CONF_LOW_COLOR_HANDLING,
-    CONF_TRUE_GRADIENT_MODE,
-    CONF_GRADIENT_COLOR_POINTS,
-    CONF_GRADIENT_ORDER_MODE,
-    CONF_LIGHT_ENTITIES,
-    CONF_GROUP_ENTITIES,
-    CONF_MEMBER_LIGHT_ENTITIES,
-    CONF_LIGHT_GROUP,
-    CONF_SONOS_ENTITY,
-    CONF_TRANSITION,
-    DEFAULT_ASSIGNMENT_STRATEGY,
-    DEFAULT_CACHE,
-    DEFAULT_COLOR_COUNT,
-    DEFAULT_PALETTE_ORDERING,
-    DEFAULT_EXPAND_GROUPS,
-    DEFAULT_MONOCHROME_MODE,
-    DEFAULT_LOW_COLOR_HANDLING,
-    DEFAULT_TRUE_GRADIENT_MODE,
-    DEFAULT_GRADIENT_COLOR_POINTS,
-    DEFAULT_GRADIENT_ORDER_MODE,
-    DEFAULT_TRANSITION,
-    DOMAIN,
-    MONOCHROME_MODE_WARM_NEUTRAL,
-    MONOCHROME_MODE_GRAYSCALE,
-    MONOCHROME_MODE_MUTED_ACCENT,
-    MONOCHROME_MODE_DISABLED,
-    GRADIENT_ORDER_MODE_LABELS,
-    GRADIENT_ORDER_MODES,
-    CONF_MIN_BRIGHTNESS,
-    CONF_MAX_BRIGHTNESS,
-    CONF_GRADIENT_BRIGHTNESS,
-    CONF_EXCLUDE_LIGHT_ENTITIES,
-    CONF_RESTORE_DELAY,
-    DEFAULT_MIN_BRIGHTNESS,
-    DEFAULT_MAX_BRIGHTNESS,
-    DEFAULT_GRADIENT_BRIGHTNESS,
-    DEFAULT_EXCLUDE_LIGHT_ENTITIES,
-    DEFAULT_RESTORE_DELAY,
-    CONF_ARTWORK_FALLBACK_MODE,
-    DEFAULT_ARTWORK_FALLBACK_MODE,
-    ARTWORK_FALLBACK_MODES,
     ARTWORK_FALLBACK_MODE_LABELS,
-    CONF_AIRPLAY_POLL_INTERVAL,
-    DEFAULT_AIRPLAY_POLL_INTERVAL,
-    CONF_AUTO_ROTATE_COLORS,
-    DEFAULT_AUTO_ROTATE_COLORS,
-    CONF_AUTO_ROTATE_INTERVAL,
-    DEFAULT_AUTO_ROTATE_INTERVAL,
-    MIN_AUTO_ROTATE_INTERVAL,
-    MAX_AUTO_ROTATE_INTERVAL,
-    PALETTE_ORDERING_LABELS,
-    PALETTE_ORDERING_OPTIONS,
-    DEFAULT_COLOR_ACCURACY_MODE,
+    ARTWORK_FALLBACK_MODES,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
-    DEFAULT_CONTROL_MODE,
-    CONTROL_MODE_LABELS,
-    CONTROL_MODE_OPTIONS,
-    DEFAULT_BRIGHTNESS_LEVEL,
-    BRIGHTNESS_LEVEL_LABELS,
-    BRIGHTNESS_LEVEL_OPTIONS,
+    CONF_AIRPLAY_POLL_INTERVAL,
+    CONF_ARTWORK_FALLBACK_MODE,
+    CONF_ASSIGNMENT_STRATEGY,
+    CONF_AUTO_ROTATE_COLORS,
+    CONF_AUTO_ROTATE_INTERVAL,
+    CONF_CACHE,
+    CONF_COLOR_ACCURACY_MODE,
+    CONF_COLOR_COUNT,
+    CONF_COLOR_PURITY,
+    CONF_EXCLUDE_LIGHT_ENTITIES,
+    CONF_EXPAND_GROUPS,
+    CONF_GRADIENT_BRIGHTNESS,
+    CONF_GRADIENT_COLOR_POINTS,
+    CONF_GRADIENT_ORDER_MODE,
+    CONF_GROUP_ENTITIES,
+    CONF_LIGHT_ENTITIES,
+    CONF_LIGHT_GROUP,
+    CONF_LOW_COLOR_HANDLING,
+    CONF_MAX_BRIGHTNESS,
+    CONF_MEMBER_LIGHT_ENTITIES,
+    CONF_MIN_BRIGHTNESS,
+    CONF_MONOCHROME_MODE,
+    CONF_PALETTE_ORDERING,
+    CONF_RESTORE_DELAY,
     CONF_ROTATION_MODE,
+    CONF_SONOS_ENTITY,
+    CONF_TRANSITION,
+    CONF_TRUE_GRADIENT_MODE,
+    CONF_WHITE_HANDLING,
+    CONF_WHITE_LEVEL,
+    DEFAULT_AIRPLAY_POLL_INTERVAL,
+    DEFAULT_ARTWORK_FALLBACK_MODE,
+    DEFAULT_ASSIGNMENT_STRATEGY,
+    DEFAULT_AUTO_ROTATE_COLORS,
+    DEFAULT_AUTO_ROTATE_INTERVAL,
+    DEFAULT_CACHE,
+    DEFAULT_COLOR_ACCURACY_MODE,
+    DEFAULT_COLOR_COUNT,
+    DEFAULT_COLOR_PURITY,
+    DEFAULT_EXPAND_GROUPS,
+    DEFAULT_EXCLUDE_LIGHT_ENTITIES,
+    DEFAULT_GRADIENT_BRIGHTNESS,
+    DEFAULT_GRADIENT_COLOR_POINTS,
+    DEFAULT_GRADIENT_ORDER_MODE,
+    DEFAULT_LOW_COLOR_HANDLING,
+    DEFAULT_MAX_BRIGHTNESS,
+    DEFAULT_MIN_BRIGHTNESS,
+    DEFAULT_MONOCHROME_MODE,
+    DEFAULT_PALETTE_ORDERING,
+    DEFAULT_RESTORE_DELAY,
     DEFAULT_ROTATION_MODE,
-    ROTATION_MODE_OPTIONS,
+    DEFAULT_TRANSITION,
+    DEFAULT_TRUE_GRADIENT_MODE,
+    DEFAULT_WHITE_HANDLING,
+    DEFAULT_WHITE_LEVEL,
+    DOMAIN,
+    GRADIENT_ORDER_MODE_LABELS,
+    GRADIENT_ORDER_MODES,
+    MAX_AUTO_ROTATE_INTERVAL,
+    MIN_AUTO_ROTATE_INTERVAL,
+    MONOCHROME_MODE_DISABLED,
+    MONOCHROME_MODE_GRAYSCALE,
+    MONOCHROME_MODE_MUTED_ACCENT,
+    MONOCHROME_MODE_WARM_NEUTRAL,
+    PALETTE_ORDERING_LABELS,
+    PALETTE_ORDERING_OPTIONS,
     ROTATION_MODE_LABELS,
+    ROTATION_MODE_OPTIONS,
+    WHITE_HANDLING_LABELS,
+    WHITE_HANDLING_OPTIONS,
 )
-
-CONTROL_MODE_ADVANCED_VALUE = "advanced_custom"
 
 
 def _select_options(options, labels):
+    # Convert internal values to Home Assistant's label/value select format.
     return [{"value": key, "label": labels[key]} for key in options]
 
 
 def _full_schema(defaults: dict):
     """Single stable schema ordered from everyday controls to advanced tuning."""
     return {
-        vol.Required(CONF_CONTROL_MODE, default=defaults.get(CONF_CONTROL_MODE, DEFAULT_CONTROL_MODE)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(CONTROL_MODE_OPTIONS, CONTROL_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Required(CONF_SONOS_ENTITY, default=defaults.get(CONF_SONOS_ENTITY, "")):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),
         vol.Required(CONF_LIGHT_ENTITIES, default=defaults.get(CONF_LIGHT_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional("basic_white_handling", default=defaults.get("basic_white_handling", "natural")):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[
-                selector.SelectOptionDict(value="natural", label="Natural"),
-                selector.SelectOptionDict(value="reduce_whites", label="Reduce Whites"),
-                selector.SelectOptionDict(value="allow_whites", label="Allow Whites"),
-            ], mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_BRIGHTNESS_LEVEL, default=defaults.get(CONF_BRIGHTNESS_LEVEL, DEFAULT_BRIGHTNESS_LEVEL)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(BRIGHTNESS_LEVEL_OPTIONS, BRIGHTNESS_LEVEL_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_COLOR_PURITY, default=defaults.get(CONF_COLOR_PURITY, DEFAULT_COLOR_PURITY)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=100, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_WHITE_LEVEL, default=defaults.get(CONF_WHITE_LEVEL, DEFAULT_WHITE_LEVEL)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=100, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_COLOR_COUNT, default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
@@ -151,20 +148,6 @@ def _full_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_MAX_BRIGHTNESS, default=defaults.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=255, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional("filter_dull", default=defaults.get("filter_dull", True)): bool,
-        vol.Optional("filter_bright_white", default=defaults.get("filter_bright_white", True)): bool,
-        vol.Optional("white_handling", default=defaults.get("white_handling", "suppress_when_color_exists")):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[
-                selector.SelectOptionDict(value="suppress_when_color_exists", label="Suppress Whites When Colors Exist"),
-                selector.SelectOptionDict(value="always_filter", label="Always Filter Whites"),
-                selector.SelectOptionDict(value="allow_whites", label="Allow Whites"),
-            ], mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional("white_filter_strength", default=defaults.get("white_filter_strength", "balanced")):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=[
-                selector.SelectOptionDict(value="gentle", label="Gentle"),
-                selector.SelectOptionDict(value="balanced", label="Balanced"),
-                selector.SelectOptionDict(value="strong", label="Strong"),
-            ], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_MONOCHROME_MODE, default=defaults.get(CONF_MONOCHROME_MODE, DEFAULT_MONOCHROME_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=[
                 selector.SelectOptionDict(value=MONOCHROME_MODE_WARM_NEUTRAL, label="Warm neutral"),
@@ -205,6 +188,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
+            # Merge user changes over existing data so upgrades keep prior options
+            # while removing obsolete legacy mode behavior from the form.
             merged = {**self.entry.data, **self.entry.options, **user_input}
             return self.async_create_entry(title="", data=merged)
 

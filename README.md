@@ -57,9 +57,13 @@ During setup and in options, you can configure:
 - **Additional Hue Groups**: optional extra Hue groups to expand.
 - **Additional Member Lights**: optional direct lights to include.
 - **Excluded Lights**: lights that should never be controlled, even if included through a selected room or zone.
+- **Color Purity**
+- **White Level**
 - **Number of Colors**: palette size from 1 to 10.
 - **Palette Ordering**: choose whether the extracted palette favors vivid, visually distinct colors or keeps the most dominant album-art colors first.
 - **Color Accuracy Mode**: choose Natural, Vivid, or Album Accurate extraction. Natural is the default balanced mode, Vivid favors saturated accents, and Album Accurate preserves more muted artwork tones.
+- **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
+- **White Level**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
 - **Transition Time**: fade time for light changes.
 - **Minimum Brightness**: lower brightness limit for standard lights.
 - **Maximum Brightness**: upper brightness limit for standard lights.
@@ -82,33 +86,16 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 
 ## Home Assistant Controls
 
-### Guided control modes
+### Control model
 
-Sonos Hue Sync now includes **Control Mode**:
+Sonos Hue Sync uses a single advanced control surface. Basic / Advanced mode has been removed because Home Assistant device controls do not support that behavior cleanly.
 
-- **Basic**: guided everyday control without removing useful options. Recommended for normal use.
-- **Advanced (Custom)**: exposes the full tuning surface for detailed palette, gradient, fallback, and brightness behavior.
+Color tuning is split into two independent controls:
 
-Basic mode keeps the practical controls most users need:
+- **Color Purity**: 0 keeps only strong saturated colors; 100 follows the album art most closely.
+- **White Level**: 0 preserves white and light neutral tones; 100 suppresses whites strongly.
 
-- Sync Active
-- Sonos speaker and Hue target selection
-- Color Accuracy Mode
-- Number of Colors
-- Transition Time
-- Brightness Level
-- Auto Rotate Colors
-- Auto Rotation Interval
-- Restore Delay
-- Health Check
-- Status and Targets diagnostics
-
-Advanced (Custom) is intended for tuning white/neutral handling, palette ordering, color distribution, gradient detail, artwork fallback, individual brightness caps, exclusions, and advanced target expansion.
-
-**Brightness Level** provides simple presets: **Low**, **Medium**, **High**, and **Maximum**. These presets coordinate standard-light and gradient-light brightness caps so Basic mode remains easy to tune without exposing several separate brightness controls.
-
-All controls remain visible for Home Assistant stability. **Control Mode** determines which settings are authoritative at apply time: Basic uses guided controls such as Color Accuracy Mode, White Handling, and Brightness Level; Advanced (Custom) uses the detailed tuning controls instead. The Status sensor reports the effective mode, brightness source, white-handling source, and ignored advanced controls.
-
+**White Handling** remains separate from Color Purity so album-color fidelity and white/light-neutral behavior can be tuned independently.
 
 ### Switches
 
@@ -120,7 +107,6 @@ All controls remain visible for Home Assistant stability. **Control Mode** deter
 
 ### Selects
 
-- **Control Mode**
 - **Color Accuracy Mode**
 - **White Handling**
 - **Palette Ordering**
@@ -131,6 +117,8 @@ All controls remain visible for Home Assistant stability. **Control Mode** deter
 
 ### Numbers
 
+- **Color Purity**
+- **White Level**
 - **Number of Colors**
 - **Transition Time**
 - **Minimum Brightness**
@@ -238,6 +226,8 @@ Modes:
 - **Track Change and Auto Rotate**: shift on each track and keep timed rotation active.
 
 ### Color Accuracy Mode
+- **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
+- **White Level**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
 
 **Natural** is the default and balances album accuracy with usable Hue output. It applies perceptual extraction, dull-color filtering, contextual white suppression, and balanced neutral handling.
 
@@ -247,6 +237,8 @@ Modes:
 - **Album Accurate**: preserves more muted background and neutral tones for artwork where the overall album mood matters more than high saturation.
 
 This replaces the earlier separate dull-color, white-handling, white-strength, and low-color stabilization controls in the main UI. Existing saved values are still tolerated for compatibility, but the selected Color Accuracy Mode now drives the active extraction behavior.
+- **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
+- **White Level**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
 
 ## Restore and icon reliability
 

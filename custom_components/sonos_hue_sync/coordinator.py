@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Runtime coordinator. Handles Sonos events, apply-time Basic/Advanced config resolution, palette updates, rotation, and scene restore.
+# Runtime coordinator. Handles Sonos events, advanced config resolution, palette updates, rotation, and scene restore.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
 
 import asyncio
@@ -41,24 +41,9 @@ from .const import (
     MAX_AUTO_ROTATE_INTERVAL,
     AUTO_ROTATE_SAFETY_BUFFER_SECONDS,
     CONF_WHITE_HANDLING,
-    CONF_WHITE_FILTER_STRENGTH,
     CONF_ROTATION_MODE,
-    CONF_CONTROL_MODE,
-    CONF_BRIGHTNESS_LEVEL,
-    CONF_BASIC_WHITE_HANDLING,
-    BASIC_WHITE_NATURAL,
-    BASIC_WHITE_REDUCE,
-    BASIC_WHITE_ALLOW,
-    BRIGHTNESS_LEVEL_PRESETS,
-    CONTROL_MODE_BASIC,
-    CONTROL_MODE_ADVANCED,
-    DEFAULT_ASSIGNMENT_STRATEGY,
-    DEFAULT_PALETTE_ORDERING,
-    WHITE_HANDLING_CONTEXTUAL,
-    WHITE_HANDLING_ALWAYS_FILTER,
-    WHITE_HANDLING_ALLOW,
-    WHITE_FILTER_STRENGTH_BALANCED,
-    WHITE_FILTER_STRENGTH_STRONG,
+    CONF_COLOR_PURITY,
+    CONF_WHITE_LEVEL,
     ROTATION_MODE_TRACK_CHANGE,
     ROTATION_MODE_AUTO,
     ROTATION_MODE_TRACK_AND_AUTO,
@@ -74,6 +59,8 @@ PALETTE_AFFECTING_OPTIONS = {
     "color_count",
     CONF_PALETTE_ORDERING,
     CONF_COLOR_ACCURACY_MODE,
+    CONF_COLOR_PURITY,
+    CONF_WHITE_LEVEL,
     "monochrome_mode",
     "low_color_handling",
 }
@@ -138,60 +125,22 @@ class SonosHueCoordinator:
         return config
 
     # Resolve one effective configuration immediately before light updates.
-    # This avoids race conditions by not syncing Basic and Advanced controls together.
+    # This avoids race conditions by not syncing current color controls together.
     def effective_config(self) -> dict:
         """Resolve the one authoritative config used for palette/apply work.
 
-        Basic and Advanced settings are stored independently. Basic mode ignores
-        advanced equivalents at apply time rather than trying to synchronize
-        values in both directions, which prevents setting-change loops and race
-        conditions.
+        v1.2.0 removes legacy mode. All visible controls are
+        authoritative, with Color Purity and White Level kept separate so
+        album-color fidelity and white suppression can be tuned independently.
         """
         config = dict(self.config)
-        mode = config.get(CONF_CONTROL_MODE, CONTROL_MODE_BASIC)
-        effective = dict(config)
-        effective["_control_mode"] = mode
-
-        if mode != CONTROL_MODE_ADVANCED:
-            brightness_level = config.get(CONF_BRIGHTNESS_LEVEL, "high")
-            preset = BRIGHTNESS_LEVEL_PRESETS.get(brightness_level, BRIGHTNESS_LEVEL_PRESETS["high"])
-            effective.update(preset)
-            effective["_effective_brightness_source"] = "Brightness Level"
-
-            basic_white = config.get(CONF_BASIC_WHITE_HANDLING, BASIC_WHITE_NATURAL)
-            if basic_white == BASIC_WHITE_ALLOW:
-                effective["filter_bright_white"] = False
-                effective["white_handling"] = WHITE_HANDLING_ALLOW
-                effective["white_filter_strength"] = WHITE_FILTER_STRENGTH_BALANCED
-            elif basic_white == BASIC_WHITE_REDUCE:
-                effective["filter_bright_white"] = True
-                effective["white_handling"] = WHITE_HANDLING_ALWAYS_FILTER
-                effective["white_filter_strength"] = WHITE_FILTER_STRENGTH_STRONG
-            else:
-                effective["filter_bright_white"] = True
-                effective["white_handling"] = WHITE_HANDLING_CONTEXTUAL
-                effective["white_filter_strength"] = WHITE_FILTER_STRENGTH_BALANCED
-            effective["_effective_white_source"] = "White Handling"
-            effective["assignment_strategy"] = DEFAULT_ASSIGNMENT_STRATEGY
-            effective["palette_ordering"] = DEFAULT_PALETTE_ORDERING
-            effective["group_entities"] = []
-            effective["member_light_entities"] = []
-            effective["exclude_light_entities"] = []
-            effective["_ignored_advanced_controls"] = [
-                "Minimum Brightness",
-                "Maximum Brightness",
-                "Gradient Brightness",
-                "Color Distribution Mode",
-                "Palette Ordering",
-                "White Color Handling",
-                "White Filtering Strength",
-            ]
-        else:
-            effective["_effective_brightness_source"] = "Advanced brightness controls"
-            effective["_effective_white_source"] = "Advanced white controls"
-            effective["_ignored_advanced_controls"] = []
-
-        return effective
+        config.setdefault(CONF_COLOR_PURITY, 65)
+        config.setdefault(CONF_WHITE_LEVEL, 50)
+        config["_control_model"] = "advanced_only"
+        config["_effective_brightness_source"] = "Brightness controls"
+        config["_effective_white_source"] = "White Handling + White Level"
+        config["_ignored_advanced_controls"] = []
+        return config
 
     @property
     def sonos_entity(self):
@@ -256,11 +205,11 @@ class SonosHueCoordinator:
             ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
-            "control_mode": self.config.get(CONF_CONTROL_MODE, "basic"),
-            "effective_control_mode": effective.get("_control_mode"),
+            "control_model": "Advanced only",
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             "color_accuracy_mode": self.config.get(CONF_COLOR_ACCURACY_MODE, "natural"),
-            "brightness_level": self.config.get(CONF_BRIGHTNESS_LEVEL, "high"),
+            "color_purity": self.config.get(CONF_COLOR_PURITY, 65),
+            "white_level": self.config.get(CONF_WHITE_LEVEL, 50),
             "effective_brightness_source": effective.get("_effective_brightness_source"),
             "effective_white_source": effective.get("_effective_white_source"),
             "ignored_advanced_controls": effective.get("_ignored_advanced_controls", []),
@@ -592,8 +541,9 @@ class SonosHueCoordinator:
             f"count={self.effective_config().get('color_count', 3)}",
             f"ordering={self.effective_config().get(CONF_PALETTE_ORDERING, 'vivid_first')}",
             f"color_accuracy={self.effective_config().get(CONF_COLOR_ACCURACY_MODE, 'natural' )}",
+            f"color_purity={self.effective_config().get(CONF_COLOR_PURITY, 65)}",
             f"white={self.effective_config().get('white_handling', 'suppress_when_color_exists')}",
-            f"white_strength={self.effective_config().get('white_filter_strength', 'balanced')}",
+            f"white_level={self.effective_config().get(CONF_WHITE_LEVEL, 50)}",
             f"mono={self.effective_config().get('monochrome_mode', 'warm_neutral')}",
             f"low_color={self.effective_config().get('low_color_handling', True)}",
         ]
@@ -1047,7 +997,7 @@ Tokens and artwork URLs are redacted.
             await self._handle_stop(reason="playback_stopped")
 
     # Main playback apply pipeline.
-    # Fetches artwork, resolves Basic/Advanced settings, extracts colors, and updates Hue targets.
+    # Fetches artwork, resolves current settings, extracts colors, and updates Hue targets.
     async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False, allow_disabled=False):
         self._cancel_pending_restore()
         process_started = time.perf_counter()

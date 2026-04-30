@@ -14,6 +14,8 @@ from PIL import Image, ImageFilter
 
 from .const import (
     CONF_COLOR_ACCURACY_MODE,
+    CONF_COLOR_PURITY,
+    CONF_WHITE_LEVEL,
     COLOR_ACCURACY_MODE_ALBUM,
     COLOR_ACCURACY_MODE_NATURAL,
     COLOR_ACCURACY_MODE_VIVID,
@@ -29,27 +31,46 @@ from .const import (
 
 RGB = tuple[int, int, int]
 
-# Resolve palette behavior from Color Accuracy Mode and white handling settings.
-# Basic and Advanced modes both feed into this final extraction configuration.
+# Resolve palette behavior from Color Accuracy Mode, Color Purity, and white controls.
+# Color Purity is intentionally album-fidelity based: 100 preserves the album
+# palette most closely, while 0 strongly favors saturated accent colors.
 def _effective_color_config(config: dict | None) -> dict:
     effective = dict(config or {})
     mode = effective.get(CONF_COLOR_ACCURACY_MODE, COLOR_ACCURACY_MODE_NATURAL)
-    if mode == COLOR_ACCURACY_MODE_VIVID:
-        effective["filter_dull"] = True
-        effective["filter_bright_white"] = True
-        effective[CONF_WHITE_HANDLING] = WHITE_HANDLING_CONTEXTUAL
-        effective[CONF_WHITE_FILTER_STRENGTH] = WHITE_FILTER_STRENGTH_STRONG
-        effective.setdefault("palette_ordering", "vivid_first")
-    elif mode == COLOR_ACCURACY_MODE_ALBUM:
+    purity = max(0, min(100, int(effective.get(CONF_COLOR_PURITY, 65))))
+
+    # Convert purity into filtering strength. Lower purity means more vivid,
+    # saturated colors; higher purity leaves more low-saturation album tones.
+    if purity >= 80:
         effective["filter_dull"] = False
-        effective["filter_bright_white"] = True
-        effective[CONF_WHITE_HANDLING] = WHITE_HANDLING_CONTEXTUAL
-        effective[CONF_WHITE_FILTER_STRENGTH] = WHITE_FILTER_STRENGTH_GENTLE
+        effective.setdefault("palette_ordering", "dominant_first")
+    elif purity <= 35:
+        effective["filter_dull"] = True
+        effective.setdefault("palette_ordering", "vivid_first")
     else:
         effective["filter_dull"] = True
+
+    # Color Accuracy Mode remains an intent preset, but does not override the
+    # separate White Handling controls. Album Accurate biases purity upward;
+    # Vivid biases saturated ordering when the user has not explicitly set it.
+    if mode == COLOR_ACCURACY_MODE_ALBUM:
+        effective["filter_dull"] = purity < 90
+        effective.setdefault("palette_ordering", "dominant_first")
+    elif mode == COLOR_ACCURACY_MODE_VIVID:
+        effective["filter_dull"] = True
+        effective.setdefault("palette_ordering", "vivid_first")
+
+    # White Level maps to internal strength only when whites are being reduced.
+    white_level = max(0, min(100, int(effective.get(CONF_WHITE_LEVEL, 50))))
+    if white_level <= 20:
+        effective[CONF_WHITE_FILTER_STRENGTH] = WHITE_FILTER_STRENGTH_GENTLE
+        effective["filter_bright_white"] = False
+    elif white_level >= 75:
+        effective[CONF_WHITE_FILTER_STRENGTH] = WHITE_FILTER_STRENGTH_STRONG
         effective["filter_bright_white"] = True
-        effective[CONF_WHITE_HANDLING] = WHITE_HANDLING_CONTEXTUAL
+    else:
         effective[CONF_WHITE_FILTER_STRENGTH] = WHITE_FILTER_STRENGTH_BALANCED
+        effective["filter_bright_white"] = True
     return effective
 
 
