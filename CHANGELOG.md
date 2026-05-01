@@ -1,3 +1,9 @@
+## v1.2.2
+
+- Fixed config-flow import failure caused by a syntax error in the coordinator effective-configuration block.
+- Preserved v1.2.1 UI label and description fixes for Color Purity, White Handling, and White Suppression.
+- No intended behavior changes.
+
 ## v1.2.1
 
 - Fixed option form labels for Color Purity, White Handling, and White Suppression so Home Assistant no longer falls back to internal field names.

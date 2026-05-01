@@ -136,7 +136,7 @@ class SonosHueCoordinator:
         config = dict(self.config)
         config.setdefault(CONF_COLOR_PURITY, 65)
         config.setdefault(CONF_WHITE_LEVEL, 50)
-        config[config["_effective_brightness_source"] = "Brightness controls"
+        config["_effective_brightness_source"] = "Brightness controls"
         config["_effective_white_source"] = "White Handling + White Level"
         return config
 
