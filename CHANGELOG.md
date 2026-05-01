@@ -1,3 +1,9 @@
+## v1.2.3
+
+- Added gradient pattern options for Dark to Light and Light to Dark.
+- Gradient ordering now uses perceived luminance for smoother brightness ramps.
+- Updated labels, descriptions, README, and project state for the new gradient modes.
+
 ## v1.2.2
 
 - Fixed config-flow import failure caused by a syntax error in the coordinator effective-configuration block.

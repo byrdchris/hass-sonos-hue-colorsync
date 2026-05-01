@@ -56,7 +56,7 @@
           "assignment_strategy": "Controls how palette colors are assigned across standard lights.",
           "palette_ordering": "Controls whether vivid or dominant colors are prioritized first.",
           "true_gradient_mode": "Use native multi-color Hue gradients on supported gradient lights.",
-          "gradient_order_mode": "Controls how palette colors are ordered across supported gradient lights.",
+          "gradient_order_mode": "Controls how colors are arranged on gradient-capable Hue lights, including same order, per-light offset, random order, dark-to-light, and light-to-dark ramps.",
           "gradient_color_points": "Number of colors sent to each supported gradient light.",
           "gradient_brightness": "Brightness used for supported gradient lights.",
           "min_brightness": "Lowest brightness used for standard lights.",
@@ -126,7 +126,7 @@
           "assignment_strategy": "Controls how palette colors are assigned across standard lights.",
           "palette_ordering": "Controls whether vivid or dominant colors are prioritized first.",
           "true_gradient_mode": "Use native multi-color Hue gradients on supported gradient lights.",
-          "gradient_order_mode": "Controls how palette colors are ordered across supported gradient lights.",
+          "gradient_order_mode": "Controls how colors are arranged on gradient-capable Hue lights, including same order, per-light offset, random order, dark-to-light, and light-to-dark ramps.",
           "gradient_color_points": "Number of colors sent to each supported gradient light.",
           "gradient_brightness": "Brightness used for supported gradient lights.",
           "min_brightness": "Lowest brightness used for standard lights.",
@@ -143,48 +143,116 @@
   },
   "entity": {
     "button": {
-      "extract_now": {"name": "Refresh Colors"},
-      "update_lights_now": {"name": "Update Lights Now"},
-      "apply_last_palette": {"name": "Rotate Colors"},
-      "test_rainbow": {"name": "Test Lighting"},
-      "health_check": {"name": "Health Check"},
-      "show_help": {"name": "Help & Guide"}
+      "extract_now": {
+        "name": "Refresh Colors"
+      },
+      "update_lights_now": {
+        "name": "Update Lights Now"
+      },
+      "apply_last_palette": {
+        "name": "Rotate Colors"
+      },
+      "test_rainbow": {
+        "name": "Test Lighting"
+      },
+      "health_check": {
+        "name": "Health Check"
+      },
+      "show_help": {
+        "name": "Help & Guide"
+      }
     },
     "sensor": {
-      "palette": {"name": "Status"},
-      "target_preview": {"name": "Targets"}
+      "palette": {
+        "name": "Status"
+      },
+      "target_preview": {
+        "name": "Targets"
+      }
     },
     "switch": {
-      "enabled": {"name": "Enable Sync"},
-      "auto_rotate_colors": {"name": "Auto Rotate Colors"},
-      "filter_dull": {"name": "Filter Dull Colors"},
-      "filter_bright_white": {"name": "Filter Harsh Whites"},
-      "low_color_handling": {"name": "Stabilize Low-Color Art"},
-      "cache": {"name": "Cache Album Colors"},
-      "expand_groups": {"name": "Distribute Across Group Lights"},
-      "true_gradient_mode": {"name": "Enable True Gradient"}
+      "enabled": {
+        "name": "Enable Sync"
+      },
+      "auto_rotate_colors": {
+        "name": "Auto Rotate Colors"
+      },
+      "filter_dull": {
+        "name": "Filter Dull Colors"
+      },
+      "filter_bright_white": {
+        "name": "Filter Harsh Whites"
+      },
+      "low_color_handling": {
+        "name": "Stabilize Low-Color Art"
+      },
+      "cache": {
+        "name": "Cache Album Colors"
+      },
+      "expand_groups": {
+        "name": "Distribute Across Group Lights"
+      },
+      "true_gradient_mode": {
+        "name": "Enable True Gradient"
+      }
     },
     "select": {
-      "color_accuracy_mode": {"name": "Color Accuracy Mode"},
-      "white_handling": {"name": "White Handling"},
-      "rotation_mode": {"name": "Color Rotation Mode"},
-      "assignment_strategy": {"name": "Color Distribution Mode"},
-      "palette_ordering": {"name": "Palette Ordering"},
-      "gradient_order_mode": {"name": "Gradient Pattern"},
-      "monochrome_mode": {"name": "Black & White Handling"},
-      "artwork_fallback_mode": {"name": "Artwork Fallback"}
+      "color_accuracy_mode": {
+        "name": "Color Accuracy Mode"
+      },
+      "white_handling": {
+        "name": "White Handling"
+      },
+      "rotation_mode": {
+        "name": "Color Rotation Mode"
+      },
+      "assignment_strategy": {
+        "name": "Color Distribution Mode"
+      },
+      "palette_ordering": {
+        "name": "Palette Ordering"
+      },
+      "gradient_order_mode": {
+        "name": "Gradient Pattern"
+      },
+      "monochrome_mode": {
+        "name": "Black & White Handling"
+      },
+      "artwork_fallback_mode": {
+        "name": "Artwork Fallback"
+      }
     },
     "number": {
-      "color_purity": {"name": "Color Purity"},
-      "white_level": {"name": "White Suppression"},
-      "color_count": {"name": "Number of Colors"},
-      "transition": {"name": "Transition Time"},
-      "auto_rotate_interval": {"name": "Auto Rotation Interval"},
-      "restore_delay": {"name": "Restore Delay"},
-      "gradient_color_points": {"name": "Gradient Detail Level"},
-      "gradient_brightness": {"name": "Gradient Brightness"},
-      "min_brightness": {"name": "Minimum Brightness"},
-      "max_brightness": {"name": "Maximum Brightness"}
+      "color_purity": {
+        "name": "Color Purity"
+      },
+      "white_level": {
+        "name": "White Suppression"
+      },
+      "color_count": {
+        "name": "Number of Colors"
+      },
+      "transition": {
+        "name": "Transition Time"
+      },
+      "auto_rotate_interval": {
+        "name": "Auto Rotation Interval"
+      },
+      "restore_delay": {
+        "name": "Restore Delay"
+      },
+      "gradient_color_points": {
+        "name": "Gradient Detail Level"
+      },
+      "gradient_brightness": {
+        "name": "Gradient Brightness"
+      },
+      "min_brightness": {
+        "name": "Minimum Brightness"
+      },
+      "max_brightness": {
+        "name": "Maximum Brightness"
+      }
     }
   },
   "selector": {
@@ -208,6 +276,15 @@
         "off": "No Rotation",
         "auto_rotate": "Auto Rotate Only",
         "track_change_and_auto_rotate": "Track Change and Auto Rotate"
+      }
+    },
+    "gradient_order_mode": {
+      "options": {
+        "same_order": "Same Order",
+        "rotated_by_light": "Offset",
+        "random": "Random Order",
+        "dark_to_light": "Dark to Light",
+        "light_to_dark": "Light to Dark"
       }
     }
   }

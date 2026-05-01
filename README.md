@@ -201,11 +201,11 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.2` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.3` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.2.2
-git push origin v1.2.2
+git tag v1.2.3
+git push origin v1.2.3
 ```
 
 ## License
@@ -245,3 +245,7 @@ Color Purity controls general album fidelity while White Handling and White Supp
 v1.1.16 improves restore behavior by capturing the selected light state as soon as **Enable Sync** is turned on, before any album colors are applied. When sync is turned off, the integration restores that captured state, including lights that were originally off.
 
 The release also includes refreshed `icon.png` and `logo.png` assets in the integration package and repository root to improve Home Assistant/HACS icon display behavior. Home Assistant may still require a browser/app cache refresh before the icon appears.
+
+### Gradient color ordering
+
+Gradient-capable Hue lights can now arrange palette colors as Same Order, Offset, Random Order, Dark to Light, or Light to Dark. Dark/Light ordering uses perceived brightness so gradient ramps match how the colors appear to the eye rather than a simple RGB average.

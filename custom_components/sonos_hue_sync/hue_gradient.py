@@ -38,6 +38,12 @@ def _repeat_to_count(colors: list[tuple[int, int, int]], count: int) -> list[tup
         return [(255, 255, 255)] * count
     return [colors[idx % len(colors)] for idx in range(count)]
 
+def _perceived_luminance(color: tuple[int, int, int]) -> float:
+    """Return perceived brightness using Rec. 709 luminance weights."""
+    # Sort gradient points by human-perceived lightness rather than raw RGB average.
+    r, g, b = color
+    return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+
 def gradient_palette_for_light(
     palette: list[tuple[int, int, int]],
     base_color: tuple[int, int, int],
@@ -54,6 +60,8 @@ def gradient_palette_for_light(
     - rotated_by_light: each light starts from its assigned/base color.
     - random: deterministic random shuffle per track/light so it changes per track
       but does not reshuffle repeatedly during the same track.
+    - dark_to_light: sorted by perceived luminance from darkest to brightest.
+    - light_to_dark: sorted by perceived luminance from brightest to darkest.
     """
     point_count = max(2, min(5, int(point_count or 5)))
 
@@ -75,6 +83,12 @@ def gradient_palette_for_light(
         # Keep the assigned color included and preferably visible.
         if base_color in ordered and ordered[0] == base_color and len(ordered) > 1:
             pass
+    elif order_mode == "dark_to_light":
+        # Build gradients that visibly ramp from shadow tones into highlights.
+        ordered = sorted(base_palette, key=_perceived_luminance)
+    elif order_mode == "light_to_dark":
+        # Build gradients that visibly ramp from highlights into shadow tones.
+        ordered = sorted(base_palette, key=_perceived_luminance, reverse=True)
     else:
         ordered = list(base_palette)
 
