@@ -1,5 +1,7 @@
 ## v1.2.0
 
+- Corrected packaged metadata/version references so diagnostics and release docs report v1.2.0 consistently.
+
 - Removed Basic / Advanced control mode to avoid confusing Home Assistant UI behavior.
 - Added **Color Purity** slider:
   - `0` keeps only strong saturated colors.

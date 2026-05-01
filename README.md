@@ -201,11 +201,11 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.1.12` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.0` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.1.12
-git push origin v1.1.12
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 ## License
