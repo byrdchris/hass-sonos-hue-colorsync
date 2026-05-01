@@ -58,12 +58,12 @@ During setup and in options, you can configure:
 - **Additional Member Lights**: optional direct lights to include.
 - **Excluded Lights**: lights that should never be controlled, even if included through a selected room or zone.
 - **Color Purity**
-- **White Level**
+- **White Suppression**
 - **Number of Colors**: palette size from 1 to 10.
 - **Palette Ordering**: choose whether the extracted palette favors vivid, visually distinct colors or keeps the most dominant album-art colors first.
 - **Color Accuracy Mode**: choose Natural, Vivid, or Album Accurate extraction. Natural is the default balanced mode, Vivid favors saturated accents, and Album Accurate preserves more muted artwork tones.
 - **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Level**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
+- **White Suppression**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
 - **Transition Time**: fade time for light changes.
 - **Minimum Brightness**: lower brightness limit for standard lights.
 - **Maximum Brightness**: upper brightness limit for standard lights.
@@ -93,7 +93,7 @@ Sonos Hue Sync uses a single advanced control surface. Basic / Advanced mode has
 Color tuning is split into two independent controls:
 
 - **Color Purity**: 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Level**: 0 preserves white and light neutral tones; 100 suppresses whites strongly.
+- **White Suppression**: 0 preserves white and light neutral tones; 100 suppresses whites strongly.
 
 **White Handling** remains separate from Color Purity so album-color fidelity and white/light-neutral behavior can be tuned independently.
 
@@ -118,7 +118,7 @@ Color tuning is split into two independent controls:
 ### Numbers
 
 - **Color Purity**
-- **White Level**
+- **White Suppression**
 - **Number of Colors**
 - **Transition Time**
 - **Minimum Brightness**
@@ -201,11 +201,11 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.0` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.1` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.2.1
+git push origin v1.2.1
 ```
 
 ## License
@@ -227,7 +227,7 @@ Modes:
 
 ### Color Accuracy Mode
 - **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Level**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
+- **White Suppression**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
 
 **Natural** is the default and balances album accuracy with usable Hue output. It applies perceptual extraction, dull-color filtering, contextual white suppression, and balanced neutral handling.
 
@@ -236,9 +236,9 @@ Modes:
 - **Vivid**: favors saturated subject and accent colors, with stronger neutral and white suppression.
 - **Album Accurate**: preserves more muted background and neutral tones for artwork where the overall album mood matters more than high saturation.
 
-This replaces the earlier separate dull-color, white-handling, white-strength, and low-color stabilization controls in the main UI. Existing saved values are still tolerated for compatibility, but the selected Color Accuracy Mode now drives the active extraction behavior.
+Color Purity controls general album fidelity while White Handling and White Suppression remain separate because white and light-neutral tones need different treatment from saturation filtering.
 - **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Level**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
+- **White Suppression**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
 
 ## Restore and icon reliability
 

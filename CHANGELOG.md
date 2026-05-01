@@ -1,3 +1,11 @@
+## v1.2.1
+
+- Fixed option form labels for Color Purity, White Handling, and White Suppression so Home Assistant no longer falls back to internal field names.
+- Added complete descriptions for all visible configuration fields.
+- Renamed White Level to White Suppression for clearer user-facing behavior.
+- Removed remaining Basic / Advanced diagnostic language from active runtime reporting.
+- No behavior changes to palette extraction or Hue apply logic.
+
 ## v1.2.0
 
 - Corrected packaged metadata/version references so diagnostics and release docs report v1.2.0 consistently.

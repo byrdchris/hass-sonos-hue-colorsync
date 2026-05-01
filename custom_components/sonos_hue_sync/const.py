@@ -213,7 +213,7 @@ ROTATION_MODE_LABELS = {
 CONF_COLOR_PURITY = "color_purity"
 DEFAULT_COLOR_PURITY = 65
 
-# White Level controls white/light-neutral suppression separately from color purity.
+# White Suppression controls white/light-neutral suppression separately from color purity.
 # 0 preserves whites; 100 strongly suppresses white/light gray tones.
 CONF_WHITE_LEVEL = "white_level"
 DEFAULT_WHITE_LEVEL = 50

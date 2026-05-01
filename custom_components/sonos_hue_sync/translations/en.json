@@ -7,20 +7,20 @@
         "title": "Sonos Hue Sync",
         "description": "Configure Sonos album art color sync for Hue lights.",
         "data": {
-          "sonos_entity": "Sonos speaker",
-          "light_entities": "Hue lights / groups",
+          "sonos_entity": "Sonos Speaker",
+          "light_entities": "Hue Lights / Groups",
           "color_accuracy_mode": "Color Accuracy Mode",
           "color_purity": "Color Purity",
           "white_handling": "White Handling",
-          "white_level": "White Level",
+          "white_level": "White Suppression",
           "color_count": "Number of Colors",
           "transition": "Transition Time",
           "auto_rotate_colors": "Auto Rotate Colors",
           "rotation_mode": "Color Rotation Mode",
           "auto_rotate_interval": "Auto Rotation Interval",
           "restore_delay": "Restore Delay",
-          "group_entities": "Additional Hue groups",
-          "member_light_entities": "Additional member lights",
+          "group_entities": "Additional Hue Groups",
+          "member_light_entities": "Additional Member Lights",
           "exclude_light_entities": "Excluded Lights",
           "assignment_strategy": "Color Distribution Mode",
           "palette_ordering": "Palette Ordering",
@@ -38,9 +38,35 @@
           "airplay_poll_interval": "AirPlay Metadata Check Interval"
         },
         "data_description": {
-          "color_purity": "Controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.",
-          "white_handling": "Controls whether white and light neutral tones are preserved or reduced separately from Color Purity.",
-          "white_level": "Controls white and light-neutral suppression. 0 preserves whites; 100 suppresses whites strongly."
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main Hue lights or groups to control. If a selected room or group exposes member lights, colors are distributed across those members.",
+          "color_accuracy_mode": "Choose the overall extraction style. Natural is balanced, Vivid favors saturated accents, and Album Accurate keeps more muted or neutral artwork tones.",
+          "color_purity": "Controls album fidelity versus stronger color emphasis. 0 keeps only bold, saturated colors. 100 follows the album art most closely.",
+          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity.",
+          "white_level": "Adjusts how strongly white and light neutral tones are reduced. 0 preserves whites. 100 suppresses whites strongly.",
+          "color_count": "Number of album-art colors to keep, from 1 to 10. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds when applying album colors.",
+          "auto_rotate_colors": "Automatically rotate color assignments while the same track continues playing.",
+          "rotation_mode": "Controls whether colors rotate on track changes, on a timer, both, or neither.",
+          "auto_rotate_interval": "Seconds between automatic color rotations when Auto Rotate Colors is enabled.",
+          "restore_delay": "Seconds to wait before restoring the previous light state after playback stops or sync is disabled.",
+          "group_entities": "Optional extra Hue groups to include in addition to the main targets.",
+          "member_light_entities": "Optional individual Hue lights to include in addition to the main targets.",
+          "exclude_light_entities": "Lights to leave untouched even if they are included through a selected group.",
+          "assignment_strategy": "Controls how palette colors are assigned across standard lights.",
+          "palette_ordering": "Controls whether vivid or dominant colors are prioritized first.",
+          "true_gradient_mode": "Use native multi-color Hue gradients on supported gradient lights.",
+          "gradient_order_mode": "Controls how palette colors are ordered across supported gradient lights.",
+          "gradient_color_points": "Number of colors sent to each supported gradient light.",
+          "gradient_brightness": "Brightness used for supported gradient lights.",
+          "min_brightness": "Lowest brightness used for standard lights.",
+          "max_brightness": "Highest brightness used for standard lights.",
+          "monochrome_mode": "Controls behavior for black-and-white or very low-color album art.",
+          "low_color_handling": "Stabilizes palettes for album art with very few usable colors.",
+          "artwork_fallback_mode": "Controls what happens when album art is unavailable or cannot be processed.",
+          "cache": "Remember album palettes to avoid reprocessing the same artwork.",
+          "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
+          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events."
         }
       }
     }
@@ -49,22 +75,22 @@
     "step": {
       "init": {
         "title": "Sonos Hue Sync options",
-        "description": "Update Sonos, Hue, and color behavior settings.",
+        "description": "Update the speaker, Hue targets, and palette behavior.",
         "data": {
-          "sonos_entity": "Sonos speaker",
-          "light_entities": "Hue lights / groups",
+          "sonos_entity": "Sonos Speaker",
+          "light_entities": "Hue Lights / Groups",
           "color_accuracy_mode": "Color Accuracy Mode",
           "color_purity": "Color Purity",
           "white_handling": "White Handling",
-          "white_level": "White Level",
+          "white_level": "White Suppression",
           "color_count": "Number of Colors",
           "transition": "Transition Time",
           "auto_rotate_colors": "Auto Rotate Colors",
           "rotation_mode": "Color Rotation Mode",
           "auto_rotate_interval": "Auto Rotation Interval",
           "restore_delay": "Restore Delay",
-          "group_entities": "Additional Hue groups",
-          "member_light_entities": "Additional member lights",
+          "group_entities": "Additional Hue Groups",
+          "member_light_entities": "Additional Member Lights",
           "exclude_light_entities": "Excluded Lights",
           "assignment_strategy": "Color Distribution Mode",
           "palette_ordering": "Palette Ordering",
@@ -82,16 +108,43 @@
           "airplay_poll_interval": "AirPlay Metadata Check Interval"
         },
         "data_description": {
-          "color_purity": "Controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.",
-          "white_handling": "Controls whether white and light neutral tones are preserved or reduced separately from Color Purity.",
-          "white_level": "Controls white and light-neutral suppression. 0 preserves whites; 100 suppresses whites strongly."
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main Hue lights or groups to control. If a selected room or group exposes member lights, colors are distributed across those members.",
+          "color_accuracy_mode": "Choose the overall extraction style. Natural is balanced, Vivid favors saturated accents, and Album Accurate keeps more muted or neutral artwork tones.",
+          "color_purity": "Controls album fidelity versus stronger color emphasis. 0 keeps only bold, saturated colors. 100 follows the album art most closely.",
+          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity.",
+          "white_level": "Adjusts how strongly white and light neutral tones are reduced. 0 preserves whites. 100 suppresses whites strongly.",
+          "color_count": "Number of album-art colors to keep, from 1 to 10. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds when applying album colors.",
+          "auto_rotate_colors": "Automatically rotate color assignments while the same track continues playing.",
+          "rotation_mode": "Controls whether colors rotate on track changes, on a timer, both, or neither.",
+          "auto_rotate_interval": "Seconds between automatic color rotations when Auto Rotate Colors is enabled.",
+          "restore_delay": "Seconds to wait before restoring the previous light state after playback stops or sync is disabled.",
+          "group_entities": "Optional extra Hue groups to include in addition to the main targets.",
+          "member_light_entities": "Optional individual Hue lights to include in addition to the main targets.",
+          "exclude_light_entities": "Lights to leave untouched even if they are included through a selected group.",
+          "assignment_strategy": "Controls how palette colors are assigned across standard lights.",
+          "palette_ordering": "Controls whether vivid or dominant colors are prioritized first.",
+          "true_gradient_mode": "Use native multi-color Hue gradients on supported gradient lights.",
+          "gradient_order_mode": "Controls how palette colors are ordered across supported gradient lights.",
+          "gradient_color_points": "Number of colors sent to each supported gradient light.",
+          "gradient_brightness": "Brightness used for supported gradient lights.",
+          "min_brightness": "Lowest brightness used for standard lights.",
+          "max_brightness": "Highest brightness used for standard lights.",
+          "monochrome_mode": "Controls behavior for black-and-white or very low-color album art.",
+          "low_color_handling": "Stabilizes palettes for album art with very few usable colors.",
+          "artwork_fallback_mode": "Controls what happens when album art is unavailable or cannot be processed.",
+          "cache": "Remember album palettes to avoid reprocessing the same artwork.",
+          "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
+          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events."
         }
       }
     }
   },
   "entity": {
     "button": {
-      "extract_now": {"name": "Update Lights Now"},
+      "extract_now": {"name": "Refresh Colors"},
+      "update_lights_now": {"name": "Update Lights Now"},
       "apply_last_palette": {"name": "Rotate Colors"},
       "test_rainbow": {"name": "Test Lighting"},
       "health_check": {"name": "Health Check"},
@@ -104,6 +157,8 @@
     "switch": {
       "enabled": {"name": "Enable Sync"},
       "auto_rotate_colors": {"name": "Auto Rotate Colors"},
+      "filter_dull": {"name": "Filter Dull Colors"},
+      "filter_bright_white": {"name": "Filter Harsh Whites"},
       "low_color_handling": {"name": "Stabilize Low-Color Art"},
       "cache": {"name": "Cache Album Colors"},
       "expand_groups": {"name": "Distribute Across Group Lights"},
@@ -121,7 +176,7 @@
     },
     "number": {
       "color_purity": {"name": "Color Purity"},
-      "white_level": {"name": "White Level"},
+      "white_level": {"name": "White Suppression"},
       "color_count": {"name": "Number of Colors"},
       "transition": {"name": "Transition Time"},
       "auto_rotate_interval": {"name": "Auto Rotation Interval"},
@@ -133,8 +188,27 @@
     }
   },
   "selector": {
-    "color_accuracy_mode": {"options": {"natural": "Natural", "vivid": "Vivid", "album_accurate": "Album Accurate"}},
-    "white_handling": {"options": {"suppress_when_color_exists": "Natural", "always_filter": "Reduce Whites", "allow_whites": "Allow Whites"}},
-    "rotation_mode": {"options": {"track_change": "Rotate on Track Change", "off": "No Rotation", "auto_rotate": "Auto Rotate Only", "track_change_and_auto_rotate": "Track Change and Auto Rotate"}}
+    "color_accuracy_mode": {
+      "options": {
+        "natural": "Natural",
+        "vivid": "Vivid",
+        "album_accurate": "Album Accurate"
+      }
+    },
+    "white_handling": {
+      "options": {
+        "suppress_when_color_exists": "Natural",
+        "always_filter": "Reduce Whites",
+        "allow_whites": "Allow Whites"
+      }
+    },
+    "rotation_mode": {
+      "options": {
+        "track_change": "Rotate on Track Change",
+        "off": "No Rotation",
+        "auto_rotate": "Auto Rotate Only",
+        "track_change_and_auto_rotate": "Track Change and Auto Rotate"
+      }
+    }
   }
 }

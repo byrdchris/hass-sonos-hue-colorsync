@@ -130,16 +130,14 @@ class SonosHueCoordinator:
         """Resolve the one authoritative config used for palette/apply work.
 
         v1.2.0 removes legacy mode. All visible controls are
-        authoritative, with Color Purity and White Level kept separate so
+        authoritative, with Color Purity and White Suppression kept separate so
         album-color fidelity and white suppression can be tuned independently.
         """
         config = dict(self.config)
         config.setdefault(CONF_COLOR_PURITY, 65)
         config.setdefault(CONF_WHITE_LEVEL, 50)
-        config["_control_model"] = "advanced_only"
-        config["_effective_brightness_source"] = "Brightness controls"
+        config[config["_effective_brightness_source"] = "Brightness controls"
         config["_effective_white_source"] = "White Handling + White Level"
-        config["_ignored_advanced_controls"] = []
         return config
 
     @property
@@ -205,7 +203,6 @@ class SonosHueCoordinator:
             ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
-            "control_model": "Advanced only",
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             "color_accuracy_mode": self.config.get(CONF_COLOR_ACCURACY_MODE, "natural"),
             "color_purity": self.config.get(CONF_COLOR_PURITY, 65),

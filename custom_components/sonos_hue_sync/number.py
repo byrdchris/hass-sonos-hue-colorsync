@@ -26,7 +26,7 @@ from .const import (
 NUMBERS = [
     # Primary/everyday controls first.
     (CONF_COLOR_PURITY, "Color Purity", "mdi:palette-advanced", 0, 100, 1),
-    (CONF_WHITE_LEVEL, "White Level", "mdi:white-balance-sunny", 0, 100, 1),
+    (CONF_WHITE_LEVEL, "White Suppression", "mdi:white-balance-sunny", 0, 100, 1),
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
     ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
     ("auto_rotate_interval", "Auto Rotation Interval", "mdi:timer-sync-outline", 1, 60, 1),

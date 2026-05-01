@@ -60,7 +60,7 @@ def _effective_color_config(config: dict | None) -> dict:
         effective["filter_dull"] = True
         effective.setdefault("palette_ordering", "vivid_first")
 
-    # White Level maps to internal strength only when whites are being reduced.
+    # White Suppression maps to internal strength only when whites are being reduced.
     white_level = max(0, min(100, int(effective.get(CONF_WHITE_LEVEL, 50))))
     if white_level <= 20:
         effective[CONF_WHITE_FILTER_STRENGTH] = WHITE_FILTER_STRENGTH_GENTLE
