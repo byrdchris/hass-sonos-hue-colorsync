@@ -38,11 +38,85 @@ def _repeat_to_count(colors: list[tuple[int, int, int]], count: int) -> list[tup
         return [(255, 255, 255)] * count
     return [colors[idx % len(colors)] for idx in range(count)]
 
+def _linear_channel(value: int) -> float:
+    """Convert an sRGB channel into linear light for perceptual luminance sorting."""
+    channel = max(0, min(255, int(value))) / 255
+    if channel <= 0.04045:
+        return channel / 12.92
+    return ((channel + 0.055) / 1.055) ** 2.4
+
 def _perceived_luminance(color: tuple[int, int, int]) -> float:
-    """Return perceived brightness using Rec. 709 luminance weights."""
-    # Sort gradient points by human-perceived lightness rather than raw RGB average.
+    """Return gamma-corrected relative luminance for visual dark/light ordering."""
+    # Use WCAG/Rec. 709 coefficients on linearized sRGB channels so red, green,
+    # and blue sort closer to how they appear to the eye than a raw RGB average.
     r, g, b = color
-    return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+    return (0.2126 * _linear_channel(r)) + (0.7152 * _linear_channel(g)) + (0.0722 * _linear_channel(b))
+
+def _gradient_sort_key(color: tuple[int, int, int]) -> tuple[float, float]:
+    """Sort by luminance, then saturation, for stable visual ramps."""
+    # Saturation is a deterministic tie-breaker when two colors have similar
+    # luminance but one reads as a stronger gradient point.
+    r, g, b = [max(0, min(255, int(v))) / 255 for v in color]
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    saturation = 0 if mx == 0 else (mx - mn) / mx
+    return (_perceived_luminance(color), saturation)
+
+def _dedupe_colors(colors: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
+    """Keep palette order while removing exact duplicate RGB entries."""
+    output: list[tuple[int, int, int]] = []
+    seen: set[tuple[int, int, int]] = set()
+    for color in colors:
+        rgb = tuple(int(v) for v in color)
+        if rgb not in seen:
+            seen.add(rgb)
+            output.append(rgb)
+    return output
+
+def _select_luminance_spread(colors: list[tuple[int, int, int]], count: int) -> list[tuple[int, int, int]]:
+    """Select colors spaced across the luminance range before final ordering."""
+    # For low detail levels, especially two-point gradients, choose meaningful
+    # dark/light anchors instead of simply taking the first N palette colors.
+    unique = _dedupe_colors(colors)
+    if len(unique) <= count:
+        return unique
+
+    ranked = sorted(unique, key=_gradient_sort_key)
+    if count <= 2:
+        return [ranked[0], ranked[-1]]
+
+    selected: list[tuple[int, int, int]] = []
+    last_index = len(ranked) - 1
+    for idx in range(count):
+        source_index = round((idx / (count - 1)) * last_index)
+        color = ranked[source_index]
+        if color not in selected:
+            selected.append(color)
+
+    # Fill any gaps caused by rounding collisions with the widest remaining
+    # luminance candidates. This keeps the requested detail count when possible.
+    if len(selected) < count:
+        for color in ranked:
+            if color not in selected:
+                selected.append(color)
+            if len(selected) >= count:
+                break
+
+    return selected[:count]
+
+def _ordered_gradient_points(
+    colors: list[tuple[int, int, int]],
+    point_count: int,
+    order_mode: str,
+) -> list[tuple[int, int, int]]:
+    """Apply the final gradient ordering after selection and optional rotation."""
+    if order_mode == "dark_to_light":
+        selected = _select_luminance_spread(colors, point_count)
+        return _repeat_to_count(sorted(selected, key=_gradient_sort_key), point_count)
+    if order_mode == "light_to_dark":
+        selected = _select_luminance_spread(colors, point_count)
+        return _repeat_to_count(sorted(selected, key=_gradient_sort_key, reverse=True), point_count)
+    return _repeat_to_count(colors, point_count)
 
 def gradient_palette_for_light(
     palette: list[tuple[int, int, int]],
@@ -55,13 +129,9 @@ def gradient_palette_for_light(
 ) -> list[tuple[int, int, int]]:
     """Create ordered gradient points.
 
-    Modes:
-    - same_order: every gradient light receives the same color order.
-    - rotated_by_light: each light starts from its assigned/base color.
-    - random: deterministic random shuffle per track/light so it changes per track
-      but does not reshuffle repeatedly during the same track.
-    - dark_to_light: sorted by perceived luminance from darkest to brightest.
-    - light_to_dark: sorted by perceived luminance from brightest to darkest.
+    Ordered gradient modes are authoritative: dark-to-light and light-to-dark
+    select perceptually spaced colors and apply their luminance sort as the
+    final step, so detail changes and rotation cannot reverse the ramp.
     """
     point_count = max(2, min(5, int(point_count or 5)))
 
@@ -69,7 +139,7 @@ def gradient_palette_for_light(
     if not base_palette:
         base_palette = [base_color]
 
-    # Ensure base color exists in the source palette.
+    # Ensure base color exists in the source palette for offset/random modes.
     if base_color not in base_palette:
         base_palette.insert(0, base_color)
 
@@ -80,15 +150,10 @@ def gradient_palette_for_light(
         ordered = list(base_palette)
         seed = f"{track_key or ''}|{entity_id or ''}|{base_color}"
         random.Random(seed).shuffle(ordered)
-        # Keep the assigned color included and preferably visible.
-        if base_color in ordered and ordered[0] == base_color and len(ordered) > 1:
-            pass
-    elif order_mode == "dark_to_light":
-        # Build gradients that visibly ramp from shadow tones into highlights.
-        ordered = sorted(base_palette, key=_perceived_luminance)
-    elif order_mode == "light_to_dark":
-        # Build gradients that visibly ramp from highlights into shadow tones.
-        ordered = sorted(base_palette, key=_perceived_luminance, reverse=True)
+    elif order_mode in ("dark_to_light", "light_to_dark"):
+        # Do not apply rotation to explicit ramp modes. Rotation is useful for
+        # adaptive patterns but makes ordered gradients appear incorrect.
+        return _ordered_gradient_points(base_palette, point_count, order_mode)
     else:
         ordered = list(base_palette)
 
@@ -365,10 +430,16 @@ async def try_apply_gradient(
         return False, diagnostics
 
     points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key, rotation_offset=rotation_offset)
+    ordered_mode = order_mode in ("dark_to_light", "light_to_dark")
+    effective_rotation_offset = 0 if ordered_mode else int(rotation_offset or 0)
     diagnostics["gradient_colors"] = [list(color) for color in points]
     diagnostics["gradient_points"] = len(points)
     diagnostics["gradient_order_mode"] = order_mode
-    diagnostics["gradient_rotation_offset"] = rotation_offset
+    diagnostics["gradient_rotation_offset"] = effective_rotation_offset
+    diagnostics["gradient_rotation_suppressed"] = bool(ordered_mode and rotation_offset)
+    diagnostics["gradient_luminance_values"] = [round(_perceived_luminance(color), 6) for color in points]
+    diagnostics["gradient_sort_basis"] = "gamma_corrected_relative_luminance"
+    diagnostics["gradient_detail_selection"] = "luminance_spread" if ordered_mode else "palette_order"
     diagnostics["gradient_brightness"] = brightness
 
     errors = []

@@ -1,3 +1,11 @@
+## v1.2.5
+
+- Fixed Dark to Light and Light to Dark gradient ordering so explicit gradient ramps are applied as the final ordering step.
+- Suppressed color rotation for ordered gradient patterns to prevent detail-level changes or auto-rotation from reversing the ramp.
+- Changed ordered gradient sorting to gamma-corrected perceptual luminance with saturation tie-breaking.
+- Improved Gradient Detail Level behavior by selecting colors across the dark/light range before sorting, especially for two-point gradients.
+- Added diagnostics for gradient luminance values, sort basis, detail selection, and rotation suppression.
+
 ## v1.2.4
 
 - Added **Palette Coherence** select with Off, Balanced, and Strict options.

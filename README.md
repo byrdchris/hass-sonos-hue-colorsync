@@ -4,6 +4,10 @@ Sonos Hue Sync is a Home Assistant custom integration that extracts colors from 
 
 The integration is designed for Home Assistant installations running in container mode and is installable through HACS as a custom repository.
 
+## v1.2.5 Gradient Ordering Reliability
+
+This release improves Dark to Light and Light to Dark gradient behavior for Hue gradient-capable lights. Ordered gradient patterns now use gamma-corrected perceptual luminance, choose colors across the available dark/light range when Gradient Detail Level changes, and suppress rotation for explicit ordered gradients so the final ramp is not accidentally reversed. Diagnostics now expose the final gradient colors, luminance values, sort basis, detail-selection method, and whether rotation was suppressed.
+
 ## Features
 
 - Extracts color palettes from Sonos album artwork.
