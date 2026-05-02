@@ -43,6 +43,7 @@ from .const import (
     CONF_WHITE_HANDLING,
     CONF_ROTATION_MODE,
     CONF_COLOR_PURITY,
+    CONF_PALETTE_COHERENCE,
     CONF_WHITE_LEVEL,
     ROTATION_MODE_TRACK_CHANGE,
     ROTATION_MODE_AUTO,
@@ -60,6 +61,7 @@ PALETTE_AFFECTING_OPTIONS = {
     CONF_PALETTE_ORDERING,
     CONF_COLOR_ACCURACY_MODE,
     CONF_COLOR_PURITY,
+    CONF_PALETTE_COHERENCE,
     CONF_WHITE_LEVEL,
     "monochrome_mode",
     "low_color_handling",
@@ -104,6 +106,7 @@ class SonosHueCoordinator:
         self._frozen_track_key = None
         self._frozen_resolve_result = None
         self.last_track_key = None
+        self.last_palette_track_key = None
         self.last_processing_reason = None
         self.runtime_assignment_strategy = None
         self.runtime_options = {}
@@ -114,6 +117,7 @@ class SonosHueCoordinator:
         self.last_restore_snapshot_count = 0
         self.last_restore_reason = None
         self.last_health_report = None
+        self.last_palette_coherence = {}
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
     @property
@@ -136,6 +140,7 @@ class SonosHueCoordinator:
         config = dict(self.config)
         config.setdefault(CONF_COLOR_PURITY, 65)
         config.setdefault(CONF_WHITE_LEVEL, 50)
+        config.setdefault(CONF_PALETTE_COHERENCE, "balanced")
         config["_effective_brightness_source"] = "Brightness controls"
         config["_effective_white_source"] = "White Handling + White Level"
         return config
@@ -206,6 +211,8 @@ class SonosHueCoordinator:
             "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
             "color_accuracy_mode": self.config.get(CONF_COLOR_ACCURACY_MODE, "natural"),
             "color_purity": self.config.get(CONF_COLOR_PURITY, 65),
+            "palette_coherence": self.config.get(CONF_PALETTE_COHERENCE, "balanced"),
+            "palette_coherence_diagnostics": self.last_palette_coherence,
             "white_level": self.config.get(CONF_WHITE_LEVEL, 50),
             "effective_brightness_source": effective.get("_effective_brightness_source"),
             "effective_white_source": effective.get("_effective_white_source"),
@@ -437,19 +444,29 @@ class SonosHueCoordinator:
         self.last_fallback_suppressed = None
 
         has_previous = bool(self.last_palette)
+        current_track_key = self._track_key(state) if state else None
+        same_palette_track = bool(
+            has_previous
+            and current_track_key
+            and self.last_palette_track_key
+            and current_track_key == self.last_palette_track_key
+        )
 
-        if has_previous and reason in ("image_fetch_empty", "image_fetch_failed", "no_artwork"):
-            self.last_artwork_fallback_applied = "reuse_existing_palette"
-            self.last_palette_error = f"{reason}_reuse_existing_palette"
-            self.last_fallback_suppressed = f"suppressed_{mode}_fallback_previous_palette_available"
+        # Reuse an existing palette only when it belongs to the same track.
+        # This prevents transient artwork HTTP errors from painting a new track
+        # with stale colors from the previous album.
+        if same_palette_track and reason in ("image_fetch_empty", "image_fetch_failed", "no_artwork"):
+            self.last_artwork_fallback_applied = "reuse_existing_palette_same_track"
+            self.last_palette_error = f"{reason}_reuse_existing_palette_same_track"
+            self.last_fallback_suppressed = f"suppressed_{mode}_fallback_same_track_palette_available"
             return list(self.last_palette)
 
         if mode == "reuse_last":
-            if has_previous:
-                self.last_artwork_fallback_applied = "reuse_last_palette"
-                self.last_palette_error = f"{reason}_reuse_last_palette"
+            if same_palette_track:
+                self.last_artwork_fallback_applied = "reuse_last_palette_same_track"
+                self.last_palette_error = f"{reason}_reuse_last_palette_same_track"
                 return list(self.last_palette)
-            self.last_artwork_fallback_applied = "track_based_no_previous_palette"
+            self.last_artwork_fallback_applied = "track_based_stale_palette_blocked"
             self.last_palette_error = f"{reason}_track_based_no_previous_palette"
             return self._metadata_fallback_palette(state)
 
@@ -539,6 +556,7 @@ class SonosHueCoordinator:
             f"ordering={self.effective_config().get(CONF_PALETTE_ORDERING, 'vivid_first')}",
             f"color_accuracy={self.effective_config().get(CONF_COLOR_ACCURACY_MODE, 'natural' )}",
             f"color_purity={self.effective_config().get(CONF_COLOR_PURITY, 65)}",
+            f"palette_coherence={self.effective_config().get(CONF_PALETTE_COHERENCE, 'balanced')}",
             f"white={self.effective_config().get('white_handling', 'suppress_when_color_exists')}",
             f"white_level={self.effective_config().get(CONF_WHITE_LEVEL, 50)}",
             f"mono={self.effective_config().get('monochrome_mode', 'warm_neutral')}",
@@ -1046,6 +1064,7 @@ Tokens and artwork URLs are redacted.
                 self._notify()
                 return
             self.last_palette = palette
+            self.last_palette_track_key = self.last_track_key
             self.last_error = None
             self._notify()
             await self._apply_palette_to_lights(force_apply=True)
@@ -1080,12 +1099,17 @@ Tokens and artwork URLs are redacted.
                         return
                     self.last_error = None
                     self.last_palette = palette
+                    self.last_palette_track_key = self.last_track_key
                     self._notify()
                     await self._apply_palette_to_lights(force_apply=True)
                     self.last_timings["total_processing_ms"] = round((time.perf_counter() - process_started) * 1000, 1)
                     return
                 self.last_image = used_art or art
-                palette = extract_palette_from_bytes(image_bytes, self.effective_config())
+                # Build one effective palette config and let extraction attach
+                # coherence diagnostics to it for the Status sensor.
+                palette_config = self.effective_config()
+                palette = extract_palette_from_bytes(image_bytes, palette_config)
+                self.last_palette_coherence = palette_config.get("_palette_coherence_diagnostics", {})
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
                     self.cache.set(cache_key, palette)
@@ -1104,6 +1128,7 @@ Tokens and artwork URLs are redacted.
                 self.last_palette_error = None
 
             self.last_palette = palette
+            self.last_palette_track_key = self.last_track_key
             self._notify()
             await self._apply_palette_to_lights(force_apply=force_apply)
             self.last_timings['total_processing_ms'] = round((time.perf_counter() - process_started) * 1000, 1)

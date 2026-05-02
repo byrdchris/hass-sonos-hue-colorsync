@@ -9,6 +9,7 @@ CONF_GROUP_ENTITIES = "group_entities"
 CONF_MEMBER_LIGHT_ENTITIES = "member_light_entities"
 CONF_COLOR_COUNT = "color_count"
 CONF_PALETTE_ORDERING = "palette_ordering"
+CONF_PALETTE_COHERENCE = "palette_coherence"
 CONF_TRANSITION = "transition"
 CONF_FILTER_DULL = "filter_dull"
 CONF_FILTER_BRIGHT_WHITE = "filter_bright_white"
@@ -60,6 +61,23 @@ PALETTE_ORDERING_OPTIONS = [
 PALETTE_ORDERING_LABELS = {
     PALETTE_ORDERING_VIVID_FIRST: "Vivid Colors First",
     PALETTE_ORDERING_DOMINANT_FIRST: "Dominant Colors First",
+}
+
+# Palette Coherence is a universal outlier filter. It is intentionally
+# option-based rather than a granular slider so the UI remains understandable.
+PALETTE_COHERENCE_OFF = "off"
+PALETTE_COHERENCE_BALANCED = "balanced"
+PALETTE_COHERENCE_STRICT = "strict"
+DEFAULT_PALETTE_COHERENCE = PALETTE_COHERENCE_BALANCED
+PALETTE_COHERENCE_OPTIONS = [
+    PALETTE_COHERENCE_OFF,
+    PALETTE_COHERENCE_BALANCED,
+    PALETTE_COHERENCE_STRICT,
+]
+PALETTE_COHERENCE_LABELS = {
+    PALETTE_COHERENCE_OFF: "Off",
+    PALETTE_COHERENCE_BALANCED: "Balanced",
+    PALETTE_COHERENCE_STRICT: "Strict",
 }
 
 ASSIGNMENT_STRATEGY_SEQUENTIAL = "sequential"

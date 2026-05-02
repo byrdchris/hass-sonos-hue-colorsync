@@ -15,7 +15,12 @@ from PIL import Image, ImageFilter
 from .const import (
     CONF_COLOR_ACCURACY_MODE,
     CONF_COLOR_PURITY,
+    CONF_PALETTE_COHERENCE,
     CONF_WHITE_LEVEL,
+    DEFAULT_PALETTE_COHERENCE,
+    PALETTE_COHERENCE_BALANCED,
+    PALETTE_COHERENCE_OFF,
+    PALETTE_COHERENCE_STRICT,
     COLOR_ACCURACY_MODE_ALBUM,
     COLOR_ACCURACY_MODE_NATURAL,
     COLOR_ACCURACY_MODE_VIVID,
@@ -408,6 +413,101 @@ def _rebalance_album_palette(candidates: list[RGB], image_bytes: bytes, desired:
     return _clustered_select(pool, desired)[:desired]
 
 
+# Compute circular hue distance in degrees for outlier detection.
+def _hue_distance_degrees(hue_a: float, hue_b: float) -> float:
+    diff = abs(hue_a - hue_b)
+    return min(diff, 1.0 - diff) * 360.0
+
+
+# Remove isolated hue outliers without hard-coding any specific color family.
+# Balanced removes only obvious outsiders; Strict keeps a more unified hue family.
+def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], desired: int, config: dict) -> list[RGB]:
+    mode = config.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)
+    diagnostics = {
+        "mode": mode,
+        "applied": False,
+        "removed_colors": [],
+        "dominant_hue_degrees": None,
+        "dominant_cluster_score": None,
+        "reason": None,
+    }
+    config["_palette_coherence_diagnostics"] = diagnostics
+
+    if mode == PALETTE_COHERENCE_OFF or not palette:
+        diagnostics["reason"] = "disabled"
+        return palette
+
+    chromatic = []
+    for idx, color in enumerate(palette):
+        hue, saturation, value = _hsv(color)
+        if saturation >= 0.24 and 0.16 <= value <= 0.96:
+            # Earlier palette entries are more important because ordering already
+            # reflects the selected Dominant/Vivid preference.
+            score = (len(palette) - idx) * (0.55 + saturation) * (0.55 + value)
+            chromatic.append((color, hue, saturation, value, score))
+
+    if len(chromatic) < 3:
+        diagnostics["reason"] = "not_enough_chromatic_colors"
+        return palette
+
+    cluster_radius = 90.0 if mode == PALETTE_COHERENCE_BALANCED else 75.0
+    keep_radius = 105.0 if mode == PALETTE_COHERENCE_BALANCED else 85.0
+    minimum_ratio = 0.45 if mode == PALETTE_COHERENCE_BALANCED else 0.38
+
+    best_hue = None
+    best_score = -1.0
+    total_score = sum(item[4] for item in chromatic) or 1.0
+    for _color, hue, _sat, _value, _score in chromatic:
+        score = sum(item[4] for item in chromatic if _hue_distance_degrees(hue, item[1]) <= cluster_radius)
+        if score > best_score:
+            best_score = score
+            best_hue = hue
+
+    if best_hue is None or (best_score / total_score) < minimum_ratio:
+        diagnostics["reason"] = "multicolor_palette_preserved"
+        diagnostics["dominant_cluster_score"] = round(best_score / total_score, 3)
+        return palette
+
+    kept: list[RGB] = []
+    removed: list[RGB] = []
+    for color in palette:
+        hue, saturation, value = _hsv(color)
+        if saturation < 0.20 or value < 0.16:
+            kept.append(color)
+            continue
+        if _hue_distance_degrees(hue, best_hue) <= keep_radius:
+            kept.append(color)
+        else:
+            removed.append(color)
+
+    if not removed:
+        diagnostics["reason"] = "no_outliers_found"
+        diagnostics["dominant_hue_degrees"] = round(best_hue * 360.0, 1)
+        diagnostics["dominant_cluster_score"] = round(best_score / total_score, 3)
+        return palette
+
+    # Refill from source candidates that fit the dominant hue family so Color Count
+    # remains stable without reintroducing isolated colors.
+    for color in source_candidates:
+        if len(kept) >= desired:
+            break
+        if color in kept or color in removed:
+            continue
+        hue, saturation, value = _hsv(color)
+        if saturation < 0.20 or _hue_distance_degrees(hue, best_hue) <= keep_radius:
+            kept.append(color)
+
+    result = _repeat_to_count(kept or palette, desired)[:desired]
+    diagnostics.update({
+        "applied": True,
+        "removed_colors": ["#{:02X}{:02X}{:02X}".format(*color) for color in removed],
+        "dominant_hue_degrees": round(best_hue * 360.0, 1),
+        "dominant_cluster_score": round(best_score / total_score, 3),
+        "reason": "outliers_removed",
+    })
+    return result
+
+
 # Extract the final Hue-ready palette from album art.
 # Combines quantization, perceptual scoring, filtering, fallback handling, and ordering.
 def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
@@ -437,14 +537,15 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
 
     perceptual = _rebalance_album_palette(candidates, image_bytes, desired, ordering)
     if perceptual:
-        return perceptual[:desired]
-
-    if ordering == "dominant_first":
+        palette = perceptual[:desired]
+    elif ordering == "dominant_first":
         dominant = _dominant_select(candidates, desired)
-        return dominant[:desired] or [(220, 198, 176)]
+        palette = dominant[:desired] or [(220, 198, 176)]
+    else:
+        clustered = _clustered_select(candidates, desired)
+        palette = clustered[:desired] or [(220, 198, 176)]
 
-    clustered = _clustered_select(candidates, desired)
-    return clustered[:desired] or [(220, 198, 176)]
+    return _apply_palette_coherence(palette, candidates, desired, config)
 
 
 def rgb_to_hex(rgb: RGB) -> str:

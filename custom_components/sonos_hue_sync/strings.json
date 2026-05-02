@@ -35,7 +35,8 @@
           "artwork_fallback_mode": "Artwork Fallback",
           "cache": "Cache Album Colors",
           "expand_groups": "Distribute Across Group Lights",
-          "airplay_poll_interval": "AirPlay Metadata Check Interval"
+          "airplay_poll_interval": "AirPlay Metadata Check Interval",
+          "palette_coherence": "Palette Coherence"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -66,7 +67,8 @@
           "artwork_fallback_mode": "Controls what happens when album art is unavailable or cannot be processed.",
           "cache": "Remember album palettes to avoid reprocessing the same artwork.",
           "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
-          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events."
+          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events.",
+          "palette_coherence": "Controls whether visually isolated colors are kept or removed. Off keeps all extracted colors, Balanced removes obvious outliers, and Strict keeps a more unified palette."
         }
       }
     }
@@ -105,7 +107,8 @@
           "artwork_fallback_mode": "Artwork Fallback",
           "cache": "Cache Album Colors",
           "expand_groups": "Distribute Across Group Lights",
-          "airplay_poll_interval": "AirPlay Metadata Check Interval"
+          "airplay_poll_interval": "AirPlay Metadata Check Interval",
+          "palette_coherence": "Palette Coherence"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -136,7 +139,8 @@
           "artwork_fallback_mode": "Controls what happens when album art is unavailable or cannot be processed.",
           "cache": "Remember album palettes to avoid reprocessing the same artwork.",
           "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
-          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events."
+          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events.",
+          "palette_coherence": "Controls whether visually isolated colors are kept or removed. Off keeps all extracted colors, Balanced removes obvious outliers, and Strict keeps a more unified palette."
         }
       }
     }
@@ -220,6 +224,9 @@
       },
       "artwork_fallback_mode": {
         "name": "Artwork Fallback"
+      },
+      "palette_coherence": {
+        "name": "Palette Coherence"
       }
     },
     "number": {
@@ -285,6 +292,13 @@
         "random": "Random Order",
         "dark_to_light": "Dark to Light",
         "light_to_dark": "Light to Dark"
+      }
+    },
+    "palette_coherence": {
+      "options": {
+        "off": "Off",
+        "balanced": "Balanced",
+        "strict": "Strict"
       }
     }
   }

@@ -1,3 +1,11 @@
+## v1.2.4
+
+- Added **Palette Coherence** select with Off, Balanced, and Strict options.
+- Palette Coherence removes isolated hue outliers universally, without tying behavior to a specific color family.
+- Added diagnostics for coherence mode, dominant hue family, cluster score, and removed outlier colors.
+- Palette cache keys now include Palette Coherence so tuning changes reprocess artwork correctly.
+- Preserved v1.2.3 gradient pattern options including Dark to Light and Light to Dark.
+
 ## v1.2.3
 
 - Added gradient pattern options for Dark to Light and Light to Dark.

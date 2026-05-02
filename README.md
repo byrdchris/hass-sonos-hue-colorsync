@@ -201,11 +201,11 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.3` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.4` creates a GitHub release and attaches a clean archive.
 
 ```bash
-git tag v1.2.3
-git push origin v1.2.3
+git tag v1.2.4
+git push origin v1.2.4
 ```
 
 ## License
@@ -249,3 +249,13 @@ The release also includes refreshed `icon.png` and `logo.png` assets in the inte
 ### Gradient color ordering
 
 Gradient-capable Hue lights can now arrange palette colors as Same Order, Offset, Random Order, Dark to Light, or Light to Dark. Dark/Light ordering uses perceived brightness so gradient ramps match how the colors appear to the eye rather than a simple RGB average.
+
+### Palette Coherence
+
+Palette Coherence removes visually isolated color outliers after album-art extraction. It is universal and does not target any specific hue family.
+
+- **Off** keeps extracted colors as-is.
+- **Balanced** removes obvious outliers while preserving natural variation.
+- **Strict** keeps a more unified palette and removes stronger hue outliers.
+
+Diagnostics report the selected coherence mode, dominant hue family, cluster score, and any colors removed.

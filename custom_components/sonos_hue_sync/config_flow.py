@@ -41,6 +41,7 @@ from .const import (
     CONF_MIN_BRIGHTNESS,
     CONF_MONOCHROME_MODE,
     CONF_PALETTE_ORDERING,
+    CONF_PALETTE_COHERENCE,
     CONF_RESTORE_DELAY,
     CONF_ROTATION_MODE,
     CONF_SONOS_ENTITY,
@@ -67,6 +68,7 @@ from .const import (
     DEFAULT_MIN_BRIGHTNESS,
     DEFAULT_MONOCHROME_MODE,
     DEFAULT_PALETTE_ORDERING,
+    DEFAULT_PALETTE_COHERENCE,
     DEFAULT_RESTORE_DELAY,
     DEFAULT_ROTATION_MODE,
     DEFAULT_TRANSITION,
@@ -82,6 +84,8 @@ from .const import (
     MONOCHROME_MODE_GRAYSCALE,
     MONOCHROME_MODE_MUTED_ACCENT,
     MONOCHROME_MODE_WARM_NEUTRAL,
+    PALETTE_COHERENCE_LABELS,
+    PALETTE_COHERENCE_OPTIONS,
     PALETTE_ORDERING_LABELS,
     PALETTE_ORDERING_OPTIONS,
     ROTATION_MODE_LABELS,
@@ -137,6 +141,8 @@ def _full_schema(defaults: dict):
             ], mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_PALETTE_COHERENCE, default=defaults.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(PALETTE_COHERENCE_OPTIONS, PALETTE_COHERENCE_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRUE_GRADIENT_MODE, default=defaults.get(CONF_TRUE_GRADIENT_MODE, DEFAULT_TRUE_GRADIENT_MODE)): bool,
         vol.Optional(CONF_GRADIENT_ORDER_MODE, default=defaults.get(CONF_GRADIENT_ORDER_MODE, DEFAULT_GRADIENT_ORDER_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
