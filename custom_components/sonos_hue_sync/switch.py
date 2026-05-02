@@ -5,12 +5,10 @@ from __future__ import annotations
 
 from homeassistant.components.switch import SwitchEntity
 
-from .const import DOMAIN, CONF_AUTO_ROTATE_COLORS
+from .const import DOMAIN
 
 SWITCHES = [
-    # Primary/everyday controls first
-    (CONF_AUTO_ROTATE_COLORS, "Auto Rotate Colors", "mdi:autorenew"),
-    # Advanced tuning
+    # Advanced tuning. Rotation is controlled by the single Color Rotation selector.
     ("low_color_handling", "Stabilize Low-Color Art", "mdi:contrast-circle"),
     ("cache", "Cache Album Colors", "mdi:cached"),
     ("expand_groups", "Distribute Across Group Lights", "mdi:lightbulb-group"),
@@ -79,8 +77,7 @@ class SonosHueSyncOptionSwitch(SwitchEntity):
 
     @property
     def is_on(self):
-        default = False if self._key == CONF_AUTO_ROTATE_COLORS else True
-        return bool(self._coordinator.config.get(self._key, default))
+        return bool(self._coordinator.config.get(self._key, True))
 
     @property
     def device_info(self):

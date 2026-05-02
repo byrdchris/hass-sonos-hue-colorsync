@@ -10,13 +10,13 @@
           "sonos_entity": "Sonos Speaker",
           "light_entities": "Hue Lights / Groups",
           "color_accuracy_mode": "Color Accuracy Mode",
-          "color_purity": "Color Purity",
+          "color_purity": "Color Purity Preset",
           "white_handling": "White Handling",
           "white_level": "White Suppression",
           "color_count": "Number of Colors",
           "transition": "Transition Time",
-          "auto_rotate_colors": "Auto Rotate Colors",
-          "rotation_mode": "Color Rotation Mode",
+          "auto_rotate_colors": "Legacy timed rotation",
+          "rotation_mode": "Color Rotation",
           "auto_rotate_interval": "Auto Rotation Interval",
           "restore_delay": "Restore Delay",
           "group_entities": "Additional Hue Groups",
@@ -42,14 +42,14 @@
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
           "light_entities": "Main Hue lights or groups to control. If a selected room or group exposes member lights, colors are distributed across those members.",
           "color_accuracy_mode": "Choose the overall extraction style. Natural is balanced, Vivid favors saturated accents, and Album Accurate keeps more muted or neutral artwork tones.",
-          "color_purity": "Controls album fidelity versus stronger color emphasis. 0 keeps only bold, saturated colors. 100 follows the album art most closely.",
-          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity.",
+          "color_purity": "Choose how strongly the integration favors saturated colors versus faithful album tones. Presets preserve the same underlying color behavior without requiring a numeric slider.",
+          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity Preset.",
           "white_level": "Adjusts how strongly white and light neutral tones are reduced. 0 preserves whites. 100 suppresses whites strongly.",
           "color_count": "Number of album-art colors to keep, from 1 to 10. If there are more target lights than colors, colors repeat.",
           "transition": "Fade time in seconds when applying album colors.",
-          "auto_rotate_colors": "Automatically rotate color assignments while the same track continues playing.",
-          "rotation_mode": "Controls whether colors rotate on track changes, on a timer, both, or neither.",
-          "auto_rotate_interval": "Seconds between automatic color rotations when Auto Rotate Colors is enabled.",
+          "auto_rotate_colors": "Legacy compatibility option. New installs should use Color Rotation instead.",
+          "rotation_mode": "Choose whether colors rotate off, once per track change, continuously while music plays, or both.",
+          "auto_rotate_interval": "Seconds between continuous color rotations when Color Rotation includes Continuous.",
           "restore_delay": "Seconds to wait before restoring the previous light state after playback stops or sync is disabled.",
           "group_entities": "Optional extra Hue groups to include in addition to the main targets.",
           "member_light_entities": "Optional individual Hue lights to include in addition to the main targets.",
@@ -82,13 +82,13 @@
           "sonos_entity": "Sonos Speaker",
           "light_entities": "Hue Lights / Groups",
           "color_accuracy_mode": "Color Accuracy Mode",
-          "color_purity": "Color Purity",
+          "color_purity": "Color Purity Preset",
           "white_handling": "White Handling",
           "white_level": "White Suppression",
           "color_count": "Number of Colors",
           "transition": "Transition Time",
-          "auto_rotate_colors": "Auto Rotate Colors",
-          "rotation_mode": "Color Rotation Mode",
+          "auto_rotate_colors": "Legacy timed rotation",
+          "rotation_mode": "Color Rotation",
           "auto_rotate_interval": "Auto Rotation Interval",
           "restore_delay": "Restore Delay",
           "group_entities": "Additional Hue Groups",
@@ -114,14 +114,14 @@
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
           "light_entities": "Main Hue lights or groups to control. If a selected room or group exposes member lights, colors are distributed across those members.",
           "color_accuracy_mode": "Choose the overall extraction style. Natural is balanced, Vivid favors saturated accents, and Album Accurate keeps more muted or neutral artwork tones.",
-          "color_purity": "Controls album fidelity versus stronger color emphasis. 0 keeps only bold, saturated colors. 100 follows the album art most closely.",
-          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity.",
+          "color_purity": "Choose how strongly the integration favors saturated colors versus faithful album tones. Presets preserve the same underlying color behavior without requiring a numeric slider.",
+          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity Preset.",
           "white_level": "Adjusts how strongly white and light neutral tones are reduced. 0 preserves whites. 100 suppresses whites strongly.",
           "color_count": "Number of album-art colors to keep, from 1 to 10. If there are more target lights than colors, colors repeat.",
           "transition": "Fade time in seconds when applying album colors.",
-          "auto_rotate_colors": "Automatically rotate color assignments while the same track continues playing.",
-          "rotation_mode": "Controls whether colors rotate on track changes, on a timer, both, or neither.",
-          "auto_rotate_interval": "Seconds between automatic color rotations when Auto Rotate Colors is enabled.",
+          "auto_rotate_colors": "Legacy compatibility option. New installs should use Color Rotation instead.",
+          "rotation_mode": "Choose whether colors rotate off, once per track change, continuously while music plays, or both.",
+          "auto_rotate_interval": "Seconds between continuous color rotations when Color Rotation includes Continuous.",
           "restore_delay": "Seconds to wait before restoring the previous light state after playback stops or sync is disabled.",
           "group_entities": "Optional extra Hue groups to include in addition to the main targets.",
           "member_light_entities": "Optional individual Hue lights to include in addition to the main targets.",
@@ -179,7 +179,7 @@
         "name": "Enable Sync"
       },
       "auto_rotate_colors": {
-        "name": "Auto Rotate Colors"
+        "name": "Legacy timed rotation"
       },
       "filter_dull": {
         "name": "Filter Dull Colors"
@@ -208,7 +208,7 @@
         "name": "White Handling"
       },
       "rotation_mode": {
-        "name": "Color Rotation Mode"
+        "name": "Color Rotation"
       },
       "assignment_strategy": {
         "name": "Color Distribution Mode"
@@ -231,7 +231,7 @@
     },
     "number": {
       "color_purity": {
-        "name": "Color Purity"
+        "name": "Color Purity Preset"
       },
       "white_level": {
         "name": "White Suppression"
@@ -279,10 +279,10 @@
     },
     "rotation_mode": {
       "options": {
-        "track_change": "Rotate on Track Change",
-        "off": "No Rotation",
-        "auto_rotate": "Auto Rotate Only",
-        "track_change_and_auto_rotate": "Track Change and Auto Rotate"
+        "track_change": "On Track Change",
+        "off": "Off",
+        "auto_rotate": "Continuous",
+        "track_change_and_auto_rotate": "Track Change and Continuous"
       }
     },
     "gradient_order_mode": {

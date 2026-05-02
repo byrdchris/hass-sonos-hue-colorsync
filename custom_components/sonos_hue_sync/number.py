@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-# Number entities. Provides sliders for palette size, color purity, white
-# suppression, transition timing, brightness, gradient detail, restore delay,
+# Number entities. Provides sliders for palette size, white suppression,
+# transition timing, brightness, gradient detail, restore delay,
 # and rotation speed.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
 
 from homeassistant.components.number import NumberEntity, NumberMode
 
 from .const import (
-    CONF_COLOR_PURITY,
     CONF_WHITE_LEVEL,
     DEFAULT_AUTO_ROTATE_INTERVAL,
     DEFAULT_COLOR_COUNT,
-    DEFAULT_COLOR_PURITY,
     DEFAULT_GRADIENT_BRIGHTNESS,
     DEFAULT_GRADIENT_COLOR_POINTS,
     DEFAULT_MAX_BRIGHTNESS,
@@ -24,8 +22,8 @@ from .const import (
 )
 
 NUMBERS = [
-    # Primary/everyday controls first.
-    (CONF_COLOR_PURITY, "Color Purity", "mdi:palette-advanced", 0, 100, 1),
+    # Primary/everyday controls first. Color Purity moved to a named preset
+    # select while preserving the same underlying behavior.
     (CONF_WHITE_LEVEL, "White Suppression", "mdi:white-balance-sunny", 0, 100, 1),
     ("color_count", "Number of Colors", "mdi:palette", 1, 10, 1),
     ("transition", "Transition Time", "mdi:timer-outline", 0, 10, 1),
@@ -39,7 +37,6 @@ NUMBERS = [
 ]
 
 NUMBER_DEFAULTS = {
-    CONF_COLOR_PURITY: DEFAULT_COLOR_PURITY,
     CONF_WHITE_LEVEL: DEFAULT_WHITE_LEVEL,
     "color_count": DEFAULT_COLOR_COUNT,
     "transition": DEFAULT_TRANSITION,

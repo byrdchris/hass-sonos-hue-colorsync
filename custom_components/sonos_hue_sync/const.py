@@ -225,10 +225,10 @@ ROTATION_MODE_OPTIONS = [
     ROTATION_MODE_TRACK_AND_AUTO,
 ]
 ROTATION_MODE_LABELS = {
-    ROTATION_MODE_TRACK_CHANGE: "Rotate on Track Change",
-    ROTATION_MODE_OFF: "No Rotation",
-    ROTATION_MODE_AUTO: "Auto Rotate Only",
-    ROTATION_MODE_TRACK_AND_AUTO: "Track Change and Auto Rotate",
+    ROTATION_MODE_OFF: "Off",
+    ROTATION_MODE_TRACK_CHANGE: "On Track Change",
+    ROTATION_MODE_AUTO: "Continuous",
+    ROTATION_MODE_TRACK_AND_AUTO: "Track Change and Continuous",
 }
 
 # User-facing palette tuning controls.
@@ -236,6 +236,32 @@ ROTATION_MODE_LABELS = {
 # 0 favors only strong saturated colors; 100 preserves the album palette most faithfully.
 CONF_COLOR_PURITY = "color_purity"
 DEFAULT_COLOR_PURITY = 65
+
+# Color Purity Preset keeps the old numeric color-purity behavior while
+# replacing the confusing slider with named choices in the UI. The string
+# values intentionally remain numeric so existing palette code and old saved
+# custom values continue to work without a migration.
+COLOR_PURITY_PRESET_SOFT = "80"
+COLOR_PURITY_PRESET_BALANCED = "65"
+COLOR_PURITY_PRESET_VIVID = "35"
+COLOR_PURITY_PRESET_ALBUM = "90"
+COLOR_PURITY_PRESET_BOLD = "20"
+COLOR_PURITY_PRESET_CUSTOM = "custom"
+COLOR_PURITY_PRESET_OPTIONS = [
+    COLOR_PURITY_PRESET_BALANCED,
+    COLOR_PURITY_PRESET_ALBUM,
+    COLOR_PURITY_PRESET_SOFT,
+    COLOR_PURITY_PRESET_VIVID,
+    COLOR_PURITY_PRESET_BOLD,
+]
+COLOR_PURITY_PRESET_LABELS = {
+    COLOR_PURITY_PRESET_BALANCED: "Balanced",
+    COLOR_PURITY_PRESET_ALBUM: "Album Accurate",
+    COLOR_PURITY_PRESET_SOFT: "Soft / Ambient",
+    COLOR_PURITY_PRESET_VIVID: "Vivid",
+    COLOR_PURITY_PRESET_BOLD: "Bold / High Contrast",
+    COLOR_PURITY_PRESET_CUSTOM: "Custom / Existing",
+}
 
 # White Suppression controls white/light-neutral suppression separately from color purity.
 # 0 preserves whites; 100 strongly suppresses white/light gray tones.

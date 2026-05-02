@@ -1,3 +1,19 @@
+## v1.2.7
+
+- Replaced the separate Auto Rotate Colors switch behavior with a single Color Rotation selector: Off, On Track Change, Continuous, and Track Change and Continuous.
+- Removed Auto Rotate Colors from the active entity/control surface and options form to avoid unclear dependency behavior. Existing stored values remain preserved for compatibility but no longer override Color Rotation.
+- Made Color Rotation authoritative: Off disables all rotation, On Track Change rotates only on new tracks, Continuous rotates on the timer, and Track Change and Continuous does both.
+- Added rotation diagnostics showing effective mode, track-change status, continuous status, legacy value handling, and ordered-gradient rotation suppression.
+- Updated Help & Guide, README, translations, and PROJECT_STATE for the clarified rotation model.
+
+## v1.2.6
+
+- Replaced the Color Purity number slider with a named Color Purity Preset select while preserving the same underlying numeric behavior and old saved custom values.
+- Added preset choices: Balanced, Album Accurate, Soft / Ambient, Vivid, and Bold / High Contrast.
+- Preserved legacy custom Color Purity values as Custom / Existing until the user chooses a preset.
+- Refreshed the Help & Guide notification with the latest v1.2.x controls, gradient behavior, diagnostics, target model, and troubleshooting notes.
+- Updated README, translations, and PROJECT_STATE for the preset-based UI.
+
 ## v1.2.5
 
 - Fixed Dark to Light and Light to Dark gradient ordering so explicit gradient ramps are applied as the final ordering step.

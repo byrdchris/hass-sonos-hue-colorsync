@@ -15,9 +15,13 @@ from .const import (
     ARTWORK_FALLBACK_MODES,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
+    COLOR_PURITY_PRESET_CUSTOM,
+    COLOR_PURITY_PRESET_LABELS,
+    COLOR_PURITY_PRESET_OPTIONS,
     CONF_ARTWORK_FALLBACK_MODE,
     CONF_ASSIGNMENT_STRATEGY,
     CONF_COLOR_ACCURACY_MODE,
+    CONF_COLOR_PURITY,
     CONF_GRADIENT_ORDER_MODE,
     CONF_MONOCHROME_MODE,
     CONF_PALETTE_ORDERING,
@@ -77,8 +81,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # visibility modes that caused confusing legacy mode behavior.
     entities = [
         SonosHueSelect(coordinator, entry, CONF_COLOR_ACCURACY_MODE, "Color Accuracy Mode", COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS, "mdi:palette-advanced"),
+        SonosHueSelect(coordinator, entry, CONF_COLOR_PURITY, "Color Purity Preset", COLOR_PURITY_PRESET_OPTIONS, COLOR_PURITY_PRESET_LABELS, "mdi:palette-outline"),
         SonosHueSelect(coordinator, entry, CONF_WHITE_HANDLING, "White Handling", WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
-        SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation Mode", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
+        SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
         SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
         SonosHueSelect(coordinator, entry, CONF_PALETTE_ORDERING, "Palette Ordering", PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS, "mdi:sort"),
         SonosHueSelect(coordinator, entry, CONF_PALETTE_COHERENCE, "Palette Coherence", PALETTE_COHERENCE_OPTIONS, PALETTE_COHERENCE_LABELS, "mdi:vector-combine"),
@@ -113,13 +118,26 @@ class SonosHueSelect(SelectEntity):
         if self._remove_listener:
             self._remove_listener()
 
+    def _normalized_value(self):
+        # Preset values may arrive as ints from old installs or strings from the
+        # new select UI; normalize so both read the same without migration.
+        value = self._coordinator.config.get(self._key, self._options[0])
+        if self._key == CONF_COLOR_PURITY:
+            value = str(value)
+        return value
+
     @property
     def options(self):
-        return [self._labels[value] for value in self._options]
+        labels = [self._labels[value] for value in self._options]
+        if self._key == CONF_COLOR_PURITY and self._normalized_value() not in self._labels:
+            labels.append(self._labels[COLOR_PURITY_PRESET_CUSTOM])
+        return labels
 
     @property
     def current_option(self):
-        value = self._coordinator.config.get(self._key, self._options[0])
+        value = self._normalized_value()
+        if self._key == CONF_COLOR_PURITY and value not in self._labels:
+            return self._labels[COLOR_PURITY_PRESET_CUSTOM]
         return self._labels.get(value, self._labels[self._options[0]])
 
     @property
@@ -129,5 +147,9 @@ class SonosHueSelect(SelectEntity):
     async def async_select_option(self, option: str):
         value = self._label_to_option.get(option)
         if value is None:
+            return
+        # Custom / Existing is display-only. It preserves a legacy or manually
+        # supplied numeric value until the user selects one of the named presets.
+        if self._key == CONF_COLOR_PURITY and value == COLOR_PURITY_PRESET_CUSTOM:
             return
         await self._coordinator.async_set_runtime_option(self._key, value)

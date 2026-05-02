@@ -18,10 +18,11 @@ from .const import (
     ARTWORK_FALLBACK_MODES,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
+    COLOR_PURITY_PRESET_LABELS,
+    COLOR_PURITY_PRESET_OPTIONS,
     CONF_AIRPLAY_POLL_INTERVAL,
     CONF_ARTWORK_FALLBACK_MODE,
     CONF_ASSIGNMENT_STRATEGY,
-    CONF_AUTO_ROTATE_COLORS,
     CONF_AUTO_ROTATE_INTERVAL,
     CONF_CACHE,
     CONF_COLOR_ACCURACY_MODE,
@@ -52,7 +53,6 @@ from .const import (
     DEFAULT_AIRPLAY_POLL_INTERVAL,
     DEFAULT_ARTWORK_FALLBACK_MODE,
     DEFAULT_ASSIGNMENT_STRATEGY,
-    DEFAULT_AUTO_ROTATE_COLORS,
     DEFAULT_AUTO_ROTATE_INTERVAL,
     DEFAULT_CACHE,
     DEFAULT_COLOR_ACCURACY_MODE,
@@ -100,6 +100,18 @@ def _select_options(options, labels):
     return [{"value": key, "label": labels[key]} for key in options]
 
 
+def _color_purity_options(defaults: dict):
+    # Preserve any existing numeric custom value by adding it to the options list
+    # while steering new edits toward named presets.
+    options = list(COLOR_PURITY_PRESET_OPTIONS)
+    current = str(defaults.get(CONF_COLOR_PURITY, DEFAULT_COLOR_PURITY))
+    labels = dict(COLOR_PURITY_PRESET_LABELS)
+    if current not in labels:
+        options.append(current)
+        labels[current] = f"Custom / Existing ({current})"
+    return _select_options(options, labels)
+
+
 def _full_schema(defaults: dict):
     """Single stable schema ordered from everyday controls to advanced tuning."""
     return {
@@ -109,8 +121,8 @@ def _full_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_COLOR_PURITY, default=defaults.get(CONF_COLOR_PURITY, DEFAULT_COLOR_PURITY)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=100, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_COLOR_PURITY, default=str(defaults.get(CONF_COLOR_PURITY, DEFAULT_COLOR_PURITY))):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_color_purity_options(defaults), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_WHITE_LEVEL, default=defaults.get(CONF_WHITE_LEVEL, DEFAULT_WHITE_LEVEL)):
@@ -119,7 +131,6 @@ def _full_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
-        vol.Optional(CONF_AUTO_ROTATE_COLORS, default=defaults.get(CONF_AUTO_ROTATE_COLORS, DEFAULT_AUTO_ROTATE_COLORS)): bool,
         vol.Optional(CONF_ROTATION_MODE, default=defaults.get(CONF_ROTATION_MODE, DEFAULT_ROTATION_MODE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_AUTO_ROTATE_INTERVAL, default=defaults.get(CONF_AUTO_ROTATE_INTERVAL, DEFAULT_AUTO_ROTATE_INTERVAL)):

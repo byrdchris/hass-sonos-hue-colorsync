@@ -42,7 +42,13 @@ RGB = tuple[int, int, int]
 def _effective_color_config(config: dict | None) -> dict:
     effective = dict(config or {})
     mode = effective.get(CONF_COLOR_ACCURACY_MODE, COLOR_ACCURACY_MODE_NATURAL)
-    purity = max(0, min(100, int(effective.get(CONF_COLOR_PURITY, 65))))
+    # Accept both legacy numeric values and new preset string values. If a
+    # display-only custom marker ever appears, fall back safely to Balanced.
+    try:
+        purity = int(effective.get(CONF_COLOR_PURITY, 65))
+    except (TypeError, ValueError):
+        purity = 65
+    purity = max(0, min(100, purity))
 
     # Convert purity into filtering strength. Lower purity means more vivid,
     # saturated colors; higher purity leaves more low-saturation album tones.

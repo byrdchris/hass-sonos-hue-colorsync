@@ -4,9 +4,9 @@ Sonos Hue Sync is a Home Assistant custom integration that extracts colors from 
 
 The integration is designed for Home Assistant installations running in container mode and is installable through HACS as a custom repository.
 
-## v1.2.5 Gradient Ordering Reliability
+## v1.2.7 Rotation UI Clarification
 
-This release improves Dark to Light and Light to Dark gradient behavior for Hue gradient-capable lights. Ordered gradient patterns now use gamma-corrected perceptual luminance, choose colors across the available dark/light range when Gradient Detail Level changes, and suppress rotation for explicit ordered gradients so the final ramp is not accidentally reversed. Diagnostics now expose the final gradient colors, luminance values, sort basis, detail-selection method, and whether rotation was suppressed.
+This release makes **Color Rotation** the single authoritative rotation control. The previous separate Auto Rotate Colors control has been removed from the active UI surface to avoid unclear dependency behavior. Existing stored values are preserved for compatibility, but **Color Rotation** now determines whether rotation is Off, On Track Change, Continuous, or Track Change and Continuous.
 
 ## Features
 
@@ -18,8 +18,7 @@ This release improves Dark to Light and Light to Dark gradient behavior for Hue 
 - Includes AirPlay/Sonos artwork fallback handling to reduce flicker and bad palette overwrites.
 - Provides Home Assistant controls, diagnostics, health checks, and target previews.
 - **Update Lights Now** manually applies the effective current settings without enabling continuous sync.
-- **Color Rotation Mode** can shift color assignments on each track change, run timed auto-rotation, use both, or disable rotation.
-- Optional **Auto Rotate Colors** mode cycles the active palette while music is playing, with a user-adjustable interval.
+- **Color Rotation** can shift color assignments on each track change, continuously while music plays, both, or disable rotation entirely.
 - Palette ordering can prioritize either vivid visual variety or the most dominant album-art colors first.
 
 ## Requirements
@@ -61,13 +60,13 @@ During setup and in options, you can configure:
 - **Additional Hue Groups**: optional extra Hue groups to expand.
 - **Additional Member Lights**: optional direct lights to include.
 - **Excluded Lights**: lights that should never be controlled, even if included through a selected room or zone.
-- **Color Purity**
+- **Color Purity Preset**
 - **White Suppression**
 - **Number of Colors**: palette size from 1 to 10.
 - **Palette Ordering**: choose whether the extracted palette favors vivid, visually distinct colors or keeps the most dominant album-art colors first.
 - **Color Accuracy Mode**: choose Natural, Vivid, or Album Accurate extraction. Natural is the default balanced mode, Vivid favors saturated accents, and Album Accurate preserves more muted artwork tones.
-- **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Suppression**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
+- **Color Purity Preset**: chooses named behavior for album fidelity versus saturated emphasis. Presets preserve the previous underlying color-purity behavior without requiring a numeric slider.
+- **White Suppression**: controls white/light-neutral suppression separately from Color Purity Preset. 0 preserves whites; 100 suppresses whites strongly.
 - **Transition Time**: fade time for light changes.
 - **Minimum Brightness**: lower brightness limit for standard lights.
 - **Maximum Brightness**: upper brightness limit for standard lights.
@@ -77,9 +76,8 @@ During setup and in options, you can configure:
 - **Artwork Fallback**: controls what happens when Sonos artwork is missing or unavailable.
 - **Color Distribution Mode**: controls how the extracted palette is assigned across multiple lights. Use **Sequential** if you want lights to follow the selected Palette Ordering directly.
 - **Enable True Gradient**: uses multi-color Hue gradient behavior for capable lights while standard lights in the same group continue using normal color updates.
-- **Color Rotation Mode**: controls whether color assignments rotate on track changes, timed auto-rotation, both, or not at all.
-- **Auto Rotate Colors**: automatically cycles the current palette while music is playing. This remains available as a simple timed-rotation switch.
-- **Auto Rotation Interval**: total cycle time between automatic rotation starts, adjustable from 1 to 60 seconds. Transition Time is treated as the fade portion of the cycle, with an internal safety buffer to avoid overlapping Hue updates.
+- **Color Rotation**: controls whether color assignments are Off, On Track Change, Continuous, or Track Change and Continuous.
+- **Auto Rotation Interval**: total cycle time between continuous rotation starts, adjustable from 1 to 60 seconds. Transition Time is treated as the fade portion of the cycle, with an internal safety buffer to avoid overlapping Hue updates.
 - **Gradient Detail Level**: controls the number of gradient points.
 - **Gradient Pattern**: controls gradient ordering across lights.
 - **Cache Album Colors**: stores album palettes for faster repeat playback.
@@ -94,12 +92,12 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 
 Sonos Hue Sync uses a single advanced control surface. Basic / Advanced mode has been removed because Home Assistant device controls do not support that behavior cleanly.
 
-Color tuning is split into two independent controls:
+Color tuning is split into independent controls:
 
-- **Color Purity**: 0 keeps only strong saturated colors; 100 follows the album art most closely.
+- **Color Purity Preset**: named presets for album fidelity versus saturated emphasis. Older saved numeric values are preserved as Custom / Existing until a preset is selected.
 - **White Suppression**: 0 preserves white and light neutral tones; 100 suppresses whites strongly.
 
-**White Handling** remains separate from Color Purity so album-color fidelity and white/light-neutral behavior can be tuned independently.
+**White Handling** remains separate from Color Purity Preset so album-color fidelity and white/light-neutral behavior can be tuned independently.
 
 ### Switches
 
@@ -107,11 +105,11 @@ Color tuning is split into two independent controls:
 - **Cache Album Colors**
 - **Distribute Across Group Lights**
 - **Enable True Gradient**
-- **Auto Rotate Colors**
 
 ### Selects
 
 - **Color Accuracy Mode**
+- **Color Rotation**
 - **White Handling**
 - **Palette Ordering**
 - **Color Distribution Mode**
@@ -121,7 +119,7 @@ Color tuning is split into two independent controls:
 
 ### Numbers
 
-- **Color Purity**
+- **Color Purity Preset**
 - **White Suppression**
 - **Number of Colors**
 - **Transition Time**
@@ -154,7 +152,7 @@ When playback stops, pauses, or the primary sync control is turned off, the inte
 
 Excluded lights are removed after group expansion. This means a light can be part of a selected Hue room or zone and still be protected from control.
 
-When timed rotation is enabled by **Auto Rotate Colors** or **Color Rotation Mode**, the integration periodically reuses the same internal path as **Rotate Colors**. It does not recompute the palette. The current **Transition Time** value controls the fade. **Auto Rotation Interval** is treated as the total cycle time between rotation starts; the fade time and a conservative internal safety buffer are reserved inside that cycle. If the interval is shorter than the fade plus buffer, the integration waits long enough to avoid overlapping Hue updates. Interval and transition changes take effect while auto-rotation is already running.
+When continuous rotation is enabled by **Color Rotation**, the integration periodically reuses the same internal path as **Rotate Colors**. It does not recompute the palette. The current **Transition Time** value controls the fade. **Auto Rotation Interval** is treated as the total cycle time between rotation starts; the fade time and a conservative internal safety buffer are reserved inside that cycle. If the interval is shorter than the fade plus buffer, the integration waits long enough to avoid overlapping Hue updates. Interval and transition changes take effect while auto-rotation is already running.
 
 
 ## Palette Ordering vs. Distribution
@@ -205,7 +203,7 @@ Confirm **Enable True Gradient** is on. Review diagnostics for `gradient_capabil
 
 ## Release workflow
 
-This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.4` creates a GitHub release and attaches a clean archive.
+This repository includes a GitHub Actions release workflow. Pushing a version tag such as `v1.2.6` creates a GitHub release and attaches a clean archive.
 
 ```bash
 git tag v1.2.4
@@ -219,19 +217,21 @@ MIT License. See `LICENSE`.
 
 ## Behavior notes
 
-### Color Rotation Mode
+### Color Rotation
 
-**Rotate on Track Change** is the default. On each new track, the integration shifts the palette assignment by one slot before applying the new album colors. This prevents the same physical lamps from repeatedly receiving the same palette position when different albums have similar dominant color structure.
+**On Track Change** is the default. On each new track, the integration shifts the palette assignment by one slot before applying the new album colors. This prevents the same physical lamps from repeatedly receiving the same palette position when different albums have similar dominant color structure.
 
 Modes:
-- **Rotate on Track Change**: shift assignments only when the track changes.
-- **No Rotation**: keep deterministic palette-to-light assignment.
-- **Auto Rotate Only**: use timed palette rotation while music is playing.
-- **Track Change and Auto Rotate**: shift on each track and keep timed rotation active.
+- **Off**: keep deterministic palette-to-light assignment and disable continuous rotation.
+- **On Track Change**: shift assignments only when the track changes.
+- **Continuous**: use timed palette rotation while music is playing.
+- **Track Change and Continuous**: shift on each track and keep timed rotation active.
+
+Dark to Light and Light to Dark gradient patterns suppress rotation internally so the selected brightness direction remains intact.
 
 ### Color Accuracy Mode
-- **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Suppression**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
+- **Color Purity Preset**: chooses named behavior for album fidelity versus saturated emphasis. Presets preserve the previous underlying color-purity behavior without requiring a numeric slider.
+- **White Suppression**: controls white/light-neutral suppression separately from Color Purity Preset. 0 preserves whites; 100 suppresses whites strongly.
 
 **Natural** is the default and balances album accuracy with usable Hue output. It applies perceptual extraction, dull-color filtering, contextual white suppression, and balanced neutral handling.
 
@@ -240,9 +240,9 @@ Modes:
 - **Vivid**: favors saturated subject and accent colors, with stronger neutral and white suppression.
 - **Album Accurate**: preserves more muted background and neutral tones for artwork where the overall album mood matters more than high saturation.
 
-Color Purity controls general album fidelity while White Handling and White Suppression remain separate because white and light-neutral tones need different treatment from saturation filtering.
-- **Color Purity**: controls album fidelity versus saturated emphasis. 0 keeps only strong saturated colors; 100 follows the album art most closely.
-- **White Suppression**: controls white/light-neutral suppression separately from Color Purity. 0 preserves whites; 100 suppresses whites strongly.
+Color Purity Preset controls general album fidelity while White Handling and White Suppression remain separate because white and light-neutral tones need different treatment from saturation filtering.
+- **Color Purity Preset**: chooses named behavior for album fidelity versus saturated emphasis. Presets preserve the previous underlying color-purity behavior without requiring a numeric slider.
+- **White Suppression**: controls white/light-neutral suppression separately from Color Purity Preset. 0 preserves whites; 100 suppresses whites strongly.
 
 ## Restore and icon reliability
 

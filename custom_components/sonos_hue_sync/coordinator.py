@@ -46,6 +46,7 @@ from .const import (
     CONF_PALETTE_COHERENCE,
     CONF_WHITE_LEVEL,
     ROTATION_MODE_TRACK_CHANGE,
+    ROTATION_MODE_OFF,
     ROTATION_MODE_AUTO,
     ROTATION_MODE_TRACK_AND_AUTO,
 )
@@ -254,9 +255,11 @@ class SonosHueCoordinator:
             "brightness_limits": {"minimum": effective.get("min_brightness", 30), "maximum": effective.get("max_brightness", 255), "gradient": effective.get("gradient_brightness", 255)},
             "excluded_lights": self.config.get("exclude_light_entities", []),
             "restore_delay": self.config.get("restore_delay", 0),
+            "color_rotation": self._rotation_effective_state(),
             "auto_rotate_colors": self.config.get(CONF_AUTO_ROTATE_COLORS, False),
             "color_rotation_mode": self._rotation_mode(),
             "rotate_on_track_change": self._rotate_on_track_change_enabled(),
+            "continuous_rotation_enabled": self._auto_rotate_enabled(),
             "auto_rotate_interval_seconds": self._auto_rotate_interval_seconds(),
             "auto_rotate_active": bool(self._auto_rotate_task and not self._auto_rotate_task.done()),
             "auto_rotation_timing": self._auto_rotation_timing(),
@@ -631,56 +634,94 @@ class SonosHueCoordinator:
 
 
     async def async_show_help(self):
-        message = """## Sonos Hue Sync quick guide
+        message = """## Sonos Hue Sync Help & Guide
 
-### Targets
-- **Hue lights / groups**: your main lights, room, zone, or group.
-- **Additional Hue groups to expand**: add real Hue rooms/zones/groups when the main selection misses members. These are additive.
-- **Additional member lights**: add specific individual lights that should always be controlled directly.
+### What it does
+Sonos Hue Sync watches the selected Sonos player, extracts colors from the current album art, applies those colors to Hue lights, and restores the previous lighting state when playback stops or Sync is turned off.
 
-### Palette controls
-- **Number of Colors**: number of album-art colors to extract. If there are more lights than colors, colors repeat.
-- **Palette Ordering**: choose whether extracted palettes keep the most dominant artwork colors first or prioritize vivid, visually distinct colors.
-- **Filter Dull Colors**: removes dark, gray, muddy, or low-saturation tones.
-- **White Color Handling**: choose whether whites are allowed, always filtered, or suppressed only when album art also contains real colors.
-- **White Filtering Strength**: adjusts how aggressively pale neutrals, cream tones, and blue-gray colors are treated as white.
-- **Filter Bright Whites**: legacy simple white filter used if White Color Handling is not set.
-- **Black-and-White Album Handling**: controls grayscale covers so they do not produce random neon colors.
-- **Handle Low-Color Album Art**: keeps nearly monochrome covers restrained instead of over-saturating tiny color noise.
+### Main targets
+- **Hue lights / groups**: the primary rooms, zones, groups, or individual lights to control.
+- **Additional Hue groups**: extra Hue rooms/zones/groups to expand into member lights.
+- **Additional member lights**: specific individual lights to include directly.
+- **Excluded lights**: lights that should never be changed, even if they are members of a selected group.
+
+The target model is additive. The Targets sensor shows the resolved lights, skipped lights, and where each light came from.
+
+### Color controls
+- **Color Accuracy Mode**: sets the broad extraction intent.
+  - **Natural** balances album fidelity and usable lighting.
+  - **Vivid** favors stronger saturated accents.
+  - **Album Accurate** keeps more muted and neutral artwork tones.
+- **Color Purity Preset**: replaces the old numeric slider with named behavior presets while preserving the same underlying color-tuning function.
+  - **Album Accurate** follows the artwork most closely.
+  - **Balanced** is the recommended default.
+  - **Soft / Ambient** keeps gentler, less harsh tones.
+  - **Vivid** favors more colorful lighting.
+  - **Bold / High Contrast** keeps only stronger accents.
+  - **Custom / Existing** may appear when an older saved numeric value is still being preserved.
+- **Palette Ordering**: chooses whether dominant artwork colors or vivid colors are preferred first.
+- **Palette Coherence**: removes visually isolated outlier colors.
+  - **Off** keeps all extracted colors.
+  - **Balanced** removes obvious outliers.
+  - **Strict** keeps the palette more unified.
+- **White Handling**: controls whether whites are allowed, reduced only when colors exist, or reduced more consistently.
+- **White Suppression**: controls how aggressively pale whites, creams, and light grays are reduced.
+- **Black & White Handling**: handles grayscale or nearly monochrome covers without producing random neon colors.
+- **Stabilize Low-Color Art**: restrains very low-color covers so tiny noise does not dominate the lights.
 
 ### Light behavior
-- **Assignment Strategy**:
-  - **Balanced**: best default for visible color variety.
-  - **Sequential**: applies colors in the selected palette order. With **Dominant Colors First**, this preserves dominance order across lights.
-  - **Alternating bright / dim**: alternates light and dark tones.
-  - **Brightness order**: sorts colors by lightness; can make similar hues dominate.
-- **Transition Time**: fade duration for light changes.
-- **Color Rotation Mode**: choose whether color assignments rotate on track change, timed auto-rotation, both, or not at all.
-- **Auto Rotate Colors**: simple timed-rotation switch that cycles the current palette while music is playing.
-- **Auto Rotation Interval**: total cycle time between automatic rotation starts. The current **Transition Time** is treated as the fade portion of that cycle, with a conservative internal safety buffer to avoid overlapping Hue updates. Changes take effect immediately while auto-rotation is running.
-- **Gradient Pattern**: choose whether gradient lights use the same order, offset order per light, or random order per track.
-- **Distribute Colors Across Group Members**: applies colors to individual lights inside groups when members are available.
+- **Color Distribution Mode**:
+  - **Balanced** spreads usable colors across lights and is the best general default.
+  - **Sequential** preserves palette order most directly.
+  - **Alternating bright / dim** alternates lighter and darker colors.
+  - **Brightness order** assigns colors by lightness.
+- **Number of Colors**: controls how many album-art colors are extracted.
+- **Transition Time**: controls fade duration.
+- **Minimum Brightness** and **Maximum Brightness**: bound standard-light brightness.
+- **Restore Delay**: waits before restoring the previous lighting state after playback stops.
 
-### Troubleshooting
-- Use **Targets** to check which lights will be controlled before a song changes.
-- If lights are missing, add them under **Additional member lights**.
-- If everything looks like one color, try **Vivid Colors First** palette ordering or **Balanced** assignment.
-- If black-and-white art looks too colorful, use **Warm neutral** or **Preserve grayscale**.
+### Gradient lights
+- **Enable True Gradient** sends multi-point gradients to supported Hue gradient lights while standard lights still receive normal colors.
+- **Gradient Detail Level** controls how many gradient points are sent.
+- **Gradient Brightness** controls the brightness ceiling for supported gradient lights.
+- **Gradient Pattern** controls how colors are ordered inside the gradient:
+  - **Same Order** follows the selected palette order.
+  - **Offset** shifts the gradient per light.
+  - **Random Order** uses a stable per-track random order.
+  - **Dark to Light** creates a perceptual brightness ramp from darker to lighter colors.
+  - **Light to Dark** creates the reverse ramp.
 
-### Download diagnostics
-For deeper troubleshooting, download diagnostics from:
+For Dark to Light and Light to Dark, ordering is applied after gradient detail selection. Rotation is suppressed for those ordered patterns so the final ramp is not accidentally reversed.
+
+### Rotation and animation
+- **Color Rotation** is the single control for rotation behavior: Off, On Track Change, Continuous, or Track Change and Continuous.
+- **On Track Change** rotates colors once per new song; **Continuous** rotates the current palette on the timer while music keeps playing.
+- Dark to Light and Light to Dark gradient patterns automatically suppress rotation so the gradient direction is preserved.
+- **Auto Rotation Interval** is the full cycle timing. Transition Time is treated as the fade portion of that cycle with a safety buffer to avoid overlapping Hue updates.
+- **Rotate Colors** manually shifts the current palette without re-extracting album art.
+
+### Manual actions
+- **Update Lights Now**: fetches the current track artwork and applies colors immediately.
+- **Refresh Colors**: re-extracts colors for the current artwork.
+- **Rotate Colors**: reapplies the current palette with a shifted assignment.
+- **Test Lighting**: sends a test color pattern.
+- **Health Check**: checks Sonos availability, target resolution, Hue bridge state, gradient capability, and the last run status.
+
+### Diagnostics
+The Status sensor exposes the current palette, resolved lights, runtime options, last service data, cache result, restore result, gradient diagnostics, and recent timing data.
+
+Download diagnostics from:
 
 **Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics**
 
-Diagnostics include:
-- current configuration and runtime options
-- resolved light targets and source mapping
-- light capabilities and registry metadata
-- Hue bridge runtime summary
-- gradient troubleshooting fields
-- last service data and skipped-light reasons
+Diagnostics include configuration, runtime state, target resolution, registry metadata, Hue bridge summaries, gradient capability details, palette diagnostics, and last service results. Tokens and artwork URLs are redacted.
 
-Tokens and artwork URLs are redacted.
+### Common troubleshooting
+- If palette ordering appears unchanged, try **Sequential** distribution and set Color Rotation to Off; Balanced distribution intentionally reshuffles colors for variety.
+- If gradient Dark to Light / Light to Dark looks wrong, check Status diagnostics for gradient luminance values, final gradient colors, and whether rotation was suppressed.
+- If colors look too harsh, use **Soft / Ambient**, lower White Suppression, or use Natural accuracy.
+- If colors look too dull, use **Vivid** or **Bold / High Contrast**.
+- If too many lights change, use Excluded lights or review the Targets sensor.
 """
         await self.hass.services.async_call(
             "persistent_notification",
@@ -858,11 +899,36 @@ Tokens and artwork URLs are redacted.
         return str(self.config.get(CONF_ROTATION_MODE, ROTATION_MODE_TRACK_CHANGE) or ROTATION_MODE_TRACK_CHANGE)
 
     def _auto_rotate_enabled(self) -> bool:
-        mode = self._rotation_mode()
-        return bool(self.config.get(CONF_AUTO_ROTATE_COLORS, False) or mode in (ROTATION_MODE_AUTO, ROTATION_MODE_TRACK_AND_AUTO))
+        # The Color Rotation selector is authoritative. The legacy Auto Rotate
+        # switch value is retained only for stored-config compatibility and no
+        # longer overrides Off or On Track Change.
+        return self._rotation_mode() in (ROTATION_MODE_AUTO, ROTATION_MODE_TRACK_AND_AUTO)
 
     def _rotate_on_track_change_enabled(self) -> bool:
+        # Track-change rotation is controlled by the same Color Rotation selector
+        # so users do not have to reason about a separate enable switch.
         return self._rotation_mode() in (ROTATION_MODE_TRACK_CHANGE, ROTATION_MODE_TRACK_AND_AUTO)
+
+    def _rotation_effective_state(self) -> dict:
+        # Expose the resolved rotation behavior for diagnostics and support.
+        mode = self._rotation_mode()
+        ordered_gradient = str(self.config.get("gradient_order_mode", "")) in ("dark_to_light", "light_to_dark")
+        timed_enabled = mode in (ROTATION_MODE_AUTO, ROTATION_MODE_TRACK_AND_AUTO)
+        track_enabled = mode in (ROTATION_MODE_TRACK_CHANGE, ROTATION_MODE_TRACK_AND_AUTO)
+        return {
+            "mode": mode,
+            "track_change_enabled": bool(track_enabled),
+            "continuous_enabled": bool(timed_enabled),
+            "legacy_auto_rotate_value": bool(self.config.get(CONF_AUTO_ROTATE_COLORS, False)),
+            "legacy_auto_rotate_ignored": bool(self.config.get(CONF_AUTO_ROTATE_COLORS, False) and mode not in (ROTATION_MODE_AUTO, ROTATION_MODE_TRACK_AND_AUTO)),
+            "ordered_gradient_rotation_suppressed": bool(ordered_gradient),
+            "reason": (
+                "off" if mode == ROTATION_MODE_OFF else
+                "track_change" if mode == ROTATION_MODE_TRACK_CHANGE else
+                "continuous" if mode == ROTATION_MODE_AUTO else
+                "track_change_and_continuous"
+            ),
+        }
 
     def _auto_rotate_allowed(self) -> bool:
         return bool(
@@ -991,7 +1057,7 @@ Tokens and artwork URLs are redacted.
         except Exception as err:
             self.last_error = f"auto_rotate_failed: {err}"
             self.last_auto_rotation_skipped_reason = f"error:{type(err).__name__}"
-            _LOGGER.exception("Auto Rotate Colors failed")
+            _LOGGER.exception("Continuous color rotation failed")
             self._notify()
         finally:
             self._auto_rotate_task = None
