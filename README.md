@@ -8,6 +8,22 @@ The integration is designed for Home Assistant installations running in containe
 
 This release makes **Color Rotation** the single authoritative rotation control. The previous separate Auto Rotate Colors control has been removed from the active UI surface to avoid unclear dependency behavior. Existing stored values are preserved for compatibility, but **Color Rotation** now determines whether rotation is Off, On Track Change, Continuous, or Track Change and Continuous.
 
+## v1.2.8 color model updates
+
+This release simplifies the main color controls while preserving the older advanced tuning behavior.
+
+### Main color controls
+
+- **Artwork Style** controls the overall interpretation of album art colors.
+  - **Graphic / Poster** is designed for high-contrast typography, pop-art, and flat-color covers. It preserves large red/black/white graphic blocks and suppresses tiny compression or anti-aliasing artifacts that previously could appear as unrelated purple, peach, or pastel colors.
+  - **Bold / High Contrast** favors strong saturated accents and contrast.
+  - **Album Accurate**, **Photography**, **Cinematic**, **Soft Ambient**, and **Natural** remain available for different album-art types.
+- **Neutral Tone Handling** combines the earlier white and black/white behavior into one outcome-based control.
+- **Advanced / Custom** keeps the older independent controls available for users who want exact compatibility and manual tuning.
+
+No color-processing capability was removed. The older mechanism-level controls remain available in the options flow as advanced overrides.
+
+
 ## Features
 
 - Extracts color palettes from Sonos album artwork.

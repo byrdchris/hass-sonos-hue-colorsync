@@ -108,7 +108,9 @@
           "cache": "Cache Album Colors",
           "expand_groups": "Distribute Across Group Lights",
           "airplay_poll_interval": "AirPlay Metadata Check Interval",
-          "palette_coherence": "Palette Coherence"
+          "palette_coherence": "Palette Coherence",
+          "artwork_style": "Artwork Style",
+          "neutral_tone_handling": "Neutral Tone Handling"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -140,7 +142,9 @@
           "cache": "Remember album palettes to avoid reprocessing the same artwork.",
           "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
           "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events.",
-          "palette_coherence": "Controls whether visually isolated colors are kept or removed. Off keeps all extracted colors, Balanced removes obvious outliers, and Strict keeps a more unified palette."
+          "palette_coherence": "Controls whether visually isolated colors are kept or removed. Off keeps all extracted colors, Balanced removes obvious outliers, and Strict keeps a more unified palette.",
+          "artwork_style": "Choose the overall interpretation for album art colors. Graphic / Poster is best for high-contrast typography and flat-color covers.",
+          "neutral_tone_handling": "Choose how whites, blacks, grays, and other neutral tones should behave. Advanced / Custom keeps the older independent controls."
         }
       }
     }
@@ -227,6 +231,15 @@
       },
       "palette_coherence": {
         "name": "Palette Coherence"
+      },
+      "artwork_style": {
+        "name": "Artwork Style"
+      },
+      "neutral_tone_handling": {
+        "name": "Neutral Tone Handling"
+      },
+      "color_purity": {
+        "name": "Color Purity Preset"
       }
     },
     "number": {
@@ -299,6 +312,29 @@
         "off": "Off",
         "balanced": "Balanced",
         "strict": "Strict"
+      }
+    },
+    "artwork_style": {
+      "options": {
+        "natural": "Natural",
+        "album_accurate": "Album Accurate",
+        "graphic_poster": "Graphic / Poster",
+        "photography": "Photography",
+        "cinematic": "Cinematic",
+        "soft_ambient": "Soft Ambient",
+        "bold_high_contrast": "Bold / High Contrast",
+        "advanced_custom": "Advanced / Custom"
+      }
+    },
+    "neutral_tone_handling": {
+      "options": {
+        "natural": "Natural",
+        "reduce_whites": "Reduce Whites",
+        "preserve_contrast": "Preserve Contrast",
+        "warm_ambient": "Warm Ambient",
+        "graphic_poster": "Graphic / Poster",
+        "allow_pure_white": "Allow Pure White",
+        "advanced_custom": "Advanced / Custom"
       }
     }
   }

@@ -16,12 +16,15 @@ from .const import (
     ASSIGNMENT_STRATEGY_SEQUENTIAL,
     ARTWORK_FALLBACK_MODE_LABELS,
     ARTWORK_FALLBACK_MODES,
+    ARTWORK_STYLE_LABELS,
+    ARTWORK_STYLE_OPTIONS,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
     COLOR_PURITY_PRESET_LABELS,
     COLOR_PURITY_PRESET_OPTIONS,
     CONF_AIRPLAY_POLL_INTERVAL,
     CONF_ARTWORK_FALLBACK_MODE,
+    CONF_ARTWORK_STYLE,
     CONF_ASSIGNMENT_STRATEGY,
     CONF_AUTO_ROTATE_INTERVAL,
     CONF_CACHE,
@@ -41,6 +44,7 @@ from .const import (
     CONF_MEMBER_LIGHT_ENTITIES,
     CONF_MIN_BRIGHTNESS,
     CONF_MONOCHROME_MODE,
+    CONF_NEUTRAL_TONE_HANDLING,
     CONF_PALETTE_ORDERING,
     CONF_PALETTE_COHERENCE,
     CONF_RESTORE_DELAY,
@@ -52,6 +56,7 @@ from .const import (
     CONF_WHITE_LEVEL,
     DEFAULT_AIRPLAY_POLL_INTERVAL,
     DEFAULT_ARTWORK_FALLBACK_MODE,
+    DEFAULT_ARTWORK_STYLE,
     DEFAULT_ASSIGNMENT_STRATEGY,
     DEFAULT_AUTO_ROTATE_INTERVAL,
     DEFAULT_CACHE,
@@ -67,6 +72,7 @@ from .const import (
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_MIN_BRIGHTNESS,
     DEFAULT_MONOCHROME_MODE,
+    DEFAULT_NEUTRAL_TONE_HANDLING,
     DEFAULT_PALETTE_ORDERING,
     DEFAULT_PALETTE_COHERENCE,
     DEFAULT_RESTORE_DELAY,
@@ -84,6 +90,8 @@ from .const import (
     MONOCHROME_MODE_GRAYSCALE,
     MONOCHROME_MODE_MUTED_ACCENT,
     MONOCHROME_MODE_WARM_NEUTRAL,
+    NEUTRAL_TONE_LABELS,
+    NEUTRAL_TONE_OPTIONS,
     PALETTE_COHERENCE_LABELS,
     PALETTE_COHERENCE_OPTIONS,
     PALETTE_ORDERING_LABELS,
@@ -119,14 +127,10 @@ def _full_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),
         vol.Required(CONF_LIGHT_ENTITIES, default=defaults.get(CONF_LIGHT_ENTITIES, [])):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
-        vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_COLOR_PURITY, default=str(defaults.get(CONF_COLOR_PURITY, DEFAULT_COLOR_PURITY))):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_color_purity_options(defaults), mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
-            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS), mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_WHITE_LEVEL, default=defaults.get(CONF_WHITE_LEVEL, DEFAULT_WHITE_LEVEL)):
-            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=100, step=1, mode=selector.NumberSelectorMode.SLIDER)),
+        vol.Optional(CONF_ARTWORK_STYLE, default=defaults.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(ARTWORK_STYLE_OPTIONS, ARTWORK_STYLE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_NEUTRAL_TONE_HANDLING, default=defaults.get(CONF_NEUTRAL_TONE_HANDLING, DEFAULT_NEUTRAL_TONE_HANDLING)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(NEUTRAL_TONE_OPTIONS, NEUTRAL_TONE_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_COLOR_COUNT, default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT)):
             selector.NumberSelector(selector.NumberSelectorConfig(min=1, max=10, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_TRANSITION, default=defaults.get(CONF_TRANSITION, DEFAULT_TRANSITION)):
@@ -150,6 +154,14 @@ def _full_schema(defaults: dict):
                 selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_ALTERNATING, label="Alternating bright / dim"),
                 selector.SelectOptionDict(value=ASSIGNMENT_STRATEGY_BRIGHTNESS, label="Brightness order"),
             ], mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_COLOR_ACCURACY_MODE, default=defaults.get(CONF_COLOR_ACCURACY_MODE, DEFAULT_COLOR_ACCURACY_MODE)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_COLOR_PURITY, default=str(defaults.get(CONF_COLOR_PURITY, DEFAULT_COLOR_PURITY))):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_color_purity_options(defaults), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_WHITE_HANDLING, default=defaults.get(CONF_WHITE_HANDLING, DEFAULT_WHITE_HANDLING)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_WHITE_LEVEL, default=defaults.get(CONF_WHITE_LEVEL, DEFAULT_WHITE_LEVEL)):
+            selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=100, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_PALETTE_COHERENCE, default=defaults.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)):

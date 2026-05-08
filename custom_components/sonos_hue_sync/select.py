@@ -13,17 +13,21 @@ from .const import (
     ASSIGNMENT_STRATEGY_SEQUENTIAL,
     ARTWORK_FALLBACK_MODE_LABELS,
     ARTWORK_FALLBACK_MODES,
+    ARTWORK_STYLE_LABELS,
+    ARTWORK_STYLE_OPTIONS,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
     COLOR_PURITY_PRESET_CUSTOM,
     COLOR_PURITY_PRESET_LABELS,
     COLOR_PURITY_PRESET_OPTIONS,
     CONF_ARTWORK_FALLBACK_MODE,
+    CONF_ARTWORK_STYLE,
     CONF_ASSIGNMENT_STRATEGY,
     CONF_COLOR_ACCURACY_MODE,
     CONF_COLOR_PURITY,
     CONF_GRADIENT_ORDER_MODE,
     CONF_MONOCHROME_MODE,
+    CONF_NEUTRAL_TONE_HANDLING,
     CONF_PALETTE_ORDERING,
     CONF_PALETTE_COHERENCE,
     CONF_ROTATION_MODE,
@@ -35,6 +39,8 @@ from .const import (
     MONOCHROME_MODE_GRAYSCALE,
     MONOCHROME_MODE_MUTED_ACCENT,
     MONOCHROME_MODE_WARM_NEUTRAL,
+    NEUTRAL_TONE_LABELS,
+    NEUTRAL_TONE_OPTIONS,
     PALETTE_COHERENCE_LABELS,
     PALETTE_COHERENCE_OPTIONS,
     PALETTE_ORDERING_LABELS,
@@ -77,18 +83,14 @@ MONOCHROME_LABELS = {
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Keep all select controls visible and advanced; avoid Home Assistant form
-    # visibility modes that caused confusing legacy mode behavior.
+    # Expose simplified outcome-based controls first. Legacy mechanism controls
+    # remain available in Options as Advanced / Custom inputs for compatibility.
     entities = [
-        SonosHueSelect(coordinator, entry, CONF_COLOR_ACCURACY_MODE, "Color Accuracy Mode", COLOR_ACCURACY_MODE_OPTIONS, COLOR_ACCURACY_MODE_LABELS, "mdi:palette-advanced"),
-        SonosHueSelect(coordinator, entry, CONF_COLOR_PURITY, "Color Purity Preset", COLOR_PURITY_PRESET_OPTIONS, COLOR_PURITY_PRESET_LABELS, "mdi:palette-outline"),
-        SonosHueSelect(coordinator, entry, CONF_WHITE_HANDLING, "White Handling", WHITE_HANDLING_OPTIONS, WHITE_HANDLING_LABELS, "mdi:white-balance-sunny"),
+        SonosHueSelect(coordinator, entry, CONF_ARTWORK_STYLE, "Artwork Style", ARTWORK_STYLE_OPTIONS, ARTWORK_STYLE_LABELS, "mdi:image-filter-vintage"),
+        SonosHueSelect(coordinator, entry, CONF_NEUTRAL_TONE_HANDLING, "Neutral Tone Handling", NEUTRAL_TONE_OPTIONS, NEUTRAL_TONE_LABELS, "mdi:contrast-circle"),
         SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
         SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
-        SonosHueSelect(coordinator, entry, CONF_PALETTE_ORDERING, "Palette Ordering", PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS, "mdi:sort"),
-        SonosHueSelect(coordinator, entry, CONF_PALETTE_COHERENCE, "Palette Coherence", PALETTE_COHERENCE_OPTIONS, PALETTE_COHERENCE_LABELS, "mdi:vector-combine"),
         SonosHueSelect(coordinator, entry, CONF_GRADIENT_ORDER_MODE, "Gradient Pattern", GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS, "mdi:gradient-horizontal"),
-        SonosHueSelect(coordinator, entry, CONF_MONOCHROME_MODE, "Black & White Handling", MONOCHROME_OPTIONS, MONOCHROME_LABELS, "mdi:circle-opacity"),
         SonosHueSelect(coordinator, entry, CONF_ARTWORK_FALLBACK_MODE, "Artwork Fallback", ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS, "mdi:image-sync"),
     ]
     async_add_entities(entities, True)

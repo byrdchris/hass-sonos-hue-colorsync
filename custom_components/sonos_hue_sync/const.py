@@ -63,6 +63,70 @@ PALETTE_ORDERING_LABELS = {
     PALETTE_ORDERING_DOMINANT_FIRST: "Dominant Colors First",
 }
 
+
+# Artwork Style is the main artistic intent selector. It maps several lower-level
+# extraction controls into one friendly choice while preserving advanced controls.
+CONF_ARTWORK_STYLE = "artwork_style"
+ARTWORK_STYLE_NATURAL = "natural"
+ARTWORK_STYLE_ALBUM = "album_accurate"
+ARTWORK_STYLE_GRAPHIC = "graphic_poster"
+ARTWORK_STYLE_PHOTOGRAPHY = "photography"
+ARTWORK_STYLE_CINEMATIC = "cinematic"
+ARTWORK_STYLE_SOFT = "soft_ambient"
+ARTWORK_STYLE_BOLD = "bold_high_contrast"
+ARTWORK_STYLE_ADVANCED = "advanced_custom"
+DEFAULT_ARTWORK_STYLE = ARTWORK_STYLE_NATURAL
+ARTWORK_STYLE_OPTIONS = [
+    ARTWORK_STYLE_NATURAL,
+    ARTWORK_STYLE_ALBUM,
+    ARTWORK_STYLE_GRAPHIC,
+    ARTWORK_STYLE_PHOTOGRAPHY,
+    ARTWORK_STYLE_CINEMATIC,
+    ARTWORK_STYLE_SOFT,
+    ARTWORK_STYLE_BOLD,
+    ARTWORK_STYLE_ADVANCED,
+]
+ARTWORK_STYLE_LABELS = {
+    ARTWORK_STYLE_NATURAL: "Natural",
+    ARTWORK_STYLE_ALBUM: "Album Accurate",
+    ARTWORK_STYLE_GRAPHIC: "Graphic / Poster",
+    ARTWORK_STYLE_PHOTOGRAPHY: "Photography",
+    ARTWORK_STYLE_CINEMATIC: "Cinematic",
+    ARTWORK_STYLE_SOFT: "Soft Ambient",
+    ARTWORK_STYLE_BOLD: "Bold / High Contrast",
+    ARTWORK_STYLE_ADVANCED: "Advanced / Custom",
+}
+
+# Neutral Tone Handling combines white handling and black-and-white handling into
+# one outcome-based control. Legacy controls remain available as Advanced / Custom.
+CONF_NEUTRAL_TONE_HANDLING = "neutral_tone_handling"
+NEUTRAL_TONE_NATURAL = "natural"
+NEUTRAL_TONE_REDUCE_WHITES = "reduce_whites"
+NEUTRAL_TONE_PRESERVE_CONTRAST = "preserve_contrast"
+NEUTRAL_TONE_WARM_AMBIENT = "warm_ambient"
+NEUTRAL_TONE_GRAPHIC = "graphic_poster"
+NEUTRAL_TONE_ALLOW_WHITE = "allow_pure_white"
+NEUTRAL_TONE_ADVANCED = "advanced_custom"
+DEFAULT_NEUTRAL_TONE_HANDLING = NEUTRAL_TONE_NATURAL
+NEUTRAL_TONE_OPTIONS = [
+    NEUTRAL_TONE_NATURAL,
+    NEUTRAL_TONE_REDUCE_WHITES,
+    NEUTRAL_TONE_PRESERVE_CONTRAST,
+    NEUTRAL_TONE_WARM_AMBIENT,
+    NEUTRAL_TONE_GRAPHIC,
+    NEUTRAL_TONE_ALLOW_WHITE,
+    NEUTRAL_TONE_ADVANCED,
+]
+NEUTRAL_TONE_LABELS = {
+    NEUTRAL_TONE_NATURAL: "Natural",
+    NEUTRAL_TONE_REDUCE_WHITES: "Reduce Whites",
+    NEUTRAL_TONE_PRESERVE_CONTRAST: "Preserve Contrast",
+    NEUTRAL_TONE_WARM_AMBIENT: "Warm Ambient",
+    NEUTRAL_TONE_GRAPHIC: "Graphic / Poster",
+    NEUTRAL_TONE_ALLOW_WHITE: "Allow Pure White",
+    NEUTRAL_TONE_ADVANCED: "Advanced / Custom",
+}
+
 # Palette Coherence is a universal outlier filter. It is intentionally
 # option-based rather than a granular slider so the UI remains understandable.
 PALETTE_COHERENCE_OFF = "off"

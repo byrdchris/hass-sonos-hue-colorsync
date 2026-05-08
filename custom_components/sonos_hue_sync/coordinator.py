@@ -26,6 +26,8 @@ from .const import (
     ATTR_RGB_COLORS,
     ATTR_SOURCE_IMAGE,
     CONF_CACHE,
+    CONF_ARTWORK_STYLE,
+    CONF_NEUTRAL_TONE_HANDLING,
     CONF_LIGHT_ENTITIES,
     CONF_GROUP_ENTITIES,
     CONF_MEMBER_LIGHT_ENTITIES,
@@ -61,6 +63,8 @@ PALETTE_AFFECTING_OPTIONS = {
     "color_count",
     CONF_PALETTE_ORDERING,
     CONF_COLOR_ACCURACY_MODE,
+    CONF_ARTWORK_STYLE,
+    CONF_NEUTRAL_TONE_HANDLING,
     CONF_COLOR_PURITY,
     CONF_PALETTE_COHERENCE,
     CONF_WHITE_LEVEL,
@@ -209,8 +213,13 @@ class SonosHueCoordinator:
             ATTR_HEX_COLORS: hex_colors,
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
-            "palette_ordering": self.config.get(CONF_PALETTE_ORDERING, "vivid_first"),
-            "color_accuracy_mode": self.config.get(CONF_COLOR_ACCURACY_MODE, "natural"),
+            "artwork_style": effective.get(CONF_ARTWORK_STYLE),
+            "neutral_tone_handling": effective.get(CONF_NEUTRAL_TONE_HANDLING),
+            "artwork_style_applied": effective.get("_artwork_style_applied"),
+            "neutral_tone_handling_applied": effective.get("_neutral_tone_handling_applied"),
+            "artwork_style_diagnostics": effective.get("_artwork_style_diagnostics", {}),
+            "palette_ordering": effective.get(CONF_PALETTE_ORDERING, self.config.get(CONF_PALETTE_ORDERING, "vivid_first")),
+            "color_accuracy_mode": effective.get(CONF_COLOR_ACCURACY_MODE, self.config.get(CONF_COLOR_ACCURACY_MODE, "natural")),
             "color_purity": self.config.get(CONF_COLOR_PURITY, 65),
             "palette_coherence": self.config.get(CONF_PALETTE_COHERENCE, "balanced"),
             "palette_coherence_diagnostics": self.last_palette_coherence,
@@ -556,6 +565,8 @@ class SonosHueCoordinator:
         parts = [
             art or "",
             f"count={self.effective_config().get('color_count', 3)}",
+            f"artwork_style={self.effective_config().get(CONF_ARTWORK_STYLE, 'natural')}",
+            f"neutral_tone={self.effective_config().get(CONF_NEUTRAL_TONE_HANDLING, 'natural')}",
             f"ordering={self.effective_config().get(CONF_PALETTE_ORDERING, 'vivid_first')}",
             f"color_accuracy={self.effective_config().get(CONF_COLOR_ACCURACY_MODE, 'natural' )}",
             f"color_purity={self.effective_config().get(CONF_COLOR_PURITY, 65)}",
@@ -639,88 +650,77 @@ class SonosHueCoordinator:
 ### What it does
 Sonos Hue Sync watches the selected Sonos player, extracts colors from the current album art, applies those colors to Hue lights, and restores the previous lighting state when playback stops or Sync is turned off.
 
-### Main targets
-- **Hue lights / groups**: the primary rooms, zones, groups, or individual lights to control.
-- **Additional Hue groups**: extra Hue rooms/zones/groups to expand into member lights.
-- **Additional member lights**: specific individual lights to include directly.
-- **Excluded lights**: lights that should never be changed, even if they are members of a selected group.
-
-The target model is additive. The Targets sensor shows the resolved lights, skipped lights, and where each light came from.
-
-### Color controls
-- **Color Accuracy Mode**: sets the broad extraction intent.
+### Main color controls
+- **Artwork Style** is the main artistic control.
   - **Natural** balances album fidelity and usable lighting.
-  - **Vivid** favors stronger saturated accents.
-  - **Album Accurate** keeps more muted and neutral artwork tones.
-- **Color Purity Preset**: replaces the old numeric slider with named behavior presets while preserving the same underlying color-tuning function.
-  - **Album Accurate** follows the artwork most closely.
-  - **Balanced** is the recommended default.
-  - **Soft / Ambient** keeps gentler, less harsh tones.
-  - **Vivid** favors more colorful lighting.
-  - **Bold / High Contrast** keeps only stronger accents.
-  - **Custom / Existing** may appear when an older saved numeric value is still being preserved.
-- **Palette Ordering**: chooses whether dominant artwork colors or vivid colors are preferred first.
-- **Palette Coherence**: removes visually isolated outlier colors.
-  - **Off** keeps all extracted colors.
-  - **Balanced** removes obvious outliers.
-  - **Strict** keeps the palette more unified.
-- **White Handling**: controls whether whites are allowed, reduced only when colors exist, or reduced more consistently.
-- **White Suppression**: controls how aggressively pale whites, creams, and light grays are reduced.
-- **Black & White Handling**: handles grayscale or nearly monochrome covers without producing random neon colors.
-- **Stabilize Low-Color Art**: restrains very low-color covers so tiny noise does not dominate the lights.
+  - **Album Accurate** preserves muted and neutral artwork tones.
+  - **Graphic / Poster** is for typography, pop-art, high-contrast covers, and flat-color artwork. It preserves large red/black/white blocks and suppresses tiny compression-color artifacts.
+  - **Photography** keeps a natural photographic spread.
+  - **Cinematic** keeps richer muted colors with a smoother room feel.
+  - **Soft Ambient** favors gentler, lower-harshness lighting.
+  - **Bold / High Contrast** favors strong saturated accents and contrast.
+  - **Advanced / Custom** preserves the older independent color controls exactly.
+- **Neutral Tone Handling** combines white and black/white behavior.
+  - **Natural** reduces whites only when useful colors exist.
+  - **Reduce Whites** suppresses pale whites, creams, and light grays.
+  - **Preserve Contrast** allows black/white contrast when the artwork depends on it.
+  - **Warm Ambient** turns neutral-heavy art into warmer room lighting.
+  - **Graphic / Poster** preserves poster-like black/white contrast.
+  - **Allow Pure White** allows bright white and grayscale tones.
+  - **Advanced / Custom** preserves the older White Handling, White Suppression, and Black & White Handling controls.
+
+### Advanced color controls
+Advanced controls are still available in the options form for compatibility and fine tuning. They are not removed.
+- **Color Accuracy Mode** controls the older broad extraction behavior.
+- **Color Purity Preset** controls saturation filtering with named presets instead of a raw slider.
+- **Palette Ordering** prefers dominant colors or vivid colors first.
+- **Palette Coherence** removes isolated outlier colors.
+- **White Handling**, **White Suppression**, and **Black & White Handling** remain available when Neutral Tone Handling is set to Advanced / Custom.
 
 ### Light behavior
-- **Color Distribution Mode**:
-  - **Balanced** spreads usable colors across lights and is the best general default.
-  - **Sequential** preserves palette order most directly.
-  - **Alternating bright / dim** alternates lighter and darker colors.
-  - **Brightness order** assigns colors by lightness.
-- **Number of Colors**: controls how many album-art colors are extracted.
-- **Transition Time**: controls fade duration.
-- **Minimum Brightness** and **Maximum Brightness**: bound standard-light brightness.
-- **Restore Delay**: waits before restoring the previous lighting state after playback stops.
+- **Hue lights / groups** select the primary rooms, zones, groups, or individual lights to control.
+- **Additional Hue groups** and **Additional member lights** add more targets.
+- **Excluded lights** are never changed, even if they are members of a selected group.
+- **Color Distribution Mode** controls how colors are assigned across lights: Balanced, Sequential, Alternating bright / dim, or Brightness order.
+- **Number of Colors** controls how many album-art colors are extracted.
+- **Transition Time** controls fade duration.
+- **Minimum Brightness** and **Maximum Brightness** bound standard-light brightness.
+- **Restore Delay** waits before restoring the previous lighting state after playback stops.
 
 ### Gradient lights
 - **Enable True Gradient** sends multi-point gradients to supported Hue gradient lights while standard lights still receive normal colors.
 - **Gradient Detail Level** controls how many gradient points are sent.
 - **Gradient Brightness** controls the brightness ceiling for supported gradient lights.
-- **Gradient Pattern** controls how colors are ordered inside the gradient:
-  - **Same Order** follows the selected palette order.
-  - **Offset** shifts the gradient per light.
-  - **Random Order** uses a stable per-track random order.
-  - **Dark to Light** creates a perceptual brightness ramp from darker to lighter colors.
-  - **Light to Dark** creates the reverse ramp.
-
-For Dark to Light and Light to Dark, ordering is applied after gradient detail selection. Rotation is suppressed for those ordered patterns so the final ramp is not accidentally reversed.
+- **Gradient Pattern** controls color order inside gradients: Same Order, Offset, Random Order, Dark to Light, or Light to Dark.
+- For Dark to Light and Light to Dark, colors are sorted by gamma-corrected perceptual luminance after detail selection. Rotation is suppressed so the ramp is not reversed.
 
 ### Rotation and animation
 - **Color Rotation** is the single control for rotation behavior: Off, On Track Change, Continuous, or Track Change and Continuous.
-- **On Track Change** rotates colors once per new song; **Continuous** rotates the current palette on the timer while music keeps playing.
-- Dark to Light and Light to Dark gradient patterns automatically suppress rotation so the gradient direction is preserved.
-- **Auto Rotation Interval** is the full cycle timing. Transition Time is treated as the fade portion of that cycle with a safety buffer to avoid overlapping Hue updates.
+- **On Track Change** rotates colors once per new song.
+- **Continuous** rotates the current palette on the timer while music keeps playing.
+- **Auto Rotation Interval** is the full cycle timing.
 - **Rotate Colors** manually shifts the current palette without re-extracting album art.
 
 ### Manual actions
-- **Update Lights Now**: fetches the current track artwork and applies colors immediately.
-- **Refresh Colors**: re-extracts colors for the current artwork.
-- **Rotate Colors**: reapplies the current palette with a shifted assignment.
-- **Test Lighting**: sends a test color pattern.
-- **Health Check**: checks Sonos availability, target resolution, Hue bridge state, gradient capability, and the last run status.
+- **Update Lights Now** fetches current artwork and applies colors immediately.
+- **Refresh Colors** re-extracts colors for the current artwork.
+- **Rotate Colors** reapplies the current palette with a shifted assignment.
+- **Test Lighting** sends a test color pattern.
+- **Health Check** checks Sonos availability, target resolution, Hue bridge state, gradient capability, and last run status.
 
 ### Diagnostics
-The Status sensor exposes the current palette, resolved lights, runtime options, last service data, cache result, restore result, gradient diagnostics, and recent timing data.
+The Status sensor exposes the current palette, resolved lights, artwork style, neutral tone handling, runtime options, last service data, cache result, restore result, gradient diagnostics, palette diagnostics, and timing data.
 
 Download diagnostics from:
 
 **Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics**
 
-Diagnostics include configuration, runtime state, target resolution, registry metadata, Hue bridge summaries, gradient capability details, palette diagnostics, and last service results. Tokens and artwork URLs are redacted.
-
 ### Common troubleshooting
-- If palette ordering appears unchanged, try **Sequential** distribution and set Color Rotation to Off; Balanced distribution intentionally reshuffles colors for variety.
-- If gradient Dark to Light / Light to Dark looks wrong, check Status diagnostics for gradient luminance values, final gradient colors, and whether rotation was suppressed.
-- If colors look too harsh, use **Soft / Ambient**, lower White Suppression, or use Natural accuracy.
-- If colors look too dull, use **Vivid** or **Bold / High Contrast**.
+- For poster-like covers with red/black/white typography, use **Artwork Style → Graphic / Poster** and **Neutral Tone Handling → Preserve Contrast** or **Graphic / Poster**.
+- If colors look pastel or unrelated, try **Graphic / Poster** or **Bold / High Contrast**.
+- If colors look too harsh, use **Soft Ambient** or **Natural**.
+- If palette ordering appears unchanged, use Sequential distribution and set Color Rotation to Off.
+- If gradients look reversed, check Status diagnostics for luminance values and rotation suppression.
 - If too many lights change, use Excluded lights or review the Targets sensor.
 """
         await self.hass.services.async_call(

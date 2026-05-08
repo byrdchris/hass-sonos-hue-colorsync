@@ -13,7 +13,9 @@ from colorthief import ColorThief
 from PIL import Image, ImageFilter
 
 from .const import (
+    CONF_ARTWORK_STYLE,
     CONF_COLOR_ACCURACY_MODE,
+    CONF_NEUTRAL_TONE_HANDLING,
     CONF_COLOR_PURITY,
     CONF_PALETTE_COHERENCE,
     CONF_WHITE_LEVEL,
@@ -24,6 +26,23 @@ from .const import (
     COLOR_ACCURACY_MODE_ALBUM,
     COLOR_ACCURACY_MODE_NATURAL,
     COLOR_ACCURACY_MODE_VIVID,
+    ARTWORK_STYLE_ADVANCED,
+    ARTWORK_STYLE_ALBUM,
+    ARTWORK_STYLE_BOLD,
+    ARTWORK_STYLE_CINEMATIC,
+    ARTWORK_STYLE_GRAPHIC,
+    ARTWORK_STYLE_NATURAL,
+    ARTWORK_STYLE_PHOTOGRAPHY,
+    ARTWORK_STYLE_SOFT,
+    DEFAULT_ARTWORK_STYLE,
+    DEFAULT_NEUTRAL_TONE_HANDLING,
+    NEUTRAL_TONE_ADVANCED,
+    NEUTRAL_TONE_ALLOW_WHITE,
+    NEUTRAL_TONE_GRAPHIC,
+    NEUTRAL_TONE_NATURAL,
+    NEUTRAL_TONE_PRESERVE_CONTRAST,
+    NEUTRAL_TONE_REDUCE_WHITES,
+    NEUTRAL_TONE_WARM_AMBIENT,
     CONF_WHITE_HANDLING,
     CONF_WHITE_FILTER_STRENGTH,
     WHITE_FILTER_STRENGTH_BALANCED,
@@ -41,6 +60,45 @@ RGB = tuple[int, int, int]
 # palette most closely, while 0 strongly favors saturated accent colors.
 def _effective_color_config(config: dict | None) -> dict:
     effective = dict(config or {})
+
+    # Artwork Style is the primary user-facing color intent. Advanced / Custom
+    # preserves the old independent controls for users who want exact tuning.
+    artwork_style = effective.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)
+    if artwork_style != ARTWORK_STYLE_ADVANCED:
+        style_map = {
+            ARTWORK_STYLE_NATURAL: (COLOR_ACCURACY_MODE_NATURAL, "65", "dominant_first", PALETTE_COHERENCE_BALANCED),
+            ARTWORK_STYLE_ALBUM: (COLOR_ACCURACY_MODE_ALBUM, "90", "dominant_first", PALETTE_COHERENCE_BALANCED),
+            ARTWORK_STYLE_GRAPHIC: (COLOR_ACCURACY_MODE_ALBUM, "20", "vivid_first", PALETTE_COHERENCE_STRICT),
+            ARTWORK_STYLE_PHOTOGRAPHY: (COLOR_ACCURACY_MODE_NATURAL, "65", "dominant_first", PALETTE_COHERENCE_BALANCED),
+            ARTWORK_STYLE_CINEMATIC: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_BALANCED),
+            ARTWORK_STYLE_SOFT: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_OFF),
+            ARTWORK_STYLE_BOLD: (COLOR_ACCURACY_MODE_VIVID, "20", "vivid_first", PALETTE_COHERENCE_STRICT),
+        }
+        mode, purity_value, ordering, coherence = style_map.get(artwork_style, style_map[ARTWORK_STYLE_NATURAL])
+        effective[CONF_COLOR_ACCURACY_MODE] = mode
+        effective[CONF_COLOR_PURITY] = purity_value
+        effective["palette_ordering"] = ordering
+        effective[CONF_PALETTE_COHERENCE] = coherence
+        effective["_artwork_style_applied"] = artwork_style
+
+    # Neutral Tone Handling combines white and black/white behavior. Advanced /
+    # Custom leaves the legacy controls untouched for full compatibility.
+    neutral_style = effective.get(CONF_NEUTRAL_TONE_HANDLING, DEFAULT_NEUTRAL_TONE_HANDLING)
+    if neutral_style != NEUTRAL_TONE_ADVANCED:
+        neutral_map = {
+            NEUTRAL_TONE_NATURAL: (WHITE_HANDLING_CONTEXTUAL, 50, "warm_neutral"),
+            NEUTRAL_TONE_REDUCE_WHITES: (WHITE_HANDLING_ALWAYS_FILTER, 75, "warm_neutral"),
+            NEUTRAL_TONE_PRESERVE_CONTRAST: (WHITE_HANDLING_ALLOW, 15, "grayscale"),
+            NEUTRAL_TONE_WARM_AMBIENT: (WHITE_HANDLING_CONTEXTUAL, 35, "warm_neutral"),
+            NEUTRAL_TONE_GRAPHIC: (WHITE_HANDLING_ALLOW, 15, "grayscale"),
+            NEUTRAL_TONE_ALLOW_WHITE: (WHITE_HANDLING_ALLOW, 0, "disabled"),
+        }
+        white_mode, white_level_value, mono_mode = neutral_map.get(neutral_style, neutral_map[NEUTRAL_TONE_NATURAL])
+        effective[CONF_WHITE_HANDLING] = white_mode
+        effective[CONF_WHITE_LEVEL] = white_level_value
+        effective["monochrome_mode"] = mono_mode
+        effective["_neutral_tone_handling_applied"] = neutral_style
+
     mode = effective.get(CONF_COLOR_ACCURACY_MODE, COLOR_ACCURACY_MODE_NATURAL)
     # Accept both legacy numeric values and new preset string values. If a
     # display-only custom marker ever appears, fall back safely to Balanced.
@@ -61,9 +119,6 @@ def _effective_color_config(config: dict | None) -> dict:
     else:
         effective["filter_dull"] = True
 
-    # Color Accuracy Mode remains an intent preset, but does not override the
-    # separate White Handling controls. Album Accurate biases purity upward;
-    # Vivid biases saturated ordering when the user has not explicitly set it.
     if mode == COLOR_ACCURACY_MODE_ALBUM:
         effective["filter_dull"] = purity < 90
         effective.setdefault("palette_ordering", "dominant_first")
@@ -341,6 +396,113 @@ def _muted_low_color_palette(candidates: list[RGB], desired: int) -> list[RGB]:
     return _clustered_select(muted, desired) or _repeat_to_count(muted, desired)
 
 
+
+def _graphic_poster_palette(image_bytes: bytes, desired: int, config: dict) -> list[RGB] | None:
+    """Extract flat, high-contrast poster colors without inventing intermediates.
+
+    This mode is for typography/pop-art covers where the important colors are
+    large graphic blocks. It prioritizes area + saturation, preserves contrast,
+    maps black into a usable dim accent, and suppresses small hue outliers.
+    """
+    try:
+        img = Image.open(BytesIO(image_bytes)).convert("RGB")
+        img.thumbnail((128, 128))
+        pixels = list(img.getdata())
+    except Exception:
+        return None
+    if not pixels:
+        return None
+
+    buckets: Counter[RGB] = Counter()
+    for rgb in pixels:
+        h, s, v = _hsv(rgb)
+        # Quantize strongly so flat graphic regions remain flat instead of
+        # splitting into many anti-aliased edge colors.
+        bucket = tuple(max(0, min(255, int(round(c / 32) * 32))) for c in rgb)  # type: ignore[assignment]
+        if v < 0.08:
+            bucket = (16, 16, 16)
+        elif v > 0.90 and s < 0.18:
+            bucket = (240, 240, 224)
+        buckets[bucket] += 1
+
+    total = sum(buckets.values()) or 1
+    scored: list[tuple[float, RGB, float, float, float]] = []
+    for color, count in buckets.items():
+        h, s, v = _hsv(color)
+        area = count / total
+        is_dark = v < 0.18
+        is_light_neutral = v > 0.82 and s < 0.22
+        is_graphic_red = (h <= 0.08 or h >= 0.94) and s >= 0.35 and 0.25 <= v <= 1.0
+        is_bold_color = s >= 0.40 and 0.20 <= v <= 0.98
+        # Area matters more than edge/interpolation for graphic art. Saturated
+        # blocks and high-contrast anchors get a boost; tiny accents are ignored.
+        score = area * 8.0
+        if is_graphic_red:
+            score *= 2.8
+        elif is_bold_color:
+            score *= 1.8
+        elif is_light_neutral or is_dark:
+            score *= 1.35
+        else:
+            score *= 0.75
+        if area < 0.006 and not is_graphic_red:
+            score *= 0.15
+        scored.append((score, color, h, s, v))
+
+    scored.sort(reverse=True, key=lambda item: item[0])
+    chromatic = [item for item in scored if item[3] >= 0.28 and item[4] >= 0.18]
+    darks = [item for item in scored if item[4] < 0.22]
+    lights = [item for item in scored if item[4] > 0.78 and item[3] < 0.28]
+
+    # If one hue family dominates the graphic colors, reject small unrelated hue
+    # artifacts that often come from compression or anti-aliased typography.
+    dominant_hue = None
+    if chromatic:
+        totals = []
+        for _score, _color, hue, _s, _v in chromatic[:8]:
+            totals.append((sum(score for score, _c, other_hue, _os, _ov in chromatic if _hue_distance_degrees(hue, other_hue) <= 45), hue))
+        dominant_score, dominant_hue = max(totals, key=lambda item: item[0])
+        chromatic_total = sum(item[0] for item in chromatic) or 1.0
+        if dominant_score / chromatic_total >= 0.55:
+            chromatic = [item for item in chromatic if _hue_distance_degrees(item[2], dominant_hue) <= 65]
+
+    result: list[RGB] = []
+
+    # Add saturated poster colors first, preserving flat block appearance.
+    for _score, color, _h, _s, _v in chromatic:
+        if all(_rgb_distance(color, existing) >= 35 for existing in result):
+            result.append(color)
+        if len(result) >= max(2, desired - 2):
+            break
+
+    # Black cannot render as a useful Hue color, so convert it to a dim version
+    # of the dominant hue when possible; otherwise use deep warm charcoal.
+    if darks and len(result) < desired:
+        if dominant_hue is not None:
+            r, g, b = colorsys.hsv_to_rgb(dominant_hue, 0.72, 0.24)
+            dark_color = (int(r * 255), int(g * 255), int(b * 255))
+        else:
+            dark_color = (58, 42, 36)
+        result.append(dark_color)
+
+    # Preserve one light/off-white contrast anchor unless the user explicitly
+    # asked to strongly reduce whites.
+    if lights and len(result) < desired and config.get(CONF_WHITE_HANDLING) != WHITE_HANDLING_ALWAYS_FILTER:
+        result.append(lights[0][1])
+
+    # Fill remaining slots from scored major areas without allowing tiny outliers.
+    for _score, color, _h, _s, _v in scored:
+        if len(result) >= desired:
+            break
+        if color in result:
+            continue
+        if all(_rgb_distance(color, existing) >= 28 for existing in result):
+            result.append(color)
+
+    if not result:
+        return None
+    return _repeat_to_count(result, desired)[:desired]
+
 def _weighted_image_candidates(image_bytes: bytes, desired: int) -> list[RGB]:
     """Build perceptual palette candidates from image pixels, not only dominant clusters.
 
@@ -528,6 +690,16 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
     ct = ColorThief(BytesIO(image_bytes))
     candidates = ct.get_palette(color_count=max(desired * 6, 20), quality=3)
     ordering = config.get("palette_ordering", "vivid_first")
+
+    if config.get(CONF_ARTWORK_STYLE) in (ARTWORK_STYLE_GRAPHIC, ARTWORK_STYLE_BOLD):
+        graphic = _graphic_poster_palette(image_bytes, desired, config)
+        if graphic:
+            config["_artwork_style_diagnostics"] = {
+                "mode": config.get(CONF_ARTWORK_STYLE),
+                "algorithm": "graphic_poster_flat_color_blocks",
+                "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in graphic],
+            }
+            return graphic[:desired]
 
     if color_class == "low_color" and config.get("low_color_handling", True) and ordering != "dominant_first":
         accent_palette = _accent_preserving_low_color_palette(candidates, desired)

@@ -1,3 +1,11 @@
+# v1.2.8
+
+- Added **Artwork Style** as the primary color interpretation control.
+- Added **Neutral Tone Handling** to combine white, black, grayscale, and neutral behavior into one friendly setting.
+- Added **Graphic / Poster** extraction for typography-heavy, high-contrast, and flat-color album art. This reduces invented/interpolated colors such as purple/pastel drift on red/black/white artwork.
+- Kept older color controls available as Advanced / Custom behavior; no color-processing capability was removed.
+- Updated Help & Guide, README, translations, diagnostics, and project state for the simplified color model.
+
 ## v1.2.7
 
 - Replaced the separate Auto Rotate Colors switch behavior with a single Color Rotation selector: Off, On Track Change, Continuous, and Track Change and Continuous.
