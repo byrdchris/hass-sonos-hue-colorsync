@@ -709,7 +709,7 @@ Advanced controls are still available in the options form for compatibility and 
 - **Gradient Detail Level** controls how many gradient points are sent.
 - **Gradient Brightness** controls the brightness ceiling for supported gradient lights.
 - **Gradient Pattern** controls color order inside gradients: Same Order, Offset, Random Order, Dark to Light, or Light to Dark.
-- For Dark to Light and Light to Dark, colors are sorted by gamma-corrected perceptual luminance after detail selection. Rotation is suppressed so the ramp is not reversed.
+- For Dark to Light and Light to Dark, the selected gradient direction is locked. Artwork Style Auto may change which colors are extracted, but it does not change how the ordered ramp flows. The chosen palette anchors are kept stable, sorted by gamma-corrected perceptual luminance as the final layout step, and rotation is suppressed so the ramp is not reversed.
 
 ### Rotation and animation
 - **Color Rotation** is the single control for rotation behavior: Off, On Track Change, Continuous, or Track Change and Continuous.

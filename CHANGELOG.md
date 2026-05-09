@@ -1,3 +1,11 @@
+# v1.2.11
+
+- Locked explicit **Dark to Light** and **Light to Dark** gradient ordering so Auto Artwork Style cannot destabilize the gradient flow on track changes.
+- Changed ordered gradient detail handling from adaptive luminance-spread reselection to stable palette-anchor ordering followed by final perceptual luminance sorting.
+- Kept rotation suppressed for ordered gradient modes.
+- Added diagnostics for ordered gradient lock state and reason.
+- Updated Help & Guide, README, PROJECT_STATE, manifest, and translations.
+
 # v1.2.10
 
 - Added **Auto** Artwork Style for per-track album-art style detection without cloud or AI services.

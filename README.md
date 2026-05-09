@@ -1,3 +1,10 @@
+## v1.2.11 Ordered Gradient Lock
+
+- Explicit **Dark to Light** and **Light to Dark** gradient patterns are now locked layout choices.
+- **Artwork Style → Auto** can still change which colors are extracted, but it no longer changes how ordered gradient ramps flow across gradient lights.
+- Ordered gradients now keep the selected palette anchors stable, sort only by perceptual luminance as the final layout step, and continue to suppress rotation.
+- Diagnostics now show `gradient_order_lock`, `gradient_order_lock_reason`, and `locked_palette_order` for ordered gradient patterns.
+
 ## v1.2.10 Auto Artwork Style
 
 - **Auto** Artwork Style analyzes each album cover locally and selects the most appropriate style for mixed playlists.

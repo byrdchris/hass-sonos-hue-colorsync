@@ -207,7 +207,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry) -> dict
             "domain": DOMAIN,
             "entry_id": entry.entry_id,
             "title": entry.title,
-            "version": "1.2.4",
+            "version": "1.2.11",
         },
         "config_entry": {
             "data": deepcopy(dict(entry.data)),
