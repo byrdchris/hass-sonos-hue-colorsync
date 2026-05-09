@@ -18,6 +18,8 @@ from .const import (
     ARTWORK_FALLBACK_MODES,
     ARTWORK_STYLE_LABELS,
     ARTWORK_STYLE_OPTIONS,
+    AUTO_STYLE_BEHAVIOR_LABELS,
+    AUTO_STYLE_BEHAVIOR_OPTIONS,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
     COLOR_PURITY_PRESET_LABELS,
@@ -26,6 +28,7 @@ from .const import (
     CONF_ARTWORK_FALLBACK_MODE,
     CONF_ARTWORK_STYLE,
     CONF_ASSIGNMENT_STRATEGY,
+    CONF_AUTO_STYLE_BEHAVIOR,
     CONF_AUTO_ROTATE_INTERVAL,
     CONF_CACHE,
     CONF_COLOR_ACCURACY_MODE,
@@ -58,6 +61,7 @@ from .const import (
     DEFAULT_ARTWORK_FALLBACK_MODE,
     DEFAULT_ARTWORK_STYLE,
     DEFAULT_ASSIGNMENT_STRATEGY,
+    DEFAULT_AUTO_STYLE_BEHAVIOR,
     DEFAULT_AUTO_ROTATE_INTERVAL,
     DEFAULT_CACHE,
     DEFAULT_COLOR_ACCURACY_MODE,
@@ -129,6 +133,8 @@ def _full_schema(defaults: dict):
             selector.EntitySelector(selector.EntitySelectorConfig(domain="light", multiple=True)),
         vol.Optional(CONF_ARTWORK_STYLE, default=defaults.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(ARTWORK_STYLE_OPTIONS, ARTWORK_STYLE_LABELS), mode=selector.SelectSelectorMode.LIST)),
+        vol.Optional(CONF_AUTO_STYLE_BEHAVIOR, default=defaults.get(CONF_AUTO_STYLE_BEHAVIOR, DEFAULT_AUTO_STYLE_BEHAVIOR)):
+            selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(AUTO_STYLE_BEHAVIOR_OPTIONS, AUTO_STYLE_BEHAVIOR_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_NEUTRAL_TONE_HANDLING, default=defaults.get(CONF_NEUTRAL_TONE_HANDLING, DEFAULT_NEUTRAL_TONE_HANDLING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(NEUTRAL_TONE_OPTIONS, NEUTRAL_TONE_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_COLOR_COUNT, default=defaults.get(CONF_COLOR_COUNT, DEFAULT_COLOR_COUNT)):

@@ -1,8 +1,33 @@
+## v1.2.10 Auto Artwork Style
+
+- **Auto** Artwork Style analyzes each album cover locally and selects the most appropriate style for mixed playlists.
+- **Auto Style Behavior** can bias Auto toward Balanced, Prefer Accuracy, Prefer Vivid, or Prefer Ambient.
+- **Monochrome Accent** improves black-and-white and grayscale covers without inventing unrelated rainbow colors.
+- **Advanced / Custom** was removed from visible Artwork Style and Neutral Tone Handling menus because it was not a distinct visual result. Legacy values are still handled internally for compatibility.
+- Help and diagnostics now explain selected style, detected style, confidence, and detection reasons.
+
+### Artwork Style guide
+
+- **Auto**: best default for playlists; chooses a style per track from local image statistics.
+- **Album Accurate**: preserves intended cover tones, including muted colors.
+- **Natural**: balanced everyday room lighting.
+- **Graphic / Poster**: best for typography, pop-art, high contrast, and flat-color covers.
+- **Photography**: best for portraits and realistic photographic artwork.
+- **Cinematic**: deeper, moodier colors with smoother transitions.
+- **Soft Ambient**: subtle, less saturated background lighting.
+- **Bold / High Contrast**: vivid, energetic color separation.
+- **Monochrome Accent**: black-and-white or grayscale covers with restrained accents.
+
 # Sonos Hue Sync
 
 Sonos Hue Sync is a Home Assistant custom integration that extracts colors from the currently playing Sonos album art and applies them to Philips Hue lights, rooms, zones, and supported gradient lights.
 
 The integration is designed for Home Assistant installations running in container mode and is installable through HACS as a custom repository.
+
+
+## v1.2.9 Restore Reliability
+
+This release restores the previous Hue light state more reliably after playback stops or Sync is turned off. Turning **Enable Sync** off now forces an immediate restore from the captured snapshot instead of waiting for Restore Delay. Normal playback stop/pause still honors Restore Delay, but the delayed restore is only cancelled when playback actually resumes and a new palette apply begins. Diagnostics now show whether restore is pending, completed, cancelled, failed, or unavailable because no snapshot exists.
 
 ## v1.2.7 Rotation UI Clarification
 
@@ -19,7 +44,6 @@ This release simplifies the main color controls while preserving the older advan
   - **Bold / High Contrast** favors strong saturated accents and contrast.
   - **Album Accurate**, **Photography**, **Cinematic**, **Soft Ambient**, and **Natural** remain available for different album-art types.
 - **Neutral Tone Handling** combines the earlier white and black/white behavior into one outcome-based control.
-- **Advanced / Custom** keeps the older independent controls available for users who want exact compatibility and manual tuning.
 
 No color-processing capability was removed. The older mechanism-level controls remain available in the options flow as advanced overrides.
 

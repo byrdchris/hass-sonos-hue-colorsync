@@ -27,6 +27,7 @@ from .const import (
     ATTR_SOURCE_IMAGE,
     CONF_CACHE,
     CONF_ARTWORK_STYLE,
+    CONF_AUTO_STYLE_BEHAVIOR,
     CONF_NEUTRAL_TONE_HANDLING,
     CONF_LIGHT_ENTITIES,
     CONF_GROUP_ENTITIES,
@@ -64,6 +65,7 @@ PALETTE_AFFECTING_OPTIONS = {
     CONF_PALETTE_ORDERING,
     CONF_COLOR_ACCURACY_MODE,
     CONF_ARTWORK_STYLE,
+    CONF_AUTO_STYLE_BEHAVIOR,
     CONF_NEUTRAL_TONE_HANDLING,
     CONF_COLOR_PURITY,
     CONF_PALETTE_COHERENCE,
@@ -214,7 +216,11 @@ class SonosHueCoordinator:
             ATTR_RGB_COLORS: [list(c) for c in self.last_palette],
             ATTR_COLOR_COUNT_ACTUAL: len(hex_colors),
             "artwork_style": effective.get(CONF_ARTWORK_STYLE),
+            "auto_style_behavior": effective.get(CONF_AUTO_STYLE_BEHAVIOR),
             "neutral_tone_handling": effective.get(CONF_NEUTRAL_TONE_HANDLING),
+            "detected_artwork_style": getattr(self, "last_detected_artwork_style", None),
+            "auto_artwork_style_diagnostics": getattr(self, "last_auto_artwork_style_diagnostics", {}),
+            "advanced_overrides_active": getattr(self, "last_advanced_overrides_active", False),
             "artwork_style_applied": effective.get("_artwork_style_applied"),
             "neutral_tone_handling_applied": effective.get("_neutral_tone_handling_applied"),
             "artwork_style_diagnostics": effective.get("_artwork_style_diagnostics", {}),
@@ -565,7 +571,8 @@ class SonosHueCoordinator:
         parts = [
             art or "",
             f"count={self.effective_config().get('color_count', 3)}",
-            f"artwork_style={self.effective_config().get(CONF_ARTWORK_STYLE, 'natural')}",
+            f"artwork_style={self.effective_config().get(CONF_ARTWORK_STYLE, 'auto')}",
+            f"auto_style_behavior={self.effective_config().get(CONF_AUTO_STYLE_BEHAVIOR, 'balanced')}",
             f"neutral_tone={self.effective_config().get(CONF_NEUTRAL_TONE_HANDLING, 'natural')}",
             f"ordering={self.effective_config().get(CONF_PALETTE_ORDERING, 'vivid_first')}",
             f"color_accuracy={self.effective_config().get(CONF_COLOR_ACCURACY_MODE, 'natural' )}",
@@ -650,24 +657,34 @@ class SonosHueCoordinator:
 ### What it does
 Sonos Hue Sync watches the selected Sonos player, extracts colors from the current album art, applies those colors to Hue lights, and restores the previous lighting state when playback stops or Sync is turned off.
 
-### Main color controls
-- **Artwork Style** is the main artistic control.
-  - **Natural** balances album fidelity and usable lighting.
-  - **Album Accurate** preserves muted and neutral artwork tones.
-  - **Graphic / Poster** is for typography, pop-art, high-contrast covers, and flat-color artwork. It preserves large red/black/white blocks and suppresses tiny compression-color artifacts.
-  - **Photography** keeps a natural photographic spread.
-  - **Cinematic** keeps richer muted colors with a smoother room feel.
-  - **Soft Ambient** favors gentler, lower-harshness lighting.
-  - **Bold / High Contrast** favors strong saturated accents and contrast.
-  - **Advanced / Custom** preserves the older independent color controls exactly.
-- **Neutral Tone Handling** combines white and black/white behavior.
-  - **Natural** reduces whites only when useful colors exist.
-  - **Reduce Whites** suppresses pale whites, creams, and light grays.
-  - **Preserve Contrast** allows black/white contrast when the artwork depends on it.
-  - **Warm Ambient** turns neutral-heavy art into warmer room lighting.
-  - **Graphic / Poster** preserves poster-like black/white contrast.
-  - **Allow Pure White** allows bright white and grayscale tones.
-  - **Advanced / Custom** preserves the older White Handling, White Suppression, and Black & White Handling controls.
+### Artwork Style
+**Artwork Style** is the main color interpretation control. Use **Auto** for playlists so the integration chooses a style per track from local image statistics. No cloud service or AI service is used.
+
+- **Auto** analyzes the album art and selects the best style for each track. Diagnostics show the detected style, confidence, and reasons.
+- **Album Accurate** preserves the album cover’s intended colors, including muted and neutral tones.
+- **Natural** balances album fidelity with comfortable room lighting.
+- **Graphic / Poster** is for typography, pop-art, high-contrast covers, and flat-color artwork. It reduces pastel drift and preserves dramatic color blocks.
+- **Photography** is for portraits and realistic photographic covers. It preserves skin tones and organic midtones without over-saturating them.
+- **Cinematic** is for darker or moodier art. It keeps deeper shadows, smoother gradients, and stronger warm/cool separation.
+- **Soft Ambient** is for subtle background lighting. It lowers harshness and avoids aggressive saturation.
+- **Bold / High Contrast** is for pop, dance, electronic, and vivid covers. It favors saturated accents and stronger separation.
+- **Monochrome Accent** is for black-and-white or grayscale covers. It preserves neutral contrast and uses subtle accents instead of inventing rainbow colors.
+
+### Auto Style Behavior
+This only affects **Artwork Style → Auto**.
+- **Balanced** chooses the highest-confidence style without strong bias.
+- **Prefer Accuracy** leans toward Album Accurate or Photography when confidence is close.
+- **Prefer Vivid** leans toward Bold / High Contrast or Graphic / Poster.
+- **Prefer Ambient** leans toward Soft Ambient or Natural.
+
+### Neutral Tone Handling
+**Neutral Tone Handling** controls whites, grays, blacks, and cream tones.
+- **Natural** reduces whites only when useful colors exist.
+- **Reduce Whites** suppresses pale whites, creams, and light grays.
+- **Preserve Contrast** allows black/white contrast when the artwork depends on it.
+- **Warm Ambient** turns neutral-heavy art into warmer room lighting.
+- **Graphic / Poster** preserves poster-like black/white contrast.
+- **Allow Pure White** allows bright white and grayscale tones.
 
 ### Advanced color controls
 Advanced controls are still available in the options form for compatibility and fine tuning. They are not removed.
@@ -675,7 +692,7 @@ Advanced controls are still available in the options form for compatibility and 
 - **Color Purity Preset** controls saturation filtering with named presets instead of a raw slider.
 - **Palette Ordering** prefers dominant colors or vivid colors first.
 - **Palette Coherence** removes isolated outlier colors.
-- **White Handling**, **White Suppression**, and **Black & White Handling** remain available when Neutral Tone Handling is set to Advanced / Custom.
+- **White Handling**, **White Suppression**, and **Black & White Handling** remain available as lower-level tuning controls.
 
 ### Light behavior
 - **Hue lights / groups** select the primary rooms, zones, groups, or individual lights to control.
@@ -685,7 +702,7 @@ Advanced controls are still available in the options form for compatibility and 
 - **Number of Colors** controls how many album-art colors are extracted.
 - **Transition Time** controls fade duration.
 - **Minimum Brightness** and **Maximum Brightness** bound standard-light brightness.
-- **Restore Delay** waits before restoring the previous lighting state after playback stops.
+- **Restore Delay** waits before restoring the previous lighting state after playback stops. Turning Sync off always restores immediately and does not wait for this delay.
 
 ### Gradient lights
 - **Enable True Gradient** sends multi-point gradients to supported Hue gradient lights while standard lights still receive normal colors.
@@ -709,19 +726,22 @@ Advanced controls are still available in the options form for compatibility and 
 - **Health Check** checks Sonos availability, target resolution, Hue bridge state, gradient capability, and last run status.
 
 ### Diagnostics
-The Status sensor exposes the current palette, resolved lights, artwork style, neutral tone handling, runtime options, last service data, cache result, restore result, gradient diagnostics, palette diagnostics, and timing data.
+The Status sensor exposes the current palette, resolved lights, selected artwork style, detected artwork style, auto detection confidence, detection reasons, neutral tone handling, runtime options, last service data, cache result, restore result, restore reason, gradient diagnostics, palette diagnostics, and timing data.
 
 Download diagnostics from:
 
 **Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics**
 
 ### Common troubleshooting
-- For poster-like covers with red/black/white typography, use **Artwork Style → Graphic / Poster** and **Neutral Tone Handling → Preserve Contrast** or **Graphic / Poster**.
+- For playlists with mixed artwork, use **Artwork Style → Auto** and adjust **Auto Style Behavior** if the results are too accurate, vivid, or ambient.
+- For poster-like covers with red/black/white typography, use **Graphic / Poster** or let **Auto** detect it.
+- For black-and-white covers, use **Monochrome Accent** or let **Auto** detect it.
 - If colors look pastel or unrelated, try **Graphic / Poster** or **Bold / High Contrast**.
-- If colors look too harsh, use **Soft Ambient** or **Natural**.
+- If colors look too harsh, use **Soft Ambient**, **Natural**, or Auto Style Behavior → Prefer Ambient.
 - If palette ordering appears unchanged, use Sequential distribution and set Color Rotation to Off.
 - If gradients look reversed, check Status diagnostics for luminance values and rotation suppression.
 - If too many lights change, use Excluded lights or review the Targets sensor.
+- If lights do not restore, check Status → restore result and restore reason. Sync Off should show an immediate forced restore; music stop/pause should show pending until Restore Delay expires.
 """
         await self.hass.services.async_call(
             "persistent_notification",
@@ -1080,7 +1100,6 @@ Download diagnostics from:
     # Main playback apply pipeline.
     # Fetches artwork, resolves current settings, extracts colors, and updates Hue targets.
     async def _process_state(self, state, reason="event", force=False, bypass_cache=False, force_apply=False, allow_disabled=False):
-        self._cancel_pending_restore()
         process_started = time.perf_counter()
         self.last_timings = {}
         self.last_cache_result = None
@@ -1102,6 +1121,11 @@ Download diagnostics from:
             self.last_error = f"not_playing:{state.state}"
             self._notify()
             return
+
+        # A real playback/apply run means music has resumed. Only this path
+        # should cancel a delayed playback-stop restore. Options changes or
+        # manual buttons while not playing must not cancel restore.
+        self._cancel_pending_restore(reason="playback_resumed_or_palette_apply")
 
         track_key = self._track_key(state)
         previous_track_key = self.last_track_key
@@ -1176,6 +1200,9 @@ Download diagnostics from:
                 palette_config = self.effective_config()
                 palette = extract_palette_from_bytes(image_bytes, palette_config)
                 self.last_palette_coherence = palette_config.get("_palette_coherence_diagnostics", {})
+                self.last_detected_artwork_style = palette_config.get("_auto_artwork_style_detected")
+                self.last_auto_artwork_style_diagnostics = palette_config.get("_auto_artwork_style_diagnostics", {})
+                self.last_advanced_overrides_active = bool(palette_config.get("_advanced_overrides_active", False))
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
                     self.cache.set(cache_key, palette)
@@ -1204,38 +1231,69 @@ Download diagnostics from:
             self._notify()
 
 
-    def _cancel_pending_restore(self):
+    def _cancel_pending_restore(self, reason="cancelled"):
+        """Cancel a pending delayed restore and record why it was cancelled."""
         if self._restore_delay_task and not self._restore_delay_task.done():
+            self.last_restore_result = {"status": "cancelled", "reason": reason}
             self._restore_delay_task.cancel()
         self._restore_delay_task = None
 
-    # Delay scene restore after playback stops.
-    # This prevents abrupt restore flicker during short pauses or track transitions.
-    async def _restore_after_delay(self, delay: float):
-        try:
-            if delay > 0:
-                await asyncio.sleep(delay)
-            if self.scene:
-                try:
-                    self.last_restore_snapshot_count = _snapshot_count(self.scene)
-                    restore_result = await restore_scene(self.hass, self.scene)
-                    self.last_restore_result = restore_result
-                except Exception as err:
-                    self.last_restore_result = {"failed": str(err)}
-                    _LOGGER.exception("Failed restoring Sonos Hue Sync scene")
-                self.scene = None
+    async def _restore_snapshot_now(self, reason="restore", clear_snapshot=True):
+        """Restore the captured light snapshot immediately.
+
+        This is used when Sync is turned off and by delayed playback-stop
+        restores. It bypasses the apply queue so a restore cannot be mistaken
+        for another palette update.
+        """
+        self.last_restore_reason = reason
+        if not self.scene:
+            self.last_restore_snapshot_count = 0
+            self.last_restore_result = {"status": "no_snapshot", "reason": reason}
             clear_apply_cache()
             self._notify()
+            return self.last_restore_result
+
+        try:
+            self.last_restore_snapshot_count = _snapshot_count(self.scene)
+            restore_result = await restore_scene(self.hass, self.scene)
+            restore_result["status"] = "restored"
+            restore_result["reason"] = reason
+            self.last_restore_result = restore_result
+            if clear_snapshot:
+                self.scene = None
+        except Exception as err:
+            self.last_restore_result = {"status": "failed", "reason": reason, "failed": str(err)}
+            _LOGGER.exception("Failed restoring Sonos Hue Sync scene")
+        clear_apply_cache()
+        self._notify()
+        return self.last_restore_result
+
+    # Delay scene restore after playback stops.
+    # This prevents abrupt restore flicker during short pauses or track transitions.
+    async def _restore_after_delay(self, delay: float, reason="playback_stopped"):
+        try:
+            if delay > 0:
+                self.last_restore_result = {"status": "pending", "reason": reason, "delay_seconds": delay}
+                self._notify()
+                await asyncio.sleep(delay)
+            await self._restore_snapshot_now(reason=reason, clear_snapshot=True)
         except asyncio.CancelledError:
-            self.last_restore_result = "cancelled"
+            # The caller records the precise cancellation reason before
+            # cancelling the task. Keep that diagnostic instead of replacing it
+            # with a generic string.
+            if not isinstance(self.last_restore_result, dict) or self.last_restore_result.get("status") != "cancelled":
+                self.last_restore_result = {"status": "cancelled", "reason": reason}
+                self._notify()
             raise
 
     async def _handle_stop(self, reason="playback_stopped"):
         self._stop_auto_rotate()
         self.last_restore_reason = reason
         delay = float(self.config.get("restore_delay", 0) or 0)
-        self._cancel_pending_restore()
-        self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay))
+        self._cancel_pending_restore(reason=f"new_restore_request:{reason}")
+        self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay, reason=reason))
+        self.last_restore_result = {"status": "pending", "reason": reason, "delay_seconds": delay}
+        self._notify()
 
     async def async_health_check(self) -> dict:
         """Run a user-facing integration health check."""
@@ -1325,5 +1383,9 @@ Download diagnostics from:
         self.enabled = False
         self._stop_auto_rotate()
         self._stop_polling()
-        await self._handle_stop(reason="sync_disabled")
+        # Sync Off is an explicit user action. Restore immediately instead of
+        # honoring Restore Delay so lights return to their previous state right
+        # away and cannot be cancelled by unrelated updates.
+        self._cancel_pending_restore(reason="sync_disabled_force_restore")
+        await self._restore_snapshot_now(reason="sync_disabled", clear_snapshot=True)
         self._notify()

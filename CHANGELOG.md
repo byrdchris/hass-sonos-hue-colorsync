@@ -1,3 +1,21 @@
+# v1.2.10
+
+- Added **Auto** Artwork Style for per-track album-art style detection without cloud or AI services.
+- Added **Auto Style Behavior** to bias Auto toward Balanced, Accuracy, Vivid, or Ambient results.
+- Added **Monochrome Accent** artwork style for grayscale and black-and-white album art.
+- Removed **Advanced / Custom** from visible Artwork Style and Neutral Tone Handling choices while preserving legacy values internally.
+- Expanded Help & Guide and documentation to explain every artwork style, auto detection behavior, and troubleshooting guidance.
+- Added diagnostics for detected artwork style, confidence, reasons, image statistics, and advanced override compatibility handling.
+
+# v1.2.9
+
+
+- Fixed restore reliability when **Enable Sync** is turned off. Sync Off now restores the captured light snapshot immediately instead of waiting for Restore Delay.
+- Fixed delayed restore cancellation so only a real resumed playback/apply run cancels a pending playback-stop restore.
+- Added clearer restore diagnostics: pending, restored, cancelled with reason, no snapshot, and failed states.
+- Kept Restore Delay behavior for normal pause/stop playback, but prevented unrelated options/buttons while not playing from cancelling restore.
+- Updated README, Help & Guide, CHANGELOG, and PROJECT_STATE.
+
 # v1.2.8
 
 - Added **Artwork Style** as the primary color interpretation control.

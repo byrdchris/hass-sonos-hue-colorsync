@@ -67,6 +67,7 @@ PALETTE_ORDERING_LABELS = {
 # Artwork Style is the main artistic intent selector. It maps several lower-level
 # extraction controls into one friendly choice while preserving advanced controls.
 CONF_ARTWORK_STYLE = "artwork_style"
+ARTWORK_STYLE_AUTO = "auto"
 ARTWORK_STYLE_NATURAL = "natural"
 ARTWORK_STYLE_ALBUM = "album_accurate"
 ARTWORK_STYLE_GRAPHIC = "graphic_poster"
@@ -74,19 +75,23 @@ ARTWORK_STYLE_PHOTOGRAPHY = "photography"
 ARTWORK_STYLE_CINEMATIC = "cinematic"
 ARTWORK_STYLE_SOFT = "soft_ambient"
 ARTWORK_STYLE_BOLD = "bold_high_contrast"
+ARTWORK_STYLE_MONOCHROME = "monochrome_accent"
+# Legacy value is still accepted internally but is intentionally not exposed in the UI.
 ARTWORK_STYLE_ADVANCED = "advanced_custom"
-DEFAULT_ARTWORK_STYLE = ARTWORK_STYLE_NATURAL
+DEFAULT_ARTWORK_STYLE = ARTWORK_STYLE_AUTO
 ARTWORK_STYLE_OPTIONS = [
-    ARTWORK_STYLE_NATURAL,
+    ARTWORK_STYLE_AUTO,
     ARTWORK_STYLE_ALBUM,
+    ARTWORK_STYLE_NATURAL,
     ARTWORK_STYLE_GRAPHIC,
     ARTWORK_STYLE_PHOTOGRAPHY,
     ARTWORK_STYLE_CINEMATIC,
     ARTWORK_STYLE_SOFT,
     ARTWORK_STYLE_BOLD,
-    ARTWORK_STYLE_ADVANCED,
+    ARTWORK_STYLE_MONOCHROME,
 ]
 ARTWORK_STYLE_LABELS = {
+    ARTWORK_STYLE_AUTO: "Auto",
     ARTWORK_STYLE_NATURAL: "Natural",
     ARTWORK_STYLE_ALBUM: "Album Accurate",
     ARTWORK_STYLE_GRAPHIC: "Graphic / Poster",
@@ -94,7 +99,27 @@ ARTWORK_STYLE_LABELS = {
     ARTWORK_STYLE_CINEMATIC: "Cinematic",
     ARTWORK_STYLE_SOFT: "Soft Ambient",
     ARTWORK_STYLE_BOLD: "Bold / High Contrast",
+    ARTWORK_STYLE_MONOCHROME: "Monochrome Accent",
     ARTWORK_STYLE_ADVANCED: "Advanced / Custom",
+}
+
+CONF_AUTO_STYLE_BEHAVIOR = "auto_style_behavior"
+AUTO_STYLE_BALANCED = "balanced"
+AUTO_STYLE_ACCURACY = "prefer_accuracy"
+AUTO_STYLE_VIVID = "prefer_vivid"
+AUTO_STYLE_AMBIENT = "prefer_ambient"
+DEFAULT_AUTO_STYLE_BEHAVIOR = AUTO_STYLE_BALANCED
+AUTO_STYLE_BEHAVIOR_OPTIONS = [
+    AUTO_STYLE_BALANCED,
+    AUTO_STYLE_ACCURACY,
+    AUTO_STYLE_VIVID,
+    AUTO_STYLE_AMBIENT,
+]
+AUTO_STYLE_BEHAVIOR_LABELS = {
+    AUTO_STYLE_BALANCED: "Balanced",
+    AUTO_STYLE_ACCURACY: "Prefer Accuracy",
+    AUTO_STYLE_VIVID: "Prefer Vivid",
+    AUTO_STYLE_AMBIENT: "Prefer Ambient",
 }
 
 # Neutral Tone Handling combines white handling and black-and-white handling into
@@ -106,6 +131,7 @@ NEUTRAL_TONE_PRESERVE_CONTRAST = "preserve_contrast"
 NEUTRAL_TONE_WARM_AMBIENT = "warm_ambient"
 NEUTRAL_TONE_GRAPHIC = "graphic_poster"
 NEUTRAL_TONE_ALLOW_WHITE = "allow_pure_white"
+# Legacy value is still accepted internally but is intentionally not exposed in the UI.
 NEUTRAL_TONE_ADVANCED = "advanced_custom"
 DEFAULT_NEUTRAL_TONE_HANDLING = NEUTRAL_TONE_NATURAL
 NEUTRAL_TONE_OPTIONS = [
@@ -115,7 +141,6 @@ NEUTRAL_TONE_OPTIONS = [
     NEUTRAL_TONE_WARM_AMBIENT,
     NEUTRAL_TONE_GRAPHIC,
     NEUTRAL_TONE_ALLOW_WHITE,
-    NEUTRAL_TONE_ADVANCED,
 ]
 NEUTRAL_TONE_LABELS = {
     NEUTRAL_TONE_NATURAL: "Natural",

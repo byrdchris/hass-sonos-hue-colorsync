@@ -28,12 +28,19 @@ from .const import (
     COLOR_ACCURACY_MODE_VIVID,
     ARTWORK_STYLE_ADVANCED,
     ARTWORK_STYLE_ALBUM,
+    ARTWORK_STYLE_AUTO,
     ARTWORK_STYLE_BOLD,
     ARTWORK_STYLE_CINEMATIC,
     ARTWORK_STYLE_GRAPHIC,
+    ARTWORK_STYLE_MONOCHROME,
     ARTWORK_STYLE_NATURAL,
     ARTWORK_STYLE_PHOTOGRAPHY,
     ARTWORK_STYLE_SOFT,
+    AUTO_STYLE_ACCURACY,
+    AUTO_STYLE_AMBIENT,
+    AUTO_STYLE_BALANCED,
+    AUTO_STYLE_VIVID,
+    CONF_AUTO_STYLE_BEHAVIOR,
     DEFAULT_ARTWORK_STYLE,
     DEFAULT_NEUTRAL_TONE_HANDLING,
     NEUTRAL_TONE_ADVANCED,
@@ -61,18 +68,23 @@ RGB = tuple[int, int, int]
 def _effective_color_config(config: dict | None) -> dict:
     effective = dict(config or {})
 
-    # Artwork Style is the primary user-facing color intent. Advanced / Custom
-    # preserves the old independent controls for users who want exact tuning.
+    # Artwork Style is the primary user-facing color intent. Legacy Advanced / Custom
+    # is accepted only as a compatibility value; new UI choices use named outcomes.
     artwork_style = effective.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)
-    if artwork_style != ARTWORK_STYLE_ADVANCED:
+    if artwork_style in (ARTWORK_STYLE_ADVANCED, None):
+        artwork_style = ARTWORK_STYLE_NATURAL
+        effective[CONF_ARTWORK_STYLE] = artwork_style
+        effective["_advanced_overrides_active"] = True
+    if artwork_style != ARTWORK_STYLE_AUTO:
         style_map = {
             ARTWORK_STYLE_NATURAL: (COLOR_ACCURACY_MODE_NATURAL, "65", "dominant_first", PALETTE_COHERENCE_BALANCED),
             ARTWORK_STYLE_ALBUM: (COLOR_ACCURACY_MODE_ALBUM, "90", "dominant_first", PALETTE_COHERENCE_BALANCED),
             ARTWORK_STYLE_GRAPHIC: (COLOR_ACCURACY_MODE_ALBUM, "20", "vivid_first", PALETTE_COHERENCE_STRICT),
-            ARTWORK_STYLE_PHOTOGRAPHY: (COLOR_ACCURACY_MODE_NATURAL, "65", "dominant_first", PALETTE_COHERENCE_BALANCED),
+            ARTWORK_STYLE_PHOTOGRAPHY: (COLOR_ACCURACY_MODE_NATURAL, "70", "dominant_first", PALETTE_COHERENCE_BALANCED),
             ARTWORK_STYLE_CINEMATIC: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_BALANCED),
             ARTWORK_STYLE_SOFT: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_OFF),
             ARTWORK_STYLE_BOLD: (COLOR_ACCURACY_MODE_VIVID, "20", "vivid_first", PALETTE_COHERENCE_STRICT),
+            ARTWORK_STYLE_MONOCHROME: (COLOR_ACCURACY_MODE_ALBUM, "85", "dominant_first", PALETTE_COHERENCE_BALANCED),
         }
         mode, purity_value, ordering, coherence = style_map.get(artwork_style, style_map[ARTWORK_STYLE_NATURAL])
         effective[CONF_COLOR_ACCURACY_MODE] = mode
@@ -81,9 +93,14 @@ def _effective_color_config(config: dict | None) -> dict:
         effective[CONF_PALETTE_COHERENCE] = coherence
         effective["_artwork_style_applied"] = artwork_style
 
-    # Neutral Tone Handling combines white and black/white behavior. Advanced /
-    # Custom leaves the legacy controls untouched for full compatibility.
+    # Neutral Tone Handling combines white and black/white behavior. Legacy
+    # Advanced / Custom maps to Natural because Home Assistant select states need
+    # stable declared options.
     neutral_style = effective.get(CONF_NEUTRAL_TONE_HANDLING, DEFAULT_NEUTRAL_TONE_HANDLING)
+    if neutral_style == NEUTRAL_TONE_ADVANCED:
+        neutral_style = NEUTRAL_TONE_NATURAL
+        effective[CONF_NEUTRAL_TONE_HANDLING] = neutral_style
+        effective["_advanced_overrides_active"] = True
     if neutral_style != NEUTRAL_TONE_ADVANCED:
         neutral_map = {
             NEUTRAL_TONE_NATURAL: (WHITE_HANDLING_CONTEXTUAL, 50, "warm_neutral"),
@@ -676,9 +693,141 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
     return result
 
 
+# Classify album art with local image statistics only. This keeps Auto Artwork
+# Style offline and deterministic while avoiding per-track manual tuning.
+def _detect_auto_artwork_style(image_bytes: bytes, config: dict) -> tuple[str, dict]:
+    behavior = config.get(CONF_AUTO_STYLE_BEHAVIOR, AUTO_STYLE_BALANCED)
+    try:
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        image.thumbnail((96, 96))
+        pixels = list(image.getdata())
+    except Exception:
+        return ARTWORK_STYLE_ALBUM, {"detected_style": ARTWORK_STYLE_ALBUM, "confidence": "low", "reasons": ["image analysis failed"], "behavior": behavior}
+
+    total = max(1, len(pixels))
+    hsv_values = [_hsv(pixel) for pixel in pixels]
+    saturations = [s for _h, s, _v in hsv_values]
+    values = [v for _h, _s, v in hsv_values]
+    luminances = [luminance(pixel) for pixel in pixels]
+
+    avg_sat = sum(saturations) / total
+    avg_value = sum(values) / total
+    dark_ratio = sum(1 for _h, _s, v in hsv_values if v < 0.18) / total
+    bright_ratio = sum(1 for _h, s, v in hsv_values if v > 0.86 and s < 0.20) / total
+    neutral_ratio = sum(1 for _h, s, _v in hsv_values if s < 0.12) / total
+    vivid_ratio = sum(1 for _h, s, v in hsv_values if s > 0.55 and 0.22 < v < 0.96) / total
+    contrast = max(luminances) - min(luminances) if luminances else 0.0
+
+    # Quantize to rough buckets to estimate flat graphic blocks and color diversity.
+    buckets = Counter((r // 32, g // 32, b // 32) for r, g, b in pixels)
+    top_bucket_ratio = buckets.most_common(1)[0][1] / total if buckets else 0.0
+    dominant_bucket_ratio = sum(count for _bucket, count in buckets.most_common(4)) / total if buckets else 0.0
+    diversity = len(buckets) / total
+
+    reasons: list[str] = []
+    scores = {
+        ARTWORK_STYLE_ALBUM: 0.35,
+        ARTWORK_STYLE_NATURAL: 0.25,
+        ARTWORK_STYLE_GRAPHIC: 0.0,
+        ARTWORK_STYLE_PHOTOGRAPHY: 0.0,
+        ARTWORK_STYLE_CINEMATIC: 0.0,
+        ARTWORK_STYLE_SOFT: 0.0,
+        ARTWORK_STYLE_BOLD: 0.0,
+        ARTWORK_STYLE_MONOCHROME: 0.0,
+    }
+
+    if neutral_ratio > 0.62 and avg_sat < 0.22:
+        scores[ARTWORK_STYLE_MONOCHROME] += 1.15
+        reasons.append("mostly grayscale or neutral")
+    if contrast > 0.62 and (dark_ratio + bright_ratio) > 0.34 and dominant_bucket_ratio > 0.42:
+        scores[ARTWORK_STYLE_GRAPHIC] += 1.1
+        reasons.append("high contrast with large flat color areas")
+    if dominant_bucket_ratio > 0.55 and diversity < 0.35:
+        scores[ARTWORK_STYLE_GRAPHIC] += 0.55
+        reasons.append("few dominant color blocks")
+    if vivid_ratio > 0.24 and contrast > 0.45:
+        scores[ARTWORK_STYLE_BOLD] += 0.85
+        reasons.append("strong saturated colors")
+    if diversity > 0.45 and avg_sat < 0.48 and neutral_ratio < 0.70:
+        scores[ARTWORK_STYLE_PHOTOGRAPHY] += 0.75
+        reasons.append("many smooth midtones")
+    if dark_ratio > 0.28 and contrast > 0.40 and avg_value < 0.52:
+        scores[ARTWORK_STYLE_CINEMATIC] += 0.70
+        reasons.append("dark moody contrast")
+    if avg_sat < 0.24 and contrast < 0.50:
+        scores[ARTWORK_STYLE_SOFT] += 0.65
+        reasons.append("low saturation, gentle contrast")
+
+    if behavior == AUTO_STYLE_ACCURACY:
+        scores[ARTWORK_STYLE_ALBUM] += 0.45
+        scores[ARTWORK_STYLE_PHOTOGRAPHY] += 0.20
+        reasons.append("auto behavior prefers accuracy")
+    elif behavior == AUTO_STYLE_VIVID:
+        scores[ARTWORK_STYLE_BOLD] += 0.45
+        scores[ARTWORK_STYLE_GRAPHIC] += 0.25
+        reasons.append("auto behavior prefers vivid lighting")
+    elif behavior == AUTO_STYLE_AMBIENT:
+        scores[ARTWORK_STYLE_SOFT] += 0.45
+        scores[ARTWORK_STYLE_NATURAL] += 0.25
+        reasons.append("auto behavior prefers ambient lighting")
+
+    detected = max(scores, key=scores.get)
+    ordered_scores = sorted(scores.values(), reverse=True)
+    margin = ordered_scores[0] - (ordered_scores[1] if len(ordered_scores) > 1 else 0)
+    confidence = "high" if margin >= 0.55 else "medium" if margin >= 0.25 else "low"
+    if detected in (ARTWORK_STYLE_ALBUM, ARTWORK_STYLE_NATURAL) and not reasons:
+        reasons.append("defaulted to general album-art handling")
+
+    diagnostics = {
+        "enabled": True,
+        "detected_style": detected,
+        "confidence": confidence,
+        "reasons": reasons[:6],
+        "behavior": behavior,
+        "metrics": {
+            "average_saturation": round(avg_sat, 3),
+            "average_brightness": round(avg_value, 3),
+            "dark_ratio": round(dark_ratio, 3),
+            "bright_neutral_ratio": round(bright_ratio, 3),
+            "neutral_ratio": round(neutral_ratio, 3),
+            "vivid_ratio": round(vivid_ratio, 3),
+            "contrast": round(contrast, 3),
+            "top_color_block_ratio": round(top_bucket_ratio, 3),
+            "dominant_color_block_ratio": round(dominant_bucket_ratio, 3),
+            "color_diversity": round(diversity, 3),
+        },
+        "scores": {key: round(value, 3) for key, value in scores.items()},
+    }
+    return detected, diagnostics
+
+
+def _prepare_palette_config_for_image(image_bytes: bytes, config: dict) -> dict:
+    # Auto style changes only the effective extraction config; the user-selected
+    # option remains Auto in Home Assistant. Diagnostics expose the detected style.
+    prepared = dict(config or {})
+    selected_style = prepared.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)
+    if selected_style == ARTWORK_STYLE_AUTO:
+        detected, diagnostics = _detect_auto_artwork_style(image_bytes, prepared)
+        prepared["_selected_artwork_style"] = ARTWORK_STYLE_AUTO
+        prepared[CONF_ARTWORK_STYLE] = detected
+        prepared["_auto_artwork_style_diagnostics"] = diagnostics
+        prepared["_auto_artwork_style_detected"] = detected
+    elif selected_style == ARTWORK_STYLE_ADVANCED:
+        prepared["_selected_artwork_style"] = selected_style
+        prepared[CONF_ARTWORK_STYLE] = ARTWORK_STYLE_NATURAL
+        prepared["_advanced_overrides_active"] = True
+    else:
+        prepared["_selected_artwork_style"] = selected_style
+        prepared["_auto_artwork_style_diagnostics"] = {"enabled": False}
+    return prepared
+
+
 # Extract the final Hue-ready palette from album art.
 # Combines quantization, perceptual scoring, filtering, fallback handling, and ordering.
 def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
+    prepared_config = _prepare_palette_config_for_image(image_bytes, config)
+    config.clear()
+    config.update(prepared_config)
     config = _effective_color_config(config)
     desired = int(config.get("color_count", 3))
     color_class = _image_color_class(image_bytes)

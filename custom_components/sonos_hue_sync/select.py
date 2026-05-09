@@ -15,6 +15,8 @@ from .const import (
     ARTWORK_FALLBACK_MODES,
     ARTWORK_STYLE_LABELS,
     ARTWORK_STYLE_OPTIONS,
+    AUTO_STYLE_BEHAVIOR_LABELS,
+    AUTO_STYLE_BEHAVIOR_OPTIONS,
     COLOR_ACCURACY_MODE_LABELS,
     COLOR_ACCURACY_MODE_OPTIONS,
     COLOR_PURITY_PRESET_CUSTOM,
@@ -23,6 +25,7 @@ from .const import (
     CONF_ARTWORK_FALLBACK_MODE,
     CONF_ARTWORK_STYLE,
     CONF_ASSIGNMENT_STRATEGY,
+    CONF_AUTO_STYLE_BEHAVIOR,
     CONF_COLOR_ACCURACY_MODE,
     CONF_COLOR_PURITY,
     CONF_GRADIENT_ORDER_MODE,
@@ -87,6 +90,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # remain available in Options as Advanced / Custom inputs for compatibility.
     entities = [
         SonosHueSelect(coordinator, entry, CONF_ARTWORK_STYLE, "Artwork Style", ARTWORK_STYLE_OPTIONS, ARTWORK_STYLE_LABELS, "mdi:image-filter-vintage"),
+        SonosHueSelect(coordinator, entry, CONF_AUTO_STYLE_BEHAVIOR, "Auto Style Behavior", AUTO_STYLE_BEHAVIOR_OPTIONS, AUTO_STYLE_BEHAVIOR_LABELS, "mdi:auto-fix"),
         SonosHueSelect(coordinator, entry, CONF_NEUTRAL_TONE_HANDLING, "Neutral Tone Handling", NEUTRAL_TONE_OPTIONS, NEUTRAL_TONE_LABELS, "mdi:contrast-circle"),
         SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
         SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
