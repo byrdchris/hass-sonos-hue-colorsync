@@ -116,6 +116,20 @@ def _effective_color_config(config: dict | None) -> dict:
         effective["monochrome_mode"] = mono_mode
         effective["_neutral_tone_handling_applied"] = neutral_style
 
+    # Monochrome guardrails are intentionally stronger than user-facing vivid or
+    # warm modes. If Auto determined the source has no real chroma, preserve
+    # grayscale identity instead of stacking legacy warm-neutral conversion with
+    # Warm Ambient / Prefer Vivid behavior.
+    if _is_monochrome_guard_active(effective):
+        effective[CONF_COLOR_ACCURACY_MODE] = COLOR_ACCURACY_MODE_ALBUM
+        effective[CONF_COLOR_PURITY] = "95"
+        effective["palette_ordering"] = "dominant_first"
+        effective[CONF_PALETTE_COHERENCE] = PALETTE_COHERENCE_OFF
+        effective[CONF_WHITE_HANDLING] = WHITE_HANDLING_ALLOW
+        effective[CONF_WHITE_LEVEL] = 0
+        effective["monochrome_mode"] = "grayscale"
+        effective["_monochrome_guardrail_applied"] = True
+
     mode = effective.get(CONF_COLOR_ACCURACY_MODE, COLOR_ACCURACY_MODE_NATURAL)
     # Accept both legacy numeric values and new preset string values. If a
     # display-only custom marker ever appears, fall back safely to Balanced.
@@ -319,6 +333,31 @@ def _image_color_class(image_bytes: bytes) -> str:
     if ratio < 0.10:
         return "low_color"
     return "full_color"
+
+
+def _is_monochrome_guard_active(config: dict | None) -> bool:
+    """Return true when Auto detected low-chroma grayscale art.
+
+    This guard prevents vivid/warm modes from converting black-and-white
+    photography into red, pink, or brown pseudo-colors.
+    """
+    diagnostics = (config or {}).get("_auto_artwork_style_diagnostics") or {}
+    metrics = diagnostics.get("metrics") or {}
+    detected = diagnostics.get("detected_style")
+    try:
+        avg_sat = float(metrics.get("average_saturation", 1.0))
+        neutral_ratio = float(metrics.get("neutral_ratio", 0.0))
+        vivid_ratio = float(metrics.get("vivid_ratio", 1.0))
+        color_diversity = float(metrics.get("color_diversity", 1.0))
+    except (TypeError, ValueError):
+        return False
+    return (
+        detected in (ARTWORK_STYLE_MONOCHROME, ARTWORK_STYLE_GRAPHIC, ARTWORK_STYLE_CINEMATIC)
+        and avg_sat <= 0.18
+        and neutral_ratio >= 0.56
+        and vivid_ratio <= 0.02
+        and color_diversity <= 0.08
+    )
 
 
 def _repeat_to_count(colors: list[RGB], desired: int) -> list[RGB]:
@@ -771,6 +810,19 @@ def _detect_auto_artwork_style(image_bytes: bytes, config: dict) -> tuple[str, d
         scores[ARTWORK_STYLE_NATURAL] += 0.25
         reasons.append("auto behavior prefers ambient lighting")
 
+    # Hard monochrome protection: vivid preference should not turn true
+    # black-and-white artwork into red/pink/brown. Strong neutral metrics win
+    # over poster/vivid scoring and route into the monochrome pipeline.
+    monochrome_guard = (
+        avg_sat <= 0.18
+        and neutral_ratio >= 0.56
+        and vivid_ratio <= 0.02
+        and diversity <= 0.08
+    )
+    if monochrome_guard:
+        scores[ARTWORK_STYLE_MONOCHROME] += 1.25
+        reasons.append("monochrome guardrail preserved grayscale tones")
+
     detected = max(scores, key=scores.get)
     ordered_scores = sorted(scores.values(), reverse=True)
     margin = ordered_scores[0] - (ordered_scores[1] if len(ordered_scores) > 1 else 0)
@@ -796,6 +848,7 @@ def _detect_auto_artwork_style(image_bytes: bytes, config: dict) -> tuple[str, d
             "dominant_color_block_ratio": round(dominant_bucket_ratio, 3),
             "color_diversity": round(diversity, 3),
         },
+        "monochrome_guardrail": bool(monochrome_guard),
         "scores": {key: round(value, 3) for key, value in scores.items()},
     }
     return detected, diagnostics
@@ -828,9 +881,21 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
     prepared_config = _prepare_palette_config_for_image(image_bytes, config)
     config.clear()
     config.update(prepared_config)
-    config = _effective_color_config(config)
+    effective_config = _effective_color_config(config)
+    config.clear()
+    config.update(effective_config)
     desired = int(config.get("color_count", 3))
     color_class = _image_color_class(image_bytes)
+    if _is_monochrome_guard_active(config):
+        config["_monochrome_guardrail_applied"] = True
+        mono = _monochrome_palette(image_bytes, desired, "grayscale")
+        if mono:
+            config["_artwork_style_diagnostics"] = {
+                "mode": "monochrome_guardrail",
+                "algorithm": "preserve_grayscale_luminance",
+                "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in mono[:desired]],
+            }
+            return mono[:desired]
     if color_class == "monochrome":
         mono = _monochrome_palette(image_bytes, desired, config.get("monochrome_mode", "warm_neutral"))
         if mono:

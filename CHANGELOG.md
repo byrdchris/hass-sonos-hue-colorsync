@@ -1,3 +1,11 @@
+# v1.2.12
+
+- Added monochrome guardrails for Auto Artwork Style.
+- Prevented **Prefer Vivid**, **Warm Ambient**, and legacy warm-neutral handling from stacking on true black-and-white or grayscale artwork.
+- Auto now preserves grayscale palettes when diagnostics show high neutral ratio, near-zero vivid color, and very low color diversity.
+- Added diagnostics for monochrome guardrail detection and palette preservation.
+- Updated Help & Guide, README, PROJECT_STATE, manifest, and documentation notes.
+
 # v1.2.11
 
 - Locked explicit **Dark to Light** and **Light to Dark** gradient ordering so Auto Artwork Style cannot destabilize the gradient flow on track changes.

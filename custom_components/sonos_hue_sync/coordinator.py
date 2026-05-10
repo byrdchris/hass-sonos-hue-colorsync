@@ -668,13 +668,13 @@ Sonos Hue Sync watches the selected Sonos player, extracts colors from the curre
 - **Cinematic** is for darker or moodier art. It keeps deeper shadows, smoother gradients, and stronger warm/cool separation.
 - **Soft Ambient** is for subtle background lighting. It lowers harshness and avoids aggressive saturation.
 - **Bold / High Contrast** is for pop, dance, electronic, and vivid covers. It favors saturated accents and stronger separation.
-- **Monochrome Accent** is for black-and-white or grayscale covers. It preserves neutral contrast and uses subtle accents instead of inventing rainbow colors.
+- **Monochrome Accent** is for black-and-white or grayscale covers. It preserves neutral contrast and avoids inventing unrelated color, especially red/pink warmth.
 
 ### Auto Style Behavior
 This only affects **Artwork Style → Auto**.
 - **Balanced** chooses the highest-confidence style without strong bias.
 - **Prefer Accuracy** leans toward Album Accurate or Photography when confidence is close.
-- **Prefer Vivid** leans toward Bold / High Contrast or Graphic / Poster.
+- **Prefer Vivid** leans toward Bold / High Contrast or Graphic / Poster. For strongly monochrome artwork, Auto now applies monochrome guardrails so this preference cannot turn black-and-white covers red or pink.
 - **Prefer Ambient** leans toward Soft Ambient or Natural.
 
 ### Neutral Tone Handling
@@ -726,7 +726,7 @@ Advanced controls are still available in the options form for compatibility and 
 - **Health Check** checks Sonos availability, target resolution, Hue bridge state, gradient capability, and last run status.
 
 ### Diagnostics
-The Status sensor exposes the current palette, resolved lights, selected artwork style, detected artwork style, auto detection confidence, detection reasons, neutral tone handling, runtime options, last service data, cache result, restore result, restore reason, gradient diagnostics, palette diagnostics, and timing data.
+The Status sensor exposes the current palette, resolved lights, selected artwork style, detected artwork style, auto detection confidence, detection reasons, monochrome guardrail status, neutral tone handling, runtime options, last service data, cache result, restore result, restore reason, gradient diagnostics, palette diagnostics, and timing data.
 
 Download diagnostics from:
 
@@ -735,7 +735,7 @@ Download diagnostics from:
 ### Common troubleshooting
 - For playlists with mixed artwork, use **Artwork Style → Auto** and adjust **Auto Style Behavior** if the results are too accurate, vivid, or ambient.
 - For poster-like covers with red/black/white typography, use **Graphic / Poster** or let **Auto** detect it.
-- For black-and-white covers, use **Monochrome Accent** or let **Auto** detect it.
+- For black-and-white covers, use **Monochrome Accent** or let **Auto** detect it. Auto will preserve grayscale when diagnostics show high neutral ratio and near-zero vivid color.
 - If colors look pastel or unrelated, try **Graphic / Poster** or **Bold / High Contrast**.
 - If colors look too harsh, use **Soft Ambient**, **Natural**, or Auto Style Behavior → Prefer Ambient.
 - If palette ordering appears unchanged, use Sequential distribution and set Color Rotation to Off.

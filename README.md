@@ -1,4 +1,6 @@
-## v1.2.11 Ordered Gradient Lock
+## v1.2.12 Monochrome Guardrails
+This release tightens Auto Artwork Style for black-and-white and grayscale artwork. When Auto detects a high-neutral, near-zero-vivid cover, it preserves grayscale tones even if Auto Style Behavior is set to Prefer Vivid or Neutral Tone Handling is warm. This prevents monochrome covers from becoming red, pink, or brown.
+
 
 - Explicit **Dark to Light** and **Light to Dark** gradient patterns are now locked layout choices.
 - **Artwork Style → Auto** can still change which colors are extracted, but it no longer changes how ordered gradient ramps flow across gradient lights.
@@ -23,7 +25,7 @@
 - **Cinematic**: deeper, moodier colors with smoother transitions.
 - **Soft Ambient**: subtle, less saturated background lighting.
 - **Bold / High Contrast**: vivid, energetic color separation.
-- **Monochrome Accent**: black-and-white or grayscale covers with restrained accents.
+- **Monochrome Accent**: black-and-white or grayscale covers with restrained accents. Auto uses monochrome guardrails to preserve grayscale when no real vivid color is present.
 
 # Sonos Hue Sync
 
