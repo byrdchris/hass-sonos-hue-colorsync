@@ -1,3 +1,12 @@
+## v1.2.14 Neutral White Visibility Fix
+
+This release strengthens Neutral Tone Handling for monochrome and near-monochrome album art. v1.2.13 prevented red/pink/brown drift, but Hue devices could still render different grayscale palettes as visually similar white. v1.2.14 makes neutral modes visibly distinct by shaping both neutral palette brightness and color temperature where Home Assistant/Hue supports it.
+
+- Reduce Whites now caps bright neutral stops more aggressively.
+- Warm Ambient now produces a visible warm neutral wash without red/brown drift.
+- Preserve Contrast, Graphic / Poster, Natural, and Allow Pure White keep separate neutral behavior under monochrome guardrails.
+- Diagnostics now report that monochrome guardrail output uses visible white shaping.
+
 ## v1.2.13 Neutral Tone Handling Fix
 
 This release keeps the monochrome guardrail from v1.2.12, but lets **Neutral Tone Handling** change black-and-white and grayscale album art again.

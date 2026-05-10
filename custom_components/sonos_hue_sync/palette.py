@@ -383,8 +383,14 @@ def _monochrome_guardrail_palette_mode(config: dict | None) -> str:
 
 
 def _tint_warm_gray(value: int) -> RGB:
-    """Return a very low-saturation warm gray, not a colored red/brown."""
-    return (max(0, min(255, value + 8)), max(0, min(255, value + 3)), max(0, min(255, value - 5)))
+    """Return a warm off-white/greige, not a colored red/brown."""
+    # The previous tint was too subtle on Hue devices and looked identical to
+    # white. This keeps saturation low while making Warm Ambient visibly warmer.
+    return (
+        max(0, min(255, value + 16)),
+        max(0, min(255, value + 7)),
+        max(0, min(255, value - 16)),
+    )
 
 
 def _shape_monochrome_values(values: list[int], desired: int, mode: str) -> list[int]:
@@ -393,7 +399,9 @@ def _shape_monochrome_values(values: list[int], desired: int, mode: str) -> list
         values = [190, 150, 110]
     ordered = sorted(dict.fromkeys(values), reverse=True)
     if mode == "grayscale_reduce_whites":
-        shaped = [min(188, max(62, value)) for value in ordered]
+        # Strongly cap bright neutrals so Reduce Whites visibly lowers white output.
+        shaped = [min(152, max(45, value)) for value in ordered]
+        shaped.extend([122, 82, 48])
     elif mode == "grayscale_contrast":
         shaped = []
         for value in ordered:
@@ -408,12 +416,15 @@ def _shape_monochrome_values(values: list[int], desired: int, mode: str) -> list
         shaped = [235, 170, 95, 42]
         shaped.extend(ordered)
     elif mode == "grayscale_allow_white":
-        shaped = [min(248, max(45, value)) for value in ordered]
-        shaped.insert(0, 246)
+        shaped = [min(252, max(45, value)) for value in ordered]
+        shaped.insert(0, 252)
     elif mode == "warm_grayscale":
-        shaped = [min(210, max(72, value)) for value in ordered]
+        # Keep whites below the pure-white range so warm handling appears as a
+        # warm neutral wash instead of the same Hue white state.
+        shaped = [min(188, max(76, value)) for value in ordered]
+        shaped.extend([172, 136, 96])
     else:
-        shaped = [min(218, max(70, value)) for value in ordered]
+        shaped = [min(205, max(62, value)) for value in ordered]
     result: list[int] = []
     for value in shaped:
         value = int(max(0, min(255, value)))
@@ -971,9 +982,10 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
         if mono:
             config["_artwork_style_diagnostics"] = {
                 "mode": "monochrome_guardrail",
-                "algorithm": "safe_neutral_tone_handling",
+                "algorithm": "safe_neutral_tone_handling_with_visible_white_shaping",
                 "neutral_tone_handling": config.get(CONF_NEUTRAL_TONE_HANDLING),
                 "palette_mode": guard_mode,
+                "white_behavior": "brightness_and_color_temperature_shaped_for_neutral_art",
                 "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in mono[:desired]],
             }
             return mono[:desired]

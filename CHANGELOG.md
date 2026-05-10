@@ -1,3 +1,12 @@
+# v1.2.14
+
+- Fixed Neutral Tone Handling appearing unchanged on white/gray album art.
+- Added visible white shaping for monochrome guardrail palettes.
+- Reduce Whites now lowers bright neutral output more aggressively.
+- Warm Ambient now uses a stronger but still safe warm-neutral tint.
+- Standard Hue light applies can use color temperature for monochrome neutral palettes so whites visibly change instead of round-tripping as the same Hue white.
+- Updated diagnostics to identify brightness and color-temperature shaping for neutral artwork.
+
 # v1.2.13
 
 - Fixed Neutral Tone Handling while Auto monochrome guardrails are active.

@@ -35,16 +35,68 @@ def _clamp_brightness(value: int, config: dict | None = None, gradient_aware: bo
     return max(min_brightness, min(max_brightness, int(value)))
 
 
-def _brightness_for_color(color: tuple[int, int, int]) -> int:
-    return int(50 + luminance(color) * 205)
+def _is_neutral_rgb(color: tuple[int, int, int]) -> bool:
+    # Treat near-grayscale RGB values as neutral tones. Hue reports these as whites,
+    # so visible differences need brightness and color-temperature shaping.
+    r, g, b = color
+    return max(color) - min(color) <= 28
+
+
+def _neutral_color_temperature(config: dict | None) -> int | None:
+    # For monochrome guardrail palettes, use color temperature where possible so
+    # Neutral Tone Handling visibly changes whites instead of only changing RGB
+    # values that Hue normalizes back to white.
+    config = config or {}
+    if not config.get("_monochrome_guardrail_applied"):
+        return None
+    mode = config.get("neutral_tone_handling")
+    if mode == "warm_ambient":
+        return 3000
+    if mode == "preserve_contrast":
+        return 4200
+    if mode == "graphic":
+        return 5000
+    if mode == "allow_pure_white":
+        return 6500
+    if mode == "reduce_whites":
+        return 3700
+    return 4600
+
+
+def _brightness_for_color(color: tuple[int, int, int], config: dict | None = None) -> int:
+    # Use stronger brightness shaping for monochrome artwork. RGB grays all map
+    # to a white-ish Hue chromaticity, so reducing or preserving whites must be
+    # visible through brightness as well as through palette values.
+    base = int(50 + luminance(color) * 205)
+    config = config or {}
+    if not config.get("_monochrome_guardrail_applied") or not _is_neutral_rgb(color):
+        return base
+    mode = config.get("neutral_tone_handling")
+    lum = luminance(color)
+    if mode == "reduce_whites":
+        return int(55 + lum * 115)
+    if mode == "preserve_contrast":
+        return int(45 + lum * 195)
+    if mode == "warm_ambient":
+        return int(60 + lum * 125)
+    if mode == "graphic":
+        return int(35 + lum * 210)
+    if mode == "allow_pure_white":
+        return int(70 + lum * 185)
+    return int(55 + lum * 145)
 
 def build_service_data(state, color: tuple[int, int, int], transition: float, config: dict | None = None, gradient_aware: bool = False) -> dict:
-    brightness = _clamp_brightness(_brightness_for_color(color), config, gradient_aware)
+    brightness = _clamp_brightness(_brightness_for_color(color, config), config, gradient_aware)
     data = {"entity_id": state.entity_id, "brightness": brightness, "transition": transition}
 
-    # Prefer rgb_color for Hue xy/rgb/hs lights. Avoid color_temp service keys
-    # because some HA versions reject that key in light.turn_on validation.
-    if any(_supports(state, mode) for mode in ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")):
+    # For monochrome guardrail palettes, color_temp makes white/gray handling
+    # visible on Hue bulbs. Plain rgb grays often round-trip through Hue as the
+    # same white chromaticity, making the UI look unchanged.
+    neutral_kelvin = _neutral_color_temperature(config) if _is_neutral_rgb(color) else None
+    if neutral_kelvin and _supports(state, "color_temp"):
+        data["color_temp_kelvin"] = int(neutral_kelvin)
+        data["neutral_tone_color_temperature"] = int(neutral_kelvin)
+    elif any(_supports(state, mode) for mode in ("rgb", "xy", "hs", "rgbw", "rgbww", "color_temp")):
         data["rgb_color"] = list(color)
 
     return data
@@ -101,7 +153,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 transition,
                 order_mode=(config or {}).get("gradient_order_mode", "same_order"),
                 track_key=(config or {}).get("_track_key"),
-                brightness=_clamp_brightness(_brightness_for_color(color), config, True),
+                brightness=_clamp_brightness(_brightness_for_color(color, config), config, True),
                 rotation_offset=(config or {}).get("_rotation_offset", 0),
             )
             if success:
@@ -115,7 +167,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 sent.append(gradient_diag)
                 _LAST_APPLIED[entity_id] = {
                     "rgb_color": list(color),
-                    "brightness": _clamp_brightness(_brightness_for_color(color), config, gradient_aware),
+                    "brightness": _clamp_brightness(_brightness_for_color(color, config), config, gradient_aware),
                     "transition": transition,
                     "gradient": True,
                 }
