@@ -1,3 +1,16 @@
+## v1.2.13 Neutral Tone Handling Fix
+
+This release keeps the monochrome guardrail from v1.2.12, but lets **Neutral Tone Handling** change black-and-white and grayscale album art again.
+
+- **Natural** keeps balanced grayscale tones.
+- **Reduce Whites** suppresses bright whites while preserving grayscale.
+- **Preserve Contrast** expands dark and light separation.
+- **Warm Ambient** adds only a very subtle warm-gray tint and avoids red/pink/brown drift.
+- **Graphic / Poster** uses stronger black/white separation.
+- **Allow Pure White** permits brighter whites.
+
+Diagnostics now show the active monochrome guardrail palette mode so neutral handling behavior is easier to verify.
+
 ## v1.2.12 Monochrome Guardrails
 This release tightens Auto Artwork Style for black-and-white and grayscale artwork. When Auto detects a high-neutral, near-zero-vivid cover, it preserves grayscale tones even if Auto Style Behavior is set to Prefer Vivid or Neutral Tone Handling is warm. This prevents monochrome covers from becoming red, pink, or brown.
 

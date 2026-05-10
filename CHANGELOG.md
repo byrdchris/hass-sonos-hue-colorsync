@@ -1,3 +1,11 @@
+# v1.2.13
+
+- Fixed Neutral Tone Handling while Auto monochrome guardrails are active.
+- Preserved grayscale protection for true monochrome artwork while allowing Neutral Tone Handling to change the resulting palette.
+- Added safe monochrome variants for Reduce Whites, Preserve Contrast, Warm Ambient, Graphic / Poster, and Allow Pure White.
+- Updated diagnostics to show the guardrail palette mode and neutral handling used.
+- Validation: Python compile and JSON parse checks passed.
+
 # v1.2.12
 
 - Added monochrome guardrails for Auto Artwork Style.

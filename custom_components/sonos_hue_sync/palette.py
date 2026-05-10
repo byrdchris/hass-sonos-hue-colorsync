@@ -125,10 +125,12 @@ def _effective_color_config(config: dict | None) -> dict:
         effective[CONF_COLOR_PURITY] = "95"
         effective["palette_ordering"] = "dominant_first"
         effective[CONF_PALETTE_COHERENCE] = PALETTE_COHERENCE_OFF
-        effective[CONF_WHITE_HANDLING] = WHITE_HANDLING_ALLOW
-        effective[CONF_WHITE_LEVEL] = 0
-        effective["monochrome_mode"] = "grayscale"
+        # Keep the neutral handling white behavior from the map above, but force
+        # the monochrome path into safe low-chroma variants.
+        effective["monochrome_mode"] = _monochrome_guardrail_palette_mode(effective)
         effective["_monochrome_guardrail_applied"] = True
+        effective["_monochrome_guardrail_neutral_mode"] = effective.get(CONF_NEUTRAL_TONE_HANDLING)
+        effective["_monochrome_guardrail_palette_mode"] = effective.get("monochrome_mode")
 
     mode = effective.get(CONF_COLOR_ACCURACY_MODE, COLOR_ACCURACY_MODE_NATURAL)
     # Accept both legacy numeric values and new preset string values. If a
@@ -360,6 +362,68 @@ def _is_monochrome_guard_active(config: dict | None) -> bool:
     )
 
 
+def _monochrome_guardrail_palette_mode(config: dict | None) -> str:
+    """Map Neutral Tone Handling to safe monochrome palette behavior.
+
+    The guardrail should prevent accidental red/pink/brown drift, but the
+    user's Neutral Tone Handling choice should still change the result.
+    """
+    neutral_style = (config or {}).get(CONF_NEUTRAL_TONE_HANDLING, DEFAULT_NEUTRAL_TONE_HANDLING)
+    if neutral_style == NEUTRAL_TONE_REDUCE_WHITES:
+        return "grayscale_reduce_whites"
+    if neutral_style == NEUTRAL_TONE_PRESERVE_CONTRAST:
+        return "grayscale_contrast"
+    if neutral_style == NEUTRAL_TONE_WARM_AMBIENT:
+        return "warm_grayscale"
+    if neutral_style == NEUTRAL_TONE_GRAPHIC:
+        return "grayscale_graphic"
+    if neutral_style == NEUTRAL_TONE_ALLOW_WHITE:
+        return "grayscale_allow_white"
+    return "grayscale"
+
+
+def _tint_warm_gray(value: int) -> RGB:
+    """Return a very low-saturation warm gray, not a colored red/brown."""
+    return (max(0, min(255, value + 8)), max(0, min(255, value + 3)), max(0, min(255, value - 5)))
+
+
+def _shape_monochrome_values(values: list[int], desired: int, mode: str) -> list[int]:
+    """Adjust grayscale luminance stops for each Neutral Tone Handling mode."""
+    if not values:
+        values = [190, 150, 110]
+    ordered = sorted(dict.fromkeys(values), reverse=True)
+    if mode == "grayscale_reduce_whites":
+        shaped = [min(188, max(62, value)) for value in ordered]
+    elif mode == "grayscale_contrast":
+        shaped = []
+        for value in ordered:
+            if value >= 150:
+                shaped.append(min(232, value + 18))
+            elif value <= 105:
+                shaped.append(max(38, value - 22))
+            else:
+                shaped.append(value)
+        shaped.extend([232, 42])
+    elif mode == "grayscale_graphic":
+        shaped = [235, 170, 95, 42]
+        shaped.extend(ordered)
+    elif mode == "grayscale_allow_white":
+        shaped = [min(248, max(45, value)) for value in ordered]
+        shaped.insert(0, 246)
+    elif mode == "warm_grayscale":
+        shaped = [min(210, max(72, value)) for value in ordered]
+    else:
+        shaped = [min(218, max(70, value)) for value in ordered]
+    result: list[int] = []
+    for value in shaped:
+        value = int(max(0, min(255, value)))
+        if value not in result:
+            result.append(value)
+        if len(result) >= desired:
+            break
+    return _repeat_to_count(result, desired)
+
+
 def _repeat_to_count(colors: list[RGB], desired: int) -> list[RGB]:
     if not colors:
         return [(220, 198, 176)] * desired
@@ -367,24 +431,38 @@ def _repeat_to_count(colors: list[RGB], desired: int) -> list[RGB]:
 
 
 def _monochrome_palette(image_bytes: bytes, desired: int, mode: str) -> list[RGB] | None:
+    """Build a palette for monochrome or near-monochrome artwork.
+
+    Several modes are deliberately grayscale-only so Neutral Tone Handling remains
+    visible without reintroducing red/pink/brown drift on black-and-white covers.
+    """
     if mode == "disabled":
         return None
     if mode == "muted_accent":
         return _repeat_to_count([(190, 170, 145), (120, 135, 150), (155, 130, 115), (105, 110, 118)], desired)
-    if mode == "grayscale":
+
+    grayscale_modes = {
+        "grayscale",
+        "grayscale_reduce_whites",
+        "grayscale_contrast",
+        "grayscale_graphic",
+        "grayscale_allow_white",
+        "warm_grayscale",
+    }
+    if mode in grayscale_modes:
         try:
             ct = ColorThief(BytesIO(image_bytes))
-            raw = ct.get_palette(color_count=max(desired * 3, 8), quality=3)
-            grays = []
-            for color in raw:
-                y = int(luminance(color) * 255)
-                y = max(70, min(218, y))
-                gray = (y, y, y)
-                if gray not in grays:
-                    grays.append(gray)
-            return _repeat_to_count(grays, desired)
+            raw = ct.get_palette(color_count=max(desired * 4, 12), quality=3)
+            values = [int(luminance(color) * 255) for color in raw]
         except Exception:
-            return _repeat_to_count([(190, 190, 190), (150, 150, 150), (110, 110, 110)], desired)
+            values = [205, 160, 120, 80]
+        shaped = _shape_monochrome_values(values, desired, mode)
+        if mode == "warm_grayscale":
+            return [_tint_warm_gray(value) for value in shaped[:desired]]
+        return [(value, value, value) for value in shaped[:desired]]
+
+    # Legacy warm-neutral mode remains available outside the Auto monochrome
+    # guardrail for users who explicitly prefer warm neutral lighting.
     return _repeat_to_count([(225, 204, 178), (190, 170, 148), (150, 135, 122), (110, 100, 95)], desired)
 
 
@@ -888,11 +966,14 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
     color_class = _image_color_class(image_bytes)
     if _is_monochrome_guard_active(config):
         config["_monochrome_guardrail_applied"] = True
-        mono = _monochrome_palette(image_bytes, desired, "grayscale")
+        guard_mode = config.get("monochrome_mode", _monochrome_guardrail_palette_mode(config))
+        mono = _monochrome_palette(image_bytes, desired, guard_mode)
         if mono:
             config["_artwork_style_diagnostics"] = {
                 "mode": "monochrome_guardrail",
-                "algorithm": "preserve_grayscale_luminance",
+                "algorithm": "safe_neutral_tone_handling",
+                "neutral_tone_handling": config.get(CONF_NEUTRAL_TONE_HANDLING),
+                "palette_mode": guard_mode,
                 "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in mono[:desired]],
             }
             return mono[:desired]

@@ -454,7 +454,7 @@ async def try_apply_gradient(
     diagnostics["gradient_points"] = len(points)
     diagnostics["gradient_order_mode"] = order_mode
     diagnostics["gradient_rotation_offset"] = effective_rotation_offset
-    diagnostics["gradient_rotation_suppressed"] = bool(ordered_mode and rotation_offset)
+    diagnostics["gradient_rotation_suppressed"] = bool(ordered_mode)
     diagnostics["gradient_luminance_values"] = [round(_perceived_luminance(color), 6) for color in points]
     diagnostics["gradient_sort_basis"] = "gamma_corrected_relative_luminance"
     diagnostics["gradient_detail_selection"] = "locked_palette_order" if ordered_mode else "palette_order"
