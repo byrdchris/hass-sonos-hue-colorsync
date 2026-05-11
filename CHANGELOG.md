@@ -1,3 +1,14 @@
+# v1.2.15
+
+- Made **Auto Style Behavior** materially affect the final palette instead of only biasing Auto Artwork Style classification.
+- **Prefer Ambient** now visibly softens high-contrast Graphic / Poster palettes by lowering saturation, reducing harsh white/dark jumps, and lifting very dark colors.
+- **Prefer Vivid** now applies stronger saturation and contrast shaping while still respecting neutral/monochrome guardrails.
+- **Prefer Accuracy** now reduces the most stylized Auto behavior and keeps extracted luminance relationships closer to the artwork.
+- Added diagnostics showing Auto Style Behavior before/after palette shaping, behavior strength, and whether the pass was applied or skipped.
+- Fixed explicit **Dark to Light** / **Light to Dark** gradient ordering after Artwork Style changes by selecting gradient anchors from the full final palette and sorting by luminance after style processing.
+- Ordered gradients now ignore per-light assignment base colors and rotation offsets so the selected gradient direction remains authoritative.
+- Updated docs and project state for the current v1.2.x baseline.
+
 # v1.2.14
 
 - Fixed Neutral Tone Handling appearing unchanged on white/gray album art.

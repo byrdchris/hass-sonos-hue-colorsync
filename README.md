@@ -1,3 +1,13 @@
+## v1.2.15 Auto Behavior and Ordered Gradient Fix
+
+This release makes **Auto Style Behavior** visibly affect the final palette after Auto Artwork Style detection. It also fixes explicit **Dark to Light** and **Light to Dark** gradient ordering so style changes cannot make ordered gradients appear reversed or inconsistently anchored.
+
+- Prefer Ambient now softens high-contrast Auto palettes instead of only changing detection scoring.
+- Prefer Vivid now more strongly boosts usable color energy while preserving guardrails.
+- Prefer Accuracy now reduces stylization and keeps the palette closer to extracted artwork tones.
+- Ordered gradients now choose anchors from the full final palette and apply luminance ordering after all style processing.
+- Diagnostics include before/after Auto Style Behavior palettes and ordered-gradient selection details.
+
 ## v1.2.14 Neutral White Visibility Fix
 
 This release strengthens Neutral Tone Handling for monochrome and near-monochrome album art. v1.2.13 prevented red/pink/brown drift, but Hue devices could still render different grayscale palettes as visually similar white. v1.2.14 makes neutral modes visibly distinct by shaping both neutral palette brightness and color temperature where Home Assistant/Hue supports it.
@@ -334,3 +344,8 @@ Palette Coherence removes visually isolated color outliers after album-art extra
 - **Strict** keeps a more unified palette and removes stronger hue outliers.
 
 Diagnostics report the selected coherence mode, dominant hue family, cluster score, and any colors removed.
+
+
+## v1.2.15 behavior update
+
+Auto Style Behavior is now a visible post-detection preference. Auto still detects the artwork type, but the selected behavior now shapes the final palette: Prefer Ambient softens contrast, Prefer Vivid increases color energy, and Prefer Accuracy reduces stylization. Explicit Dark to Light and Light to Dark gradient patterns remain authoritative after Artwork Style changes.

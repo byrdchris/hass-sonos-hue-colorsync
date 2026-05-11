@@ -943,6 +943,117 @@ def _detect_auto_artwork_style(image_bytes: bytes, config: dict) -> tuple[str, d
     return detected, diagnostics
 
 
+
+def _clamp_channel(value: float) -> int:
+    """Clamp a computed color channel into the Hue-safe RGB range."""
+    return int(max(0, min(255, round(value))))
+
+
+def _color_to_hex(color: RGB) -> str:
+    """Format an RGB tuple for diagnostics without depending on public helpers."""
+    return "#{:02X}{:02X}{:02X}".format(*color)
+
+
+def _shape_auto_behavior_color(color: RGB, behavior: str) -> RGB:
+    """Apply the Auto Style Behavior preference as a visible final palette pass.
+
+    Auto detection chooses the artwork type. This pass makes the user's behavior
+    preference authoritative enough to see in Home Assistant without letting it
+    break monochrome guardrails or explicit neutral handling.
+    """
+    h, s, v = _hsv(color)
+
+    if behavior == AUTO_STYLE_AMBIENT:
+        # Ambient should visibly soften poster/high-contrast output: brighten
+        # very dark colors, lower harsh whites, and reduce chroma while keeping
+        # the same general hue family.
+        if v < 0.30:
+            v = 0.30 + (v * 0.28)
+        else:
+            v = 0.48 + ((v - 0.48) * 0.55)
+        v = max(0.30, min(0.78, v))
+        s = min(0.42, s * 0.50)
+        if s < 0.10:
+            # Give neutral whites a slight room-light warmth instead of leaving
+            # them as stark white, especially when Reduce Whites is active.
+            h = 0.10
+            s = max(s, 0.08)
+    elif behavior == AUTO_STYLE_VIVID:
+        # Vivid should produce a clear difference: lift usable dark colors and
+        # increase saturation, but avoid turning true whites into neon colors.
+        if s >= 0.12:
+            s = min(0.95, max(0.34, s * 1.45))
+            v = max(0.22, min(0.98, v * 1.06))
+        else:
+            v = max(0.28, min(0.88, v * 0.92))
+    elif behavior == AUTO_STYLE_ACCURACY:
+        # Accuracy should reduce the most stylized/vivid outcomes and keep the
+        # palette closer to the artwork's extracted luminance relationships.
+        s = min(s, 0.72)
+        if v < 0.16:
+            v = 0.16
+        elif v > 0.92 and s < 0.18:
+            v = 0.90
+    else:
+        return color
+
+    r, g, b = colorsys.hsv_to_rgb(h, max(0.0, min(1.0, s)), max(0.0, min(1.0, v)))
+    return (_clamp_channel(r * 255), _clamp_channel(g * 255), _clamp_channel(b * 255))
+
+
+
+def _dedupe_rgb_preserve_order(colors: list[RGB]) -> list[RGB]:
+    """Remove duplicate RGB colors while keeping the generated palette order."""
+    output: list[RGB] = []
+    seen: set[RGB] = set()
+    for color in colors:
+        rgb = tuple(int(max(0, min(255, channel))) for channel in color)  # type: ignore[assignment]
+        if rgb not in seen:
+            seen.add(rgb)
+            output.append(rgb)
+    return output
+
+def _apply_auto_style_behavior_to_palette(palette: list[RGB], config: dict, desired: int) -> list[RGB]:
+    """Make Auto Style Behavior a visible second-stage modifier.
+
+    Earlier builds used the behavior mainly as a classifier bias. That could be
+    too subtle after Graphic / Poster or other strong styles won detection. This
+    keeps detection intact while shaping the final palette in a way users can see.
+    """
+    behavior = config.get(CONF_AUTO_STYLE_BEHAVIOR, AUTO_STYLE_BALANCED)
+    selected_style = config.get("_selected_artwork_style")
+    if selected_style != ARTWORK_STYLE_AUTO or behavior == AUTO_STYLE_BALANCED or not palette:
+        config["_auto_style_behavior_diagnostics"] = {
+            "applied": False,
+            "behavior": behavior,
+            "reason": "balanced_or_manual_style",
+        }
+        return palette[:desired]
+
+    # Keep hard monochrome protection in control of true black-and-white art.
+    # Neutral Tone Handling remains responsible for grayscale/white behavior.
+    if config.get("_monochrome_guardrail_applied"):
+        config["_auto_style_behavior_diagnostics"] = {
+            "applied": False,
+            "behavior": behavior,
+            "reason": "monochrome_guardrail_preserved_neutral_identity",
+        }
+        return palette[:desired]
+
+    before = palette[:desired]
+    shaped = [_shape_auto_behavior_color(color, behavior) for color in before]
+    shaped = _repeat_to_count(_dedupe_rgb_preserve_order(shaped), desired)[:desired]
+    config["_auto_style_behavior_diagnostics"] = {
+        "applied": True,
+        "behavior": behavior,
+        "detected_style": config.get("_auto_artwork_style_detected", config.get(CONF_ARTWORK_STYLE)),
+        "strength": "strong" if behavior in (AUTO_STYLE_AMBIENT, AUTO_STYLE_VIVID) else "moderate",
+        "before": [_color_to_hex(color) for color in before],
+        "after": [_color_to_hex(color) for color in shaped],
+        "reason": "final_palette_behavior_shaping",
+    }
+    return shaped
+
 def _prepare_palette_config_for_image(image_bytes: bytes, config: dict) -> dict:
     # Auto style changes only the effective extraction config; the user-selected
     # option remains Auto in Home Assistant. Diagnostics expose the detected style.
@@ -988,11 +1099,11 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
                 "white_behavior": "brightness_and_color_temperature_shaped_for_neutral_art",
                 "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in mono[:desired]],
             }
-            return mono[:desired]
+            return _apply_auto_style_behavior_to_palette(mono[:desired], config, desired)
     if color_class == "monochrome":
         mono = _monochrome_palette(image_bytes, desired, config.get("monochrome_mode", "warm_neutral"))
         if mono:
-            return mono[:desired]
+            return _apply_auto_style_behavior_to_palette(mono[:desired], config, desired)
 
     ct = ColorThief(BytesIO(image_bytes))
     candidates = ct.get_palette(color_count=max(desired * 6, 20), quality=3)
@@ -1006,13 +1117,13 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
                 "algorithm": "graphic_poster_flat_color_blocks",
                 "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in graphic],
             }
-            return graphic[:desired]
+            return _apply_auto_style_behavior_to_palette(graphic[:desired], config, desired)
 
     if color_class == "low_color" and config.get("low_color_handling", True) and ordering != "dominant_first":
         accent_palette = _accent_preserving_low_color_palette(candidates, desired)
         if accent_palette:
-            return accent_palette[:desired]
-        return _muted_low_color_palette(candidates, desired)[:desired]
+            return _apply_auto_style_behavior_to_palette(accent_palette[:desired], config, desired)
+        return _apply_auto_style_behavior_to_palette(_muted_low_color_palette(candidates, desired)[:desired], config, desired)
 
     if config.get("filter_dull", True):
         filtered = [c for c in candidates if not is_dull(c)]
@@ -1030,7 +1141,8 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
         clustered = _clustered_select(candidates, desired)
         palette = clustered[:desired] or [(220, 198, 176)]
 
-    return _apply_palette_coherence(palette, candidates, desired, config)
+    coherent = _apply_palette_coherence(palette, candidates, desired, config)
+    return _apply_auto_style_behavior_to_palette(coherent, config, desired)
 
 
 def rgb_to_hex(rgb: RGB) -> str:

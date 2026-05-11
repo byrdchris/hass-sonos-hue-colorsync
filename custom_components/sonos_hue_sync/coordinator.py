@@ -220,6 +220,7 @@ class SonosHueCoordinator:
             "neutral_tone_handling": effective.get(CONF_NEUTRAL_TONE_HANDLING),
             "detected_artwork_style": getattr(self, "last_detected_artwork_style", None),
             "auto_artwork_style_diagnostics": getattr(self, "last_auto_artwork_style_diagnostics", {}),
+            "auto_style_behavior_diagnostics": getattr(self, "last_auto_style_behavior_diagnostics", {}),
             "advanced_overrides_active": getattr(self, "last_advanced_overrides_active", False),
             "artwork_style_applied": effective.get("_artwork_style_applied"),
             "neutral_tone_handling_applied": effective.get("_neutral_tone_handling_applied"),
@@ -1202,6 +1203,7 @@ Download diagnostics from:
                 self.last_palette_coherence = palette_config.get("_palette_coherence_diagnostics", {})
                 self.last_detected_artwork_style = palette_config.get("_auto_artwork_style_detected")
                 self.last_auto_artwork_style_diagnostics = palette_config.get("_auto_artwork_style_diagnostics", {})
+                self.last_auto_style_behavior_diagnostics = palette_config.get("_auto_style_behavior_diagnostics", {})
                 self.last_advanced_overrides_active = bool(palette_config.get("_advanced_overrides_active", False))
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:

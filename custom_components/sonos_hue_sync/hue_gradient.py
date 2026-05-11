@@ -119,7 +119,10 @@ def _locked_ordered_gradient_points(
     if not unique:
         unique = [(255, 255, 255)]
 
-    selected = unique[:point_count]
+    # Use the full final palette for explicit ramps so the selected artwork
+    # style cannot leave the gradient with only the first few assignment colors.
+    # The user-selected direction is then applied as the final authoritative step.
+    selected = _select_luminance_spread(unique, point_count)
     if len(selected) < point_count:
         selected = _repeat_to_count(selected, point_count)
 
@@ -157,6 +160,12 @@ def gradient_palette_for_light(
     if not base_palette:
         base_palette = [base_color]
 
+    # Explicit ramp modes are layout choices. Do not insert the per-light base
+    # color before ordering, because that can make style changes appear to break
+    # dark-to-light or light-to-dark direction.
+    if order_mode in ("dark_to_light", "light_to_dark"):
+        return _ordered_gradient_points(base_palette, point_count, order_mode)
+
     # Ensure base color exists in the source palette for offset/random modes.
     if base_color not in base_palette:
         base_palette.insert(0, base_color)
@@ -168,10 +177,6 @@ def gradient_palette_for_light(
         ordered = list(base_palette)
         seed = f"{track_key or ''}|{entity_id or ''}|{base_color}"
         random.Random(seed).shuffle(ordered)
-    elif order_mode in ("dark_to_light", "light_to_dark"):
-        # Do not apply rotation to explicit ramp modes. Rotation is useful for
-        # adaptive patterns but makes ordered gradients appear incorrect.
-        return _ordered_gradient_points(base_palette, point_count, order_mode)
     else:
         ordered = list(base_palette)
 
@@ -457,7 +462,7 @@ async def try_apply_gradient(
     diagnostics["gradient_rotation_suppressed"] = bool(ordered_mode)
     diagnostics["gradient_luminance_values"] = [round(_perceived_luminance(color), 6) for color in points]
     diagnostics["gradient_sort_basis"] = "gamma_corrected_relative_luminance"
-    diagnostics["gradient_detail_selection"] = "locked_palette_order" if ordered_mode else "palette_order"
+    diagnostics["gradient_detail_selection"] = "ordered_luminance_spread" if ordered_mode else "palette_order"
     diagnostics["gradient_order_lock"] = bool(ordered_mode)
     diagnostics["gradient_order_lock_reason"] = "explicit_gradient_pattern" if ordered_mode else None
     diagnostics["gradient_brightness"] = brightness
