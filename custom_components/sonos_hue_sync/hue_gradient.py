@@ -361,11 +361,35 @@ def _match_hue_resource(hass, entity_id: str):
 
     return None, None, None, None, attempted
 
-def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float, brightness: int = 255):
+def _is_near_white(color: tuple[int, int, int]) -> bool:
+    # Guard against Hue exposing a default white representative color for
+    # gradient lights when the active album palette contains no white.
+    return min(color) >= 235 and (max(color) - min(color)) <= 24
+
+def _gradient_representative_color(points: list[tuple[int, int, int]], order_mode: str) -> tuple[int, int, int]:
+    """Choose a non-white base color to pair with the native gradient payload.
+
+    Hue exposes one representative color for a gradient light. If only the
+    gradient points are sent, some bridge/HA combinations report or retain a
+    near-white representative even when the gradient itself has no white. Keep
+    this representative anchored to the final gradient palette.
+    """
+    usable = [tuple(color) for color in points if not _is_near_white(tuple(color))]
+    source = usable or [tuple(color) for color in points] or [(255, 255, 255)]
+    ordered = sorted(source, key=_gradient_sort_key)
+    if order_mode == "light_to_dark":
+        return ordered[-1]
+    if order_mode == "dark_to_light":
+        return ordered[0]
+    return ordered[len(ordered) // 2]
+
+def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float, brightness: int = 255, representative_color: tuple[int, int, int] | None = None):
+    representative_xy = rgb_to_xy(representative_color or _gradient_representative_color(points, "same_order"))
     return {
         "on": {"on": True},
         "dimming": {"brightness": max(1, min(100, int((brightness / 255) * 100)))},
         "dynamics": {"duration": int(float(transition_seconds or 0) * 1000)},
+        "color": {"xy": {"x": representative_xy[0], "y": representative_xy[1]}},
         "gradient": {
             "points": [
                 {"color": {"xy": {"x": rgb_to_xy(color)[0], "y": rgb_to_xy(color)[1]}}}
@@ -375,7 +399,7 @@ def _raw_gradient_payload(points: list[tuple[int, int, int]], transition_seconds
         },
     }
 
-def _model_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float, brightness: int = 255):
+def _model_gradient_payload(points: list[tuple[int, int, int]], transition_seconds: float, brightness: int = 255, representative_color: tuple[int, int, int] | None = None):
     from aiohue.v2.models.feature import (
         ColorFeaturePut,
         ColorPoint,
@@ -391,6 +415,14 @@ def _model_gradient_payload(points: list[tuple[int, int, int]], transition_secon
     update.on = OnFeature(on=True)
     update.dimming = DimmingFeaturePut(brightness=max(1, min(100, int((brightness / 255) * 100))))
     update.dynamics = DynamicsFeaturePut(duration=int(float(transition_seconds or 0) * 1000))
+    representative = representative_color or _gradient_representative_color(points, "same_order")
+    # Set the Hue light's representative/base color alongside the gradient.
+    # This prevents Home Assistant from showing or retaining white when the
+    # actual album palette contains no white.
+    try:
+        update.color = ColorFeaturePut(xy=ColorPoint(*rgb_to_xy(representative)))
+    except Exception:
+        pass
     update.gradient = GradientFeatureBase(
         points=[
             GradientPoint(color=ColorFeaturePut(xy=ColorPoint(*rgb_to_xy(color))))
@@ -455,9 +487,13 @@ async def try_apply_gradient(
     points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key, rotation_offset=rotation_offset)
     ordered_mode = order_mode in ("dark_to_light", "light_to_dark")
     effective_rotation_offset = 0 if ordered_mode else int(rotation_offset or 0)
+    representative_color = _gradient_representative_color(points, order_mode)
     diagnostics["gradient_colors"] = [list(color) for color in points]
     diagnostics["gradient_points"] = len(points)
     diagnostics["gradient_order_mode"] = order_mode
+    diagnostics["gradient_representative_color"] = list(representative_color)
+    diagnostics["gradient_representative_color_source"] = "final_gradient_palette"
+    diagnostics["gradient_representative_white_suppressed"] = bool(not _is_near_white(representative_color))
     diagnostics["gradient_rotation_offset"] = effective_rotation_offset
     diagnostics["gradient_rotation_suppressed"] = bool(ordered_mode)
     diagnostics["gradient_luminance_values"] = [round(_perceived_luminance(color), 6) for color in points]
@@ -471,7 +507,7 @@ async def try_apply_gradient(
 
     payload_kind = "aiohue_model"
     try:
-        payload = _model_gradient_payload(points, transition, brightness=brightness)
+        payload = _model_gradient_payload(points, transition, brightness=brightness, representative_color=representative_color)
         await _try_update(bridge, controller, resource_id, payload)
         diagnostics["gradient_applied"] = True
         diagnostics["gradient_payload_kind"] = payload_kind

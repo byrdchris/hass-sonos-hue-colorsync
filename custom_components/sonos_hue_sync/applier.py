@@ -163,10 +163,13 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 gradient_diag["gradient_capability"] = gradient_capability.as_dict()
                 gradient_diag["apply_mode"] = "true_gradient"
                 gradient_diag["apply_reason"] = "true_gradient"
-                gradient_diag["rgb_color"] = list(color)
+                representative = gradient_diag.get("gradient_representative_color") or list(color)
+                gradient_diag["rgb_color"] = list(representative)
+                gradient_diag["assigned_palette_color"] = list(color)
+                gradient_diag["gradient_base_color_sanitized"] = True
                 sent.append(gradient_diag)
                 _LAST_APPLIED[entity_id] = {
-                    "rgb_color": list(color),
+                    "rgb_color": list(representative),
                     "brightness": _clamp_brightness(_brightness_for_color(color, config), config, gradient_aware),
                     "transition": transition,
                     "gradient": True,

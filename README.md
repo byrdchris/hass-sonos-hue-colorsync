@@ -1,3 +1,9 @@
+## v1.2.16 Gradient Base Color Fix
+
+This release fixes a gradient-light edge case where Hue/HA could expose or retain a near-white representative color on Signe gradient lights even when the active album-art palette contained no white. Native Hue gradient payloads now include a representative/base color selected from the final gradient palette, and diagnostics report the selected representative color.
+
+It also tightens ordered-gradient diagnostics so Dark to Light and Light to Dark continue to use explicit luminance-ordered palette colors after option changes.
+
 ## v1.2.15 Auto Behavior and Ordered Gradient Fix
 
 This release makes **Auto Style Behavior** visibly affect the final palette after Auto Artwork Style detection. It also fixes explicit **Dark to Light** and **Light to Dark** gradient ordering so style changes cannot make ordered gradients appear reversed or inconsistently anchored.

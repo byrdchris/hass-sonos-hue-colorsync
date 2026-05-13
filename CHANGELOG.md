@@ -1,3 +1,11 @@
+# v1.2.16
+
+- Fixed Hue gradient lights retaining or reporting a near-white base/representative color when the final album palette contains no white.
+- Native gradient payloads now include a representative color selected from the final gradient palette.
+- Added diagnostics for gradient representative color, representative source, and base-color sanitizing.
+- Preserved Dark to Light / Light to Dark luminance ordering while anchoring the representative color to the same final palette.
+- Updated project state and documentation.
+
 # v1.2.15
 
 - Made **Auto Style Behavior** materially affect the final palette instead of only biasing Auto Artwork Style classification.
