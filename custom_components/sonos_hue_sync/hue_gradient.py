@@ -366,6 +366,113 @@ def _is_near_white(color: tuple[int, int, int]) -> bool:
     # gradient lights when the active album palette contains no white.
     return min(color) >= 235 and (max(color) - min(color)) <= 24
 
+def _color_saturation(color: tuple[int, int, int]) -> float:
+    """Return simple RGB saturation for neutral-gradient detection."""
+    r, g, b = [max(0, min(255, int(v))) / 255 for v in color]
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    return 0.0 if mx == 0 else (mx - mn) / mx
+
+
+def _is_dark_neutral(color: tuple[int, int, int]) -> bool:
+    """Detect black/gray anchors that Hue gradients may expose as white."""
+    return _color_saturation(color) <= 0.12 and max(color) <= 90
+
+
+def _is_gradient_neutral_anchor(color: tuple[int, int, int]) -> bool:
+    """Detect neutral anchors that should be avoided on vivid gradients."""
+    return _is_near_white(color) or _is_dark_neutral(color) or (
+        _color_saturation(color) <= 0.10 and max(color) - min(color) <= 35
+    )
+
+
+def _is_colorized_gradient_candidate(color: tuple[int, int, int]) -> bool:
+    """Return true for useful hue-bearing colors for gradient replacement."""
+    return not _is_near_white(color) and _color_saturation(color) >= 0.18 and max(color) >= 30
+
+
+def _replace_gradient_neutral_points(
+    points: list[tuple[int, int, int]],
+    palette: list[tuple[int, int, int]],
+    mode: str = "auto",
+    order_mode: str = "same_order",
+    neutral_tone_handling: str | None = None,
+) -> tuple[list[tuple[int, int, int]], dict]:
+    """Replace gray/white anchors that Hue may render as unwanted white.
+
+    Hue gradient points are chromaticity points paired with a global brightness.
+    Dark neutral chromaticity can read as white on some gradient devices. When a
+    palette contains strong hue-bearing colors, replace neutral gradient anchors
+    with similarly dark or bright colorized alternatives for gradient lights only.
+    """
+    mode = mode or "auto"
+    original_points = [tuple(c) for c in points]
+    diagnostic = {
+        "gradient_neutral_suppression_mode": mode,
+        "gradient_neutral_suppression_applied": False,
+        "gradient_neutral_suppression_original": [list(c) for c in original_points],
+        "gradient_neutral_suppression_replacements": [],
+    }
+    if mode == "off" or not original_points:
+        diagnostic["gradient_neutral_suppression_reason"] = "disabled"
+        return original_points, diagnostic
+
+    unique_palette = _dedupe_colors([tuple(c) for c in (palette or [])])
+    candidates = [c for c in unique_palette if _is_colorized_gradient_candidate(c)]
+    vivid_available = bool(candidates)
+    if mode == "auto" and not vivid_available:
+        diagnostic["gradient_neutral_suppression_reason"] = "no_colorized_alternatives"
+        return original_points, diagnostic
+    if not candidates:
+        diagnostic["gradient_neutral_suppression_reason"] = "no_replacement_candidates"
+        return original_points, diagnostic
+
+    allow_white = neutral_tone_handling == "allow_pure_white"
+    used = set(c for c in original_points if not _is_gradient_neutral_anchor(c))
+    replaced: list[tuple[int, int, int]] = []
+    replacements = []
+
+    for color in original_points:
+        is_neutral = _is_gradient_neutral_anchor(color)
+        # Preserve explicit whites only when the user asked for pure whites and
+        # selected the mode that allows real artwork whites to survive.
+        if _is_near_white(color) and allow_white and mode in ("auto", "keep_artwork_whites"):
+            replaced.append(color)
+            continue
+        if not is_neutral:
+            replaced.append(color)
+            continue
+
+        ranked = sorted(
+            candidates,
+            key=lambda candidate: (
+                abs(_perceived_luminance(candidate) - _perceived_luminance(color)),
+                candidate in used,
+                -_color_saturation(candidate),
+            ),
+        )
+        replacement = ranked[0]
+        used.add(replacement)
+        replaced.append(replacement)
+        replacements.append({
+            "from": list(color),
+            "to": list(replacement),
+            "reason": "Hue gradient neutral protection",
+        })
+
+    # Preserve explicit luminance direction after neutral replacement.
+    if order_mode in ("dark_to_light", "light_to_dark"):
+        replaced = sorted(replaced, key=_gradient_sort_key, reverse=(order_mode == "light_to_dark"))
+
+    diagnostic["gradient_neutral_suppression_final"] = [list(c) for c in replaced]
+    diagnostic["gradient_neutral_suppression_replacements"] = replacements
+    diagnostic["gradient_neutral_suppression_applied"] = bool(replacements)
+    diagnostic["gradient_neutral_suppression_reason"] = (
+        "replaced_neutral_gradient_anchors" if replacements else "no_neutral_gradient_anchors"
+    )
+    return replaced, diagnostic
+
+
 def _gradient_representative_color(points: list[tuple[int, int, int]], order_mode: str) -> tuple[int, int, int]:
     """Choose a non-white base color to pair with the native gradient payload.
 
@@ -450,6 +557,8 @@ async def try_apply_gradient(
     track_key: str | None = None,
     brightness: int = 255,
     rotation_offset: int = 0,
+    neutral_suppression: str = "auto",
+    neutral_tone_handling: str | None = None,
 ) -> tuple[bool, dict]:
     diagnostics = {
         "entity_id": entity_id,
@@ -484,10 +593,18 @@ async def try_apply_gradient(
         _LOGGER.debug("[gradient] %s failed: %s", entity_id, diagnostics)
         return False, diagnostics
 
-    points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key, rotation_offset=rotation_offset)
+    raw_points = gradient_palette_for_light(palette, base_color, point_count, order_mode=order_mode, entity_id=entity_id, track_key=track_key, rotation_offset=rotation_offset)
     ordered_mode = order_mode in ("dark_to_light", "light_to_dark")
+    points, neutral_diag = _replace_gradient_neutral_points(
+        raw_points,
+        palette,
+        mode=neutral_suppression,
+        order_mode=order_mode,
+        neutral_tone_handling=neutral_tone_handling,
+    )
     effective_rotation_offset = 0 if ordered_mode else int(rotation_offset or 0)
     representative_color = _gradient_representative_color(points, order_mode)
+    diagnostics.update(neutral_diag)
     diagnostics["gradient_colors"] = [list(color) for color in points]
     diagnostics["gradient_points"] = len(points)
     diagnostics["gradient_order_mode"] = order_mode

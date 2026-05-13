@@ -1,3 +1,9 @@
+## v1.2.17 Gradient Neutral Suppression
+
+This release adds **Gradient Neutral Suppression** for native Hue gradient lights. When an album cover has strong non-neutral colors, supported gradient lights can now replace gray, black, or white-like gradient anchors with colorized palette anchors so Hue does not render neutral points as unwanted white. The default **Auto** mode only intervenes when better colorized anchors exist; **Strong** avoids neutral gradient points more aggressively; **Keep Whites Only When Present** preserves intentional artwork whites while blocking pseudo-white behavior from neutral anchors.
+
+Diagnostics now show the original gradient points, final gradient points, replacements, selected suppression mode, and suppression reason. Standard non-gradient lights are unchanged.
+
 ## v1.2.16 Gradient Base Color Fix
 
 This release fixes a gradient-light edge case where Hue/HA could expose or retain a near-white representative color on Signe gradient lights even when the active album-art palette contained no white. Native Hue gradient payloads now include a representative/base color selected from the final gradient palette, and diagnostics report the selected representative color.

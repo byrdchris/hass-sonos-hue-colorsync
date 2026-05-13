@@ -1,3 +1,14 @@
+# v1.2.17
+
+- Added **Gradient Neutral Suppression** for native Hue gradient lights.
+- New options: Off, Auto, Strong, and Keep Whites Only When Present.
+- Auto mode replaces gray/black/white-like gradient anchors only when strong colorized album colors are available.
+- Strong mode avoids neutral gradient points whenever usable colorized alternatives exist.
+- Preserves real artwork whites when explicitly allowed while blocking Hue-rendered pseudo-white from neutral anchors.
+- Added diagnostics for original gradient colors, final gradient colors, replacements, mode, and reason.
+- Standard non-gradient lights are not changed by this feature.
+- Validation: Python compile and JSON parse checks passed.
+
 # v1.2.16
 
 - Fixed Hue gradient lights retaining or reporting a near-white base/representative color when the final album palette contains no white.

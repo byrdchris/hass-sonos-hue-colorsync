@@ -29,6 +29,7 @@ from .const import (
     CONF_COLOR_ACCURACY_MODE,
     CONF_COLOR_PURITY,
     CONF_GRADIENT_ORDER_MODE,
+    CONF_GRADIENT_NEUTRAL_SUPPRESSION,
     CONF_MONOCHROME_MODE,
     CONF_NEUTRAL_TONE_HANDLING,
     CONF_PALETTE_ORDERING,
@@ -36,6 +37,8 @@ from .const import (
     CONF_ROTATION_MODE,
     CONF_WHITE_HANDLING,
     DOMAIN,
+    GRADIENT_NEUTRAL_SUPPRESSION_LABELS,
+    GRADIENT_NEUTRAL_SUPPRESSION_OPTIONS,
     GRADIENT_ORDER_MODE_LABELS,
     GRADIENT_ORDER_MODES,
     MONOCHROME_MODE_DISABLED,
@@ -95,6 +98,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),
         SonosHueSelect(coordinator, entry, CONF_ASSIGNMENT_STRATEGY, "Color Distribution Mode", ASSIGNMENT_OPTIONS, ASSIGNMENT_LABELS, "mdi:palette-swatch"),
         SonosHueSelect(coordinator, entry, CONF_GRADIENT_ORDER_MODE, "Gradient Pattern", GRADIENT_ORDER_MODES, GRADIENT_ORDER_MODE_LABELS, "mdi:gradient-horizontal"),
+        SonosHueSelect(coordinator, entry, CONF_GRADIENT_NEUTRAL_SUPPRESSION, "Gradient Neutral Suppression", GRADIENT_NEUTRAL_SUPPRESSION_OPTIONS, GRADIENT_NEUTRAL_SUPPRESSION_LABELS, "mdi:gradient-horizontal"),
         SonosHueSelect(coordinator, entry, CONF_ARTWORK_FALLBACK_MODE, "Artwork Fallback", ARTWORK_FALLBACK_MODES, ARTWORK_FALLBACK_MODE_LABELS, "mdi:image-sync"),
     ]
     async_add_entities(entities, True)

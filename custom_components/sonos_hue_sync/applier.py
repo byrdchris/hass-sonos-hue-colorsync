@@ -155,6 +155,8 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
                 track_key=(config or {}).get("_track_key"),
                 brightness=_clamp_brightness(_brightness_for_color(color, config), config, True),
                 rotation_offset=(config or {}).get("_rotation_offset", 0),
+                neutral_suppression=(config or {}).get("gradient_neutral_suppression", "auto"),
+                neutral_tone_handling=(config or {}).get("neutral_tone_handling"),
             )
             if success:
                 gradient_diag["assignment_strategy"] = strategy

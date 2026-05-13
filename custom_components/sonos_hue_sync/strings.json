@@ -37,7 +37,8 @@
           "expand_groups": "Distribute Across Group Lights",
           "airplay_poll_interval": "AirPlay Metadata Check Interval",
           "palette_coherence": "Palette Coherence",
-          "auto_style_behavior": "Auto Style Behavior"
+          "auto_style_behavior": "Auto Style Behavior",
+          "gradient_neutral_suppression": "Gradient Neutral Suppression"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -72,7 +73,8 @@
           "palette_coherence": "Controls whether visually isolated colors are kept or removed. Off keeps all extracted colors, Balanced removes obvious outliers, and Strict keeps a more unified palette.",
           "artwork_style": "Choose Auto for hands-off per-track detection, or choose a fixed artwork interpretation preset.",
           "auto_style_behavior": "Controls how Auto shapes the final palette after detecting the artwork type: balanced, more accurate, more vivid, or more ambient.",
-          "neutral_tone_handling": "Choose how whites, blacks, grays, and other neutral tones should behave."
+          "neutral_tone_handling": "Choose how whites, blacks, grays, and other neutral tones should behave.",
+          "gradient_neutral_suppression": "For supported Hue gradient lights, controls whether gray, black, or white-like gradient anchors are replaced with colorized palette anchors when strong non-neutral album colors are available. This helps prevent gradient lamps from showing unwanted white on vivid covers."
         }
       }
     }
@@ -115,7 +117,8 @@
           "palette_coherence": "Palette Coherence",
           "artwork_style": "Artwork Style",
           "neutral_tone_handling": "Neutral Tone Handling",
-          "auto_style_behavior": "Auto Style Behavior"
+          "auto_style_behavior": "Auto Style Behavior",
+          "gradient_neutral_suppression": "Gradient Neutral Suppression"
         },
         "data_description": {
           "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
@@ -150,7 +153,8 @@
           "palette_coherence": "Controls whether visually isolated colors are kept or removed. Off keeps all extracted colors, Balanced removes obvious outliers, and Strict keeps a more unified palette.",
           "artwork_style": "Choose Auto for hands-off per-track detection, or choose a fixed artwork interpretation preset.",
           "neutral_tone_handling": "Choose how whites, blacks, grays, and other neutral tones should behave.",
-          "auto_style_behavior": "Controls how Auto shapes the final palette after detecting the artwork type: balanced, more accurate, more vivid, or more ambient."
+          "auto_style_behavior": "Controls how Auto shapes the final palette after detecting the artwork type: balanced, more accurate, more vivid, or more ambient.",
+          "gradient_neutral_suppression": "For supported Hue gradient lights, controls whether gray, black, or white-like gradient anchors are replaced with colorized palette anchors when strong non-neutral album colors are available. This helps prevent gradient lamps from showing unwanted white on vivid covers."
         }
       }
     }
@@ -272,6 +276,15 @@
           "prefer_vivid": "Prefer Vivid",
           "prefer_ambient": "Prefer Ambient"
         }
+      },
+      "gradient_neutral_suppression": {
+        "name": "Gradient Neutral Suppression",
+        "state": {
+          "off": "Off",
+          "auto": "Auto",
+          "strong": "Strong",
+          "keep_artwork_whites": "Keep Whites Only When Present"
+        }
       }
     },
     "number": {
@@ -367,6 +380,14 @@
         "warm_ambient": "Warm Ambient",
         "graphic_poster": "Graphic / Poster",
         "allow_pure_white": "Allow Pure White"
+      }
+    },
+    "gradient_neutral_suppression": {
+      "options": {
+        "off": "Off",
+        "auto": "Auto",
+        "strong": "Strong",
+        "keep_artwork_whites": "Keep Whites Only When Present"
       }
     }
   }
