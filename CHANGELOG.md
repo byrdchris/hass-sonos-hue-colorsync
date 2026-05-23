@@ -1,3 +1,13 @@
+# v1.2.18
+
+- Added album-cover palette regression testing to the release workflow.
+- Added deterministic synthetic cover tests for green graphic art, monochrome art, dark cool art, and 50 randomized hue-family covers.
+- Low-confidence Auto Artwork Style now falls back to Album Accurate handling instead of applying aggressive stylized presets.
+- Prevented Warm Ambient from recoloring non-neutral artwork into brown/red casts.
+- Made successful artwork fetches explicitly disable fallback palette influence and diagnostics now show fallback as not used when artwork is available.
+- Added final palette guardrail diagnostics for Auto confidence fallback and Warm Ambient skip behavior.
+- Preserved Gradient Neutral Suppression behavior while moving the latest mismatch fix upstream into palette generation.
+
 # v1.2.17
 
 - Added **Gradient Neutral Suppression** for native Hue gradient lights.

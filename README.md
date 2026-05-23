@@ -1,4 +1,7 @@
-## v1.2.17 Gradient Neutral Suppression
+## v1.2.18 Palette Guardrails and Regression Testing
+
+This release keeps the v1.2.17 Gradient Neutral Suppression feature and adds upstream palette guardrails so Auto and Warm Ambient do not overpower the album art. Low-confidence Auto detection now uses Album Accurate handling, successful artwork fetches explicitly prevent fallback tinting, and release packaging now includes deterministic album-cover palette regression tests.
+
 
 This release adds **Gradient Neutral Suppression** for native Hue gradient lights. When an album cover has strong non-neutral colors, supported gradient lights can now replace gray, black, or white-like gradient anchors with colorized palette anchors so Hue does not render neutral points as unwanted white. The default **Auto** mode only intervenes when better colorized anchors exist; **Strong** avoids neutral gradient points more aggressively; **Keep Whites Only When Present** preserves intentional artwork whites while blocking pseudo-white behavior from neutral anchors.
 
@@ -361,3 +364,14 @@ Diagnostics report the selected coherence mode, dominant hue family, cluster sco
 ## v1.2.15 behavior update
 
 Auto Style Behavior is now a visible post-detection preference. Auto still detects the artwork type, but the selected behavior now shapes the final palette: Prefer Ambient softens contrast, Prefer Vivid increases color energy, and Prefer Accuracy reduces stylization. Explicit Dark to Light and Light to Dark gradient patterns remain authoritative after Artwork Style changes.
+
+## Palette regression testing
+
+Release builds now include `tests/test_palette_regression.py`, a deterministic album-cover palette test suite. It generates representative synthetic album covers, including vivid graphic art, monochrome photography-style art, dark cool artwork, and 50 randomized hue-family covers. The test verifies that palette extraction preserves the expected color family, avoids red/pink drift on monochrome art, and prevents Warm Ambient from overpowering non-neutral artwork.
+
+Run before packaging a release:
+
+```bash
+python3 tests/test_palette_regression.py
+```
+

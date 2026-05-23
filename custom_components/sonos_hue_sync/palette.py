@@ -944,6 +944,90 @@ def _detect_auto_artwork_style(image_bytes: bytes, config: dict) -> tuple[str, d
 
 
 
+def _should_downgrade_low_confidence_auto(detected: str, diagnostics: dict, behavior: str) -> bool:
+    """Return true when Auto should avoid a strong stylized preset.
+
+    Low-confidence detections should not heavily reinterpret album art. In these
+    cases, Album Accurate is safer and prevents dark or warm fallback-like casts
+    from overpowering the source colors. Monochrome guardrails remain exempt.
+    """
+    if not diagnostics or diagnostics.get("confidence") != "low":
+        return False
+    if diagnostics.get("monochrome_guardrail"):
+        return False
+    # If the user explicitly wants vivid or ambient, keep that bias visible;
+    # Balanced and Accuracy should favor fidelity when the classifier is unsure.
+    if behavior not in (AUTO_STYLE_BALANCED, AUTO_STYLE_ACCURACY):
+        return False
+    return detected not in (ARTWORK_STYLE_ALBUM, ARTWORK_STYLE_NATURAL)
+
+
+def _image_is_neutral_heavy_from_diagnostics(diagnostics: dict | None) -> bool:
+    """Identify artwork where Warm Ambient is appropriate.
+
+    Warm Ambient should shape neutral-heavy artwork, not recolor normal album
+    covers into brown/red room-light palettes.
+    """
+    metrics = (diagnostics or {}).get("metrics") or {}
+    try:
+        neutral_ratio = float(metrics.get("neutral_ratio", 0.0))
+        bright_neutral_ratio = float(metrics.get("bright_neutral_ratio", 0.0))
+        average_saturation = float(metrics.get("average_saturation", 1.0))
+        vivid_ratio = float(metrics.get("vivid_ratio", 0.0))
+    except (TypeError, ValueError):
+        return False
+    return (neutral_ratio >= 0.35 or bright_neutral_ratio >= 0.18) and average_saturation <= 0.36 and vivid_ratio <= 0.18
+
+
+def _final_palette_guardrails(palette: list[RGB], config: dict, desired: int) -> list[RGB]:
+    """Apply safety checks after all palette processing.
+
+    This keeps user-facing style options useful while preventing known regressions:
+    low-confidence Auto should not behave like an aggressive stylizer, and Warm
+    Ambient should not recolor strongly non-neutral artwork.
+    """
+    if not palette:
+        return palette
+    diagnostics = config.get("_auto_artwork_style_diagnostics") or {}
+    detected = config.get("_auto_artwork_style_detected")
+    neutral_mode = config.get(CONF_NEUTRAL_TONE_HANDLING)
+    guard = {
+        "applied": False,
+        "reason": "not_needed",
+        "detected_style": detected,
+        "confidence": diagnostics.get("confidence"),
+        "neutral_tone_handling": neutral_mode,
+    }
+
+    # Warm Ambient is allowed for neutral-heavy covers; otherwise keep chromatic
+    # colors closer to the extracted album palette. This is intentionally modest
+    # because extraction already did most of the work.
+    if neutral_mode == NEUTRAL_TONE_WARM_AMBIENT and not _image_is_neutral_heavy_from_diagnostics(diagnostics):
+        original = palette[:desired]
+        corrected: list[RGB] = []
+        for color in original:
+            h, s, v = _hsv(color)
+            # Reduce artificial warm/red-brown drift only for low-saturation or
+            # very dark colors. Do not damage legitimate saturated red/orange art.
+            if (h <= 0.12 or h >= 0.94) and s < 0.55 and v < 0.62:
+                s = min(s, 0.42)
+                v = max(v, 0.16)
+                r, g, b = colorsys.hsv_to_rgb(h, s, v)
+                corrected.append((_clamp_channel(r * 255), _clamp_channel(g * 255), _clamp_channel(b * 255)))
+            else:
+                corrected.append(color)
+        palette = _repeat_to_count(_dedupe_rgb_preserve_order(corrected), desired)[:desired]
+        guard.update({
+            "applied": True,
+            "reason": "warm_ambient_skipped_for_non_neutral_artwork",
+            "before": [_color_to_hex(c) for c in original],
+            "after": [_color_to_hex(c) for c in palette],
+        })
+
+    config["_final_palette_guardrails"] = guard
+    return palette[:desired]
+
+
 def _clamp_channel(value: float) -> int:
     """Clamp a computed color channel into the Hue-safe RGB range."""
     return int(max(0, min(255, round(value))))
@@ -1061,10 +1145,25 @@ def _prepare_palette_config_for_image(image_bytes: bytes, config: dict) -> dict:
     selected_style = prepared.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)
     if selected_style == ARTWORK_STYLE_AUTO:
         detected, diagnostics = _detect_auto_artwork_style(image_bytes, prepared)
+        behavior = prepared.get(CONF_AUTO_STYLE_BEHAVIOR, AUTO_STYLE_BALANCED)
+        applied_style = detected
+        if _should_downgrade_low_confidence_auto(detected, diagnostics, behavior):
+            applied_style = ARTWORK_STYLE_ALBUM
+            diagnostics = dict(diagnostics)
+            diagnostics["applied_style"] = applied_style
+            diagnostics["classifier_style"] = detected
+            diagnostics["confidence_fallback_applied"] = True
+            diagnostics.setdefault("reasons", [])
+            diagnostics["reasons"] = list(diagnostics["reasons"])[:5] + ["low-confidence Auto used album-accurate handling"]
+        else:
+            diagnostics = dict(diagnostics)
+            diagnostics["applied_style"] = applied_style
+            diagnostics["confidence_fallback_applied"] = False
         prepared["_selected_artwork_style"] = ARTWORK_STYLE_AUTO
-        prepared[CONF_ARTWORK_STYLE] = detected
+        prepared[CONF_ARTWORK_STYLE] = applied_style
         prepared["_auto_artwork_style_diagnostics"] = diagnostics
-        prepared["_auto_artwork_style_detected"] = detected
+        prepared["_auto_artwork_style_detected"] = applied_style
+        prepared["_auto_artwork_style_classifier_detected"] = detected
     elif selected_style == ARTWORK_STYLE_ADVANCED:
         prepared["_selected_artwork_style"] = selected_style
         prepared[CONF_ARTWORK_STYLE] = ARTWORK_STYLE_NATURAL
@@ -1099,11 +1198,11 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
                 "white_behavior": "brightness_and_color_temperature_shaped_for_neutral_art",
                 "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in mono[:desired]],
             }
-            return _apply_auto_style_behavior_to_palette(mono[:desired], config, desired)
+            return _final_palette_guardrails(_apply_auto_style_behavior_to_palette(mono[:desired], config, desired), config, desired)
     if color_class == "monochrome":
         mono = _monochrome_palette(image_bytes, desired, config.get("monochrome_mode", "warm_neutral"))
         if mono:
-            return _apply_auto_style_behavior_to_palette(mono[:desired], config, desired)
+            return _final_palette_guardrails(_apply_auto_style_behavior_to_palette(mono[:desired], config, desired), config, desired)
 
     ct = ColorThief(BytesIO(image_bytes))
     candidates = ct.get_palette(color_count=max(desired * 6, 20), quality=3)
@@ -1117,13 +1216,13 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
                 "algorithm": "graphic_poster_flat_color_blocks",
                 "result": ["#{:02X}{:02X}{:02X}".format(*color) for color in graphic],
             }
-            return _apply_auto_style_behavior_to_palette(graphic[:desired], config, desired)
+            return _final_palette_guardrails(_apply_auto_style_behavior_to_palette(graphic[:desired], config, desired), config, desired)
 
     if color_class == "low_color" and config.get("low_color_handling", True) and ordering != "dominant_first":
         accent_palette = _accent_preserving_low_color_palette(candidates, desired)
         if accent_palette:
-            return _apply_auto_style_behavior_to_palette(accent_palette[:desired], config, desired)
-        return _apply_auto_style_behavior_to_palette(_muted_low_color_palette(candidates, desired)[:desired], config, desired)
+            return _final_palette_guardrails(_apply_auto_style_behavior_to_palette(accent_palette[:desired], config, desired), config, desired)
+        return _final_palette_guardrails(_apply_auto_style_behavior_to_palette(_muted_low_color_palette(candidates, desired)[:desired], config, desired), config, desired)
 
     if config.get("filter_dull", True):
         filtered = [c for c in candidates if not is_dull(c)]
@@ -1142,7 +1241,7 @@ def extract_palette_from_bytes(image_bytes: bytes, config: dict) -> list[RGB]:
         palette = clustered[:desired] or [(220, 198, 176)]
 
     coherent = _apply_palette_coherence(palette, candidates, desired, config)
-    return _apply_auto_style_behavior_to_palette(coherent, config, desired)
+    return _final_palette_guardrails(_apply_auto_style_behavior_to_palette(coherent, config, desired), config, desired)
 
 
 def rgb_to_hex(rgb: RGB) -> str:

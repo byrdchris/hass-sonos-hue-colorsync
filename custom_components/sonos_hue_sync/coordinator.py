@@ -125,6 +125,11 @@ class SonosHueCoordinator:
         self.last_restore_reason = None
         self.last_health_report = None
         self.last_palette_coherence = {}
+        self.last_detected_artwork_style = None
+        self.last_auto_artwork_style_diagnostics = {}
+        self.last_auto_style_behavior_diagnostics = {}
+        self.last_final_palette_guardrails = {}
+        self.last_advanced_overrides_active = False
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
 
     @property
@@ -221,6 +226,7 @@ class SonosHueCoordinator:
             "detected_artwork_style": getattr(self, "last_detected_artwork_style", None),
             "auto_artwork_style_diagnostics": getattr(self, "last_auto_artwork_style_diagnostics", {}),
             "auto_style_behavior_diagnostics": getattr(self, "last_auto_style_behavior_diagnostics", {}),
+            "final_palette_guardrails": getattr(self, "last_final_palette_guardrails", {}),
             "advanced_overrides_active": getattr(self, "last_advanced_overrides_active", False),
             "artwork_style_applied": effective.get("_artwork_style_applied"),
             "neutral_tone_handling_applied": effective.get("_neutral_tone_handling_applied"),
@@ -661,7 +667,7 @@ Sonos Hue Sync watches the selected Sonos player, extracts colors from the curre
 ### Artwork Style
 **Artwork Style** is the main color interpretation control. Use **Auto** for playlists so the integration chooses a style per track from local image statistics. No cloud service or AI service is used.
 
-- **Auto** analyzes the album art and selects the best style for each track. Diagnostics show the detected style, confidence, and reasons.
+- **Auto** analyzes the album art and selects the best style for each track. Diagnostics show the detected style, confidence, and reasons. If Auto confidence is low, the integration now falls back to Album Accurate handling instead of applying an aggressive stylized preset.
 - **Album Accurate** preserves the album cover’s intended colors, including muted and neutral tones.
 - **Natural** balances album fidelity with comfortable room lighting.
 - **Graphic / Poster** is for typography, pop-art, high-contrast covers, and flat-color artwork. It reduces pastel drift and preserves dramatic color blocks.
@@ -683,7 +689,7 @@ This only affects **Artwork Style → Auto**.
 - **Natural** reduces whites only when useful colors exist.
 - **Reduce Whites** suppresses pale whites, creams, and light grays.
 - **Preserve Contrast** allows black/white contrast when the artwork depends on it.
-- **Warm Ambient** turns neutral-heavy art into warmer room lighting.
+- **Warm Ambient** turns neutral-heavy art into warmer room lighting. It is constrained for normal colorful artwork so it does not recolor valid album palettes into unrelated brown/red tones.
 - **Graphic / Poster** preserves poster-like black/white contrast.
 - **Allow Pure White** allows bright white and grayscale tones.
 
@@ -710,6 +716,7 @@ Advanced controls are still available in the options form for compatibility and 
 - **Gradient Detail Level** controls how many gradient points are sent.
 - **Gradient Brightness** controls the brightness ceiling for supported gradient lights.
 - **Gradient Pattern** controls color order inside gradients: Same Order, Offset, Random Order, Dark to Light, or Light to Dark.
+- **Gradient Neutral Suppression** avoids gray/black/white-like gradient anchors on Hue gradient lights when usable colorized anchors are available. This is gradient-only and does not change standard Hue Play lights.
 - For Dark to Light and Light to Dark, the selected gradient direction is locked. Artwork Style Auto may change which colors are extracted, but it does not change how the ordered ramp flows. The chosen palette anchors are kept stable, sorted by gamma-corrected perceptual luminance as the final layout step, and rotation is suppressed so the ramp is not reversed.
 
 ### Rotation and animation
@@ -1196,14 +1203,22 @@ Download diagnostics from:
                     self.last_timings["total_processing_ms"] = round((time.perf_counter() - process_started) * 1000, 1)
                     return
                 self.last_image = used_art or art
+                # Artwork was fetched successfully, so fallback modes must not
+                # tint or otherwise influence this palette. Keep diagnostics
+                # explicit so stale fallback state is not mistaken for active work.
+                self.last_artwork_fallback_mode = self.config.get("artwork_fallback_mode", "reuse_last")
+                self.last_artwork_fallback_applied = "not_used_artwork_fetch_succeeded"
+                self.last_fallback_suppressed = None
                 # Build one effective palette config and let extraction attach
                 # coherence diagnostics to it for the Status sensor.
                 palette_config = self.effective_config()
+                palette_config["_artwork_fetch_succeeded"] = True
                 palette = extract_palette_from_bytes(image_bytes, palette_config)
                 self.last_palette_coherence = palette_config.get("_palette_coherence_diagnostics", {})
                 self.last_detected_artwork_style = palette_config.get("_auto_artwork_style_detected")
                 self.last_auto_artwork_style_diagnostics = palette_config.get("_auto_artwork_style_diagnostics", {})
                 self.last_auto_style_behavior_diagnostics = palette_config.get("_auto_style_behavior_diagnostics", {})
+                self.last_final_palette_guardrails = palette_config.get("_final_palette_guardrails", {})
                 self.last_advanced_overrides_active = bool(palette_config.get("_advanced_overrides_active", False))
                 self.last_timings['palette_extract_ms'] = round((time.perf_counter() - extract_started) * 1000, 1)
                 if self.cache:
