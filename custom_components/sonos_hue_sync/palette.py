@@ -21,6 +21,9 @@ from .const import (
     CONF_WHITE_LEVEL,
     DEFAULT_PALETTE_COHERENCE,
     PALETTE_COHERENCE_BALANCED,
+    PALETTE_COHERENCE_DOMINANT_ACCENT,
+    PALETTE_COHERENCE_DOMINANT_ONLY,
+    PALETTE_COHERENCE_NATURAL,
     PALETTE_COHERENCE_OFF,
     PALETTE_COHERENCE_STRICT,
     COLOR_ACCURACY_MODE_ALBUM,
@@ -71,6 +74,7 @@ def _effective_color_config(config: dict | None) -> dict:
     # Artwork Style is the primary user-facing color intent. Legacy Advanced / Custom
     # is accepted only as a compatibility value; new UI choices use named outcomes.
     artwork_style = effective.get(CONF_ARTWORK_STYLE, DEFAULT_ARTWORK_STYLE)
+    user_palette_coherence = effective.get(CONF_PALETTE_COHERENCE)
     if artwork_style in (ARTWORK_STYLE_ADVANCED, None):
         artwork_style = ARTWORK_STYLE_NATURAL
         effective[CONF_ARTWORK_STYLE] = artwork_style
@@ -78,19 +82,21 @@ def _effective_color_config(config: dict | None) -> dict:
     if artwork_style != ARTWORK_STYLE_AUTO:
         style_map = {
             ARTWORK_STYLE_NATURAL: (COLOR_ACCURACY_MODE_NATURAL, "65", "dominant_first", PALETTE_COHERENCE_BALANCED),
-            ARTWORK_STYLE_ALBUM: (COLOR_ACCURACY_MODE_ALBUM, "90", "dominant_first", PALETTE_COHERENCE_BALANCED),
-            ARTWORK_STYLE_GRAPHIC: (COLOR_ACCURACY_MODE_ALBUM, "20", "vivid_first", PALETTE_COHERENCE_STRICT),
+            ARTWORK_STYLE_ALBUM: (COLOR_ACCURACY_MODE_ALBUM, "90", "dominant_first", PALETTE_COHERENCE_DOMINANT_ACCENT),
+            ARTWORK_STYLE_GRAPHIC: (COLOR_ACCURACY_MODE_ALBUM, "20", "vivid_first", PALETTE_COHERENCE_DOMINANT_ONLY),
             ARTWORK_STYLE_PHOTOGRAPHY: (COLOR_ACCURACY_MODE_NATURAL, "70", "dominant_first", PALETTE_COHERENCE_BALANCED),
             ARTWORK_STYLE_CINEMATIC: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_BALANCED),
-            ARTWORK_STYLE_SOFT: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_OFF),
-            ARTWORK_STYLE_BOLD: (COLOR_ACCURACY_MODE_VIVID, "20", "vivid_first", PALETTE_COHERENCE_STRICT),
+            ARTWORK_STYLE_SOFT: (COLOR_ACCURACY_MODE_NATURAL, "80", "dominant_first", PALETTE_COHERENCE_NATURAL),
+            ARTWORK_STYLE_BOLD: (COLOR_ACCURACY_MODE_VIVID, "20", "vivid_first", PALETTE_COHERENCE_DOMINANT_ACCENT),
             ARTWORK_STYLE_MONOCHROME: (COLOR_ACCURACY_MODE_ALBUM, "85", "dominant_first", PALETTE_COHERENCE_BALANCED),
         }
         mode, purity_value, ordering, coherence = style_map.get(artwork_style, style_map[ARTWORK_STYLE_NATURAL])
         effective[CONF_COLOR_ACCURACY_MODE] = mode
         effective[CONF_COLOR_PURITY] = purity_value
         effective["palette_ordering"] = ordering
-        effective[CONF_PALETTE_COHERENCE] = coherence
+        # Artwork Style supplies a default coherence, but the user-facing Palette
+        # Coherence selector remains authoritative when it is configured.
+        effective[CONF_PALETTE_COHERENCE] = user_palette_coherence or coherence
         effective["_artwork_style_applied"] = artwork_style
 
     # Neutral Tone Handling combines white and black/white behavior. Legacy
@@ -733,21 +739,30 @@ def _hue_distance_degrees(hue_a: float, hue_b: float) -> float:
 
 
 # Remove isolated hue outliers without hard-coding any specific color family.
-# Balanced removes only obvious outsiders; Strict keeps a more unified hue family.
+# Natural preserves the extraction, Balanced removes only weak outsiders,
+# Dominant Colors Only keeps the current cohesive look, and Dominant + Vivid
+# Accent restores one or two strong intentional accent colors.
 def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], desired: int, config: dict) -> list[RGB]:
-    mode = config.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)
+    raw_mode = config.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)
+    legacy_aliases = {
+        PALETTE_COHERENCE_OFF: PALETTE_COHERENCE_NATURAL,
+        PALETTE_COHERENCE_STRICT: PALETTE_COHERENCE_DOMINANT_ONLY,
+    }
+    mode = legacy_aliases.get(raw_mode, raw_mode)
     diagnostics = {
         "mode": mode,
+        "raw_mode": raw_mode,
         "applied": False,
         "removed_colors": [],
+        "preserved_accent_colors": [],
         "dominant_hue_degrees": None,
         "dominant_cluster_score": None,
         "reason": None,
     }
     config["_palette_coherence_diagnostics"] = diagnostics
 
-    if mode == PALETTE_COHERENCE_OFF or not palette:
-        diagnostics["reason"] = "disabled"
+    if mode == PALETTE_COHERENCE_NATURAL or not palette:
+        diagnostics["reason"] = "natural_preserved"
         return palette
 
     chromatic = []
@@ -757,20 +772,23 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
             # Earlier palette entries are more important because ordering already
             # reflects the selected Dominant/Vivid preference.
             score = (len(palette) - idx) * (0.55 + saturation) * (0.55 + value)
-            chromatic.append((color, hue, saturation, value, score))
+            chromatic.append((color, hue, saturation, value, score, idx))
 
     if len(chromatic) < 3:
         diagnostics["reason"] = "not_enough_chromatic_colors"
         return palette
 
-    cluster_radius = 90.0 if mode == PALETTE_COHERENCE_BALANCED else 75.0
-    keep_radius = 105.0 if mode == PALETTE_COHERENCE_BALANCED else 85.0
-    minimum_ratio = 0.45 if mode == PALETTE_COHERENCE_BALANCED else 0.38
+    if mode == PALETTE_COHERENCE_BALANCED:
+        cluster_radius, keep_radius, minimum_ratio = 100.0, 118.0, 0.50
+    elif mode == PALETTE_COHERENCE_DOMINANT_ACCENT:
+        cluster_radius, keep_radius, minimum_ratio = 90.0, 92.0, 0.42
+    else:
+        cluster_radius, keep_radius, minimum_ratio = 75.0, 85.0, 0.38
 
     best_hue = None
     best_score = -1.0
     total_score = sum(item[4] for item in chromatic) or 1.0
-    for _color, hue, _sat, _value, _score in chromatic:
+    for _color, hue, _sat, _value, _score, _idx in chromatic:
         score = sum(item[4] for item in chromatic if _hue_distance_degrees(hue, item[1]) <= cluster_radius)
         if score > best_score:
             best_score = score
@@ -793,14 +811,43 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
         else:
             removed.append(color)
 
-    if not removed:
+    if not removed and mode not in (PALETTE_COHERENCE_BALANCED, PALETTE_COHERENCE_DOMINANT_ACCENT):
         diagnostics["reason"] = "no_outliers_found"
         diagnostics["dominant_hue_degrees"] = round(best_hue * 360.0, 1)
         diagnostics["dominant_cluster_score"] = round(best_score / total_score, 3)
         return palette
 
+    # Restore vivid accents only for modes intended to preserve intentional
+    # contrast colors. Dominant Colors Only intentionally keeps the cohesive look.
+    accent_limit = 0
+    if mode == PALETTE_COHERENCE_BALANCED:
+        accent_limit = 1
+    elif mode == PALETTE_COHERENCE_DOMINANT_ACCENT:
+        accent_limit = 2
+
+    preserved_accents: list[RGB] = []
+    if accent_limit:
+        accent_candidates = []
+        accent_source = list(removed)
+        for color in source_candidates:
+            if color not in kept and color not in accent_source:
+                accent_source.append(color)
+        for color in accent_source:
+            hue, saturation, value = _hsv(color)
+            distance = _hue_distance_degrees(hue, best_hue)
+            if saturation >= 0.62 and value >= 0.34 and distance >= max(75.0, keep_radius - 8.0):
+                # Prefer vivid, visible, already-extracted accent colors.
+                accent_candidates.append((color, saturation * value * (distance / 180.0)))
+        for color, _score in sorted(accent_candidates, key=lambda item: item[1], reverse=True):
+            if len(preserved_accents) >= accent_limit:
+                break
+            if color not in preserved_accents:
+                preserved_accents.append(color)
+        if preserved_accents:
+            kept = kept[: max(0, desired - len(preserved_accents))] + preserved_accents
+
     # Refill from source candidates that fit the dominant hue family so Color Count
-    # remains stable without reintroducing isolated colors.
+    # remains stable without reintroducing weak isolated colors.
     for color in source_candidates:
         if len(kept) >= desired:
             break
@@ -814,9 +861,10 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
     diagnostics.update({
         "applied": True,
         "removed_colors": ["#{:02X}{:02X}{:02X}".format(*color) for color in removed],
+        "preserved_accent_colors": ["#{:02X}{:02X}{:02X}".format(*color) for color in preserved_accents],
         "dominant_hue_degrees": round(best_hue * 360.0, 1),
         "dominant_cluster_score": round(best_score / total_score, 3),
-        "reason": "outliers_removed",
+        "reason": "dominant_only" if mode == PALETTE_COHERENCE_DOMINANT_ONLY else "outliers_filtered_with_accent_policy",
     })
     return result
 

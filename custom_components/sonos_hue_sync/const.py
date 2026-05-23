@@ -152,21 +152,29 @@ NEUTRAL_TONE_LABELS = {
     NEUTRAL_TONE_ADVANCED: "Advanced / Custom",
 }
 
-# Palette Coherence is a universal outlier filter. It is intentionally
-# option-based rather than a granular slider so the UI remains understandable.
-PALETTE_COHERENCE_OFF = "off"
+# Palette Coherence controls how strongly the palette is kept within one hue
+# family. Legacy off/balanced/strict values remain accepted internally, while
+# the UI exposes outcome-focused names.
+PALETTE_COHERENCE_OFF = "off"  # legacy alias for Natural
+PALETTE_COHERENCE_STRICT = "strict"  # legacy alias for Dominant Colors Only
+PALETTE_COHERENCE_NATURAL = "natural"
 PALETTE_COHERENCE_BALANCED = "balanced"
-PALETTE_COHERENCE_STRICT = "strict"
-DEFAULT_PALETTE_COHERENCE = PALETTE_COHERENCE_BALANCED
+PALETTE_COHERENCE_DOMINANT_ONLY = "dominant_only"
+PALETTE_COHERENCE_DOMINANT_ACCENT = "dominant_vivid_accent"
+DEFAULT_PALETTE_COHERENCE = PALETTE_COHERENCE_DOMINANT_ACCENT
 PALETTE_COHERENCE_OPTIONS = [
-    PALETTE_COHERENCE_OFF,
+    PALETTE_COHERENCE_NATURAL,
     PALETTE_COHERENCE_BALANCED,
-    PALETTE_COHERENCE_STRICT,
+    PALETTE_COHERENCE_DOMINANT_ONLY,
+    PALETTE_COHERENCE_DOMINANT_ACCENT,
 ]
 PALETTE_COHERENCE_LABELS = {
-    PALETTE_COHERENCE_OFF: "Off",
+    PALETTE_COHERENCE_OFF: "Natural",
+    PALETTE_COHERENCE_NATURAL: "Natural",
     PALETTE_COHERENCE_BALANCED: "Balanced",
-    PALETTE_COHERENCE_STRICT: "Strict",
+    PALETTE_COHERENCE_STRICT: "Dominant Colors Only",
+    PALETTE_COHERENCE_DOMINANT_ONLY: "Dominant Colors Only",
+    PALETTE_COHERENCE_DOMINANT_ACCENT: "Dominant + Vivid Accent",
 }
 
 ASSIGNMENT_STRATEGY_SEQUENTIAL = "sequential"

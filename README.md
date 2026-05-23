@@ -1,3 +1,14 @@
+## v1.2.19 Palette Coherence Accent Options
+
+This release upgrades **Palette Coherence** into clearer outcome-based options so users can choose either a cohesive dominant-family look or preserve strong accent colors from the cover. It fixes cases where cyan/blue album art with real magenta accents lost those accents under strict coherence filtering.
+
+- **Natural** preserves the extracted palette with minimal hue-family filtering.
+- **Balanced** softens weak outliers while keeping natural color variation.
+- **Dominant Colors Only** keeps the cohesive dominant hue-family look and intentionally removes accent/outlier colors.
+- **Dominant + Vivid Accent** keeps the dominant color family while restoring 1–2 strong vivid accents, such as magenta on cyan artwork.
+
+Diagnostics now report preserved accent colors in Palette Coherence diagnostics, and palette regression tests include cyan + magenta accent preservation plus the dominant-only look.
+
 ## v1.2.18 Palette Guardrails and Regression Testing
 
 This release keeps the v1.2.17 Gradient Neutral Suppression feature and adds upstream palette guardrails so Auto and Warm Ambient do not overpower the album art. Low-confidence Auto detection now uses Album Accurate handling, successful artwork fetches explicitly prevent fallback tinting, and release packaging now includes deterministic album-cover palette regression tests.
@@ -352,13 +363,14 @@ Gradient-capable Hue lights can now arrange palette colors as Same Order, Offset
 
 ### Palette Coherence
 
-Palette Coherence removes visually isolated color outliers after album-art extraction. It is universal and does not target any specific hue family.
+Palette Coherence controls how strongly the palette stays within the dominant hue family after album-art extraction. It is universal and does not target any specific hue family.
 
-- **Off** keeps extracted colors as-is.
-- **Balanced** removes obvious outliers while preserving natural variation.
-- **Strict** keeps a more unified palette and removes stronger hue outliers.
+- **Natural** preserves extracted colors with minimal hue-family filtering.
+- **Balanced** softens weak outliers while keeping natural color variation.
+- **Dominant Colors Only** keeps a cohesive dominant-family look and intentionally removes accent/outlier colors.
+- **Dominant + Vivid Accent** keeps the dominant family while preserving 1–2 strong intentional accent colors such as magenta, red, yellow, green, or cyan.
 
-Diagnostics report the selected coherence mode, dominant hue family, cluster score, and any colors removed.
+Diagnostics report the selected coherence mode, dominant hue family, cluster score, removed colors, and preserved vivid accent colors.
 
 
 ## v1.2.15 behavior update

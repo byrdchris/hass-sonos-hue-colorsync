@@ -102,6 +102,10 @@ from .const import (
     NEUTRAL_TONE_OPTIONS,
     PALETTE_COHERENCE_LABELS,
     PALETTE_COHERENCE_OPTIONS,
+    PALETTE_COHERENCE_DOMINANT_ONLY,
+    PALETTE_COHERENCE_NATURAL,
+    PALETTE_COHERENCE_OFF,
+    PALETTE_COHERENCE_STRICT,
     PALETTE_ORDERING_LABELS,
     PALETTE_ORDERING_OPTIONS,
     ROTATION_MODE_LABELS,
@@ -114,6 +118,17 @@ from .const import (
 def _select_options(options, labels):
     # Convert internal values to Home Assistant's label/value select format.
     return [{"value": key, "label": labels[key]} for key in options]
+
+
+def _palette_coherence_default(defaults: dict) -> str:
+    # Migrate legacy option values to the visible select choices when rendering
+    # the options form. The stored value is updated when the user saves.
+    value = defaults.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)
+    if value == PALETTE_COHERENCE_OFF:
+        return PALETTE_COHERENCE_NATURAL
+    if value == PALETTE_COHERENCE_STRICT:
+        return PALETTE_COHERENCE_DOMINANT_ONLY
+    return value if value in PALETTE_COHERENCE_OPTIONS else DEFAULT_PALETTE_COHERENCE
 
 
 def _color_purity_options(defaults: dict):
@@ -174,7 +189,7 @@ def _full_schema(defaults: dict):
             selector.NumberSelector(selector.NumberSelectorConfig(min=0, max=100, step=1, mode=selector.NumberSelectorMode.SLIDER)),
         vol.Optional(CONF_PALETTE_ORDERING, default=defaults.get(CONF_PALETTE_ORDERING, DEFAULT_PALETTE_ORDERING)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(PALETTE_ORDERING_OPTIONS, PALETTE_ORDERING_LABELS), mode=selector.SelectSelectorMode.LIST)),
-        vol.Optional(CONF_PALETTE_COHERENCE, default=defaults.get(CONF_PALETTE_COHERENCE, DEFAULT_PALETTE_COHERENCE)):
+        vol.Optional(CONF_PALETTE_COHERENCE, default=_palette_coherence_default(defaults)):
             selector.SelectSelector(selector.SelectSelectorConfig(options=_select_options(PALETTE_COHERENCE_OPTIONS, PALETTE_COHERENCE_LABELS), mode=selector.SelectSelectorMode.LIST)),
         vol.Optional(CONF_TRUE_GRADIENT_MODE, default=defaults.get(CONF_TRUE_GRADIENT_MODE, DEFAULT_TRUE_GRADIENT_MODE)): bool,
         vol.Optional(CONF_GRADIENT_NEUTRAL_SUPPRESSION, default=defaults.get(CONF_GRADIENT_NEUTRAL_SUPPRESSION, DEFAULT_GRADIENT_NEUTRAL_SUPPRESSION)):

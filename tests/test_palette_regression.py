@@ -56,7 +56,10 @@ ARTWORK_STYLE_AUTO = const.ARTWORK_STYLE_AUTO
 NEUTRAL_TONE_NATURAL = const.NEUTRAL_TONE_NATURAL
 NEUTRAL_TONE_REDUCE_WHITES = const.NEUTRAL_TONE_REDUCE_WHITES
 NEUTRAL_TONE_WARM_AMBIENT = const.NEUTRAL_TONE_WARM_AMBIENT
+PALETTE_COHERENCE_DOMINANT_ACCENT = const.PALETTE_COHERENCE_DOMINANT_ACCENT
+PALETTE_COHERENCE_DOMINANT_ONLY = const.PALETTE_COHERENCE_DOMINANT_ONLY
 extract_palette_from_bytes = palette_mod.extract_palette_from_bytes
+apply_palette_coherence = palette_mod._apply_palette_coherence
 rgb_to_hex = palette_mod.rgb_to_hex
 
 RGB = tuple[int, int, int]
@@ -141,9 +144,38 @@ def config(neutral: str = NEUTRAL_TONE_NATURAL, behavior: str = AUTO_STYLE_BALAN
         CONF_AUTO_STYLE_BEHAVIOR: behavior,
         CONF_NEUTRAL_TONE_HANDLING: neutral,
         "low_color_handling": True,
-        "palette_coherence": "strict",
+        "palette_coherence": PALETTE_COHERENCE_DOMINANT_ACCENT,
     }
 
+
+
+def cyan_magenta_cover() -> Image.Image:
+    # Cyan-dominant album-like art with intentional vivid magenta accents.
+    img = Image.new("RGB", (256, 256), (0, 190, 224))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, 256, 256), fill=(0, 192, 224))
+    draw.rectangle((24, 42, 232, 92), fill=(16, 96, 128))
+    draw.rectangle((52, 134, 76, 212), fill=(224, 0, 128))
+    draw.rectangle((172, 138, 196, 216), fill=(192, 0, 112))
+    draw.rectangle((0, 220, 256, 256), fill=(48, 80, 112))
+    return img
+
+
+def assert_vivid_accent_policy_keeps_magenta() -> None:
+    # Regression for cyan-dominant covers with a real magenta accent.
+    raw = [(0, 192, 224), (48, 80, 112), (16, 96, 128), (32, 160, 160), (22, 134, 156), (11, 184, 208), (224, 0, 128), (192, 0, 112)]
+    cfg = {"palette_coherence": PALETTE_COHERENCE_DOMINANT_ACCENT}
+    palette = apply_palette_coherence(raw[:6], raw, 6, cfg)
+    magenta = sum(1 for c in palette if 0.83 <= hsv(c)[0] <= 0.97 and hsv(c)[1] > 0.55 and hsv(c)[2] > 0.30)
+    assert magenta >= 1, f"Dominant + Vivid Accent lost magenta: {[rgb_to_hex(c) for c in palette]}"
+
+
+def assert_dominant_only_can_remove_magenta() -> None:
+    raw = [(0, 192, 224), (48, 80, 112), (16, 96, 128), (32, 160, 160), (22, 134, 156), (11, 184, 208), (224, 0, 128), (192, 0, 112)]
+    cfg = {"palette_coherence": PALETTE_COHERENCE_DOMINANT_ONLY}
+    palette = apply_palette_coherence(raw[:6], raw, 6, cfg)
+    magenta = sum(1 for c in palette if 0.83 <= hsv(c)[0] <= 0.97 and hsv(c)[1] > 0.55 and hsv(c)[2] > 0.30)
+    assert magenta == 0, f"Dominant Colors Only should preserve cohesive dominant look: {[rgb_to_hex(c) for c in palette]}"
 
 def assert_not_red_shift_for_green() -> None:
     img = graphic_cover((141, 199, 29), accents=[(178, 224, 63), (73, 96, 27)])
@@ -192,11 +224,13 @@ def main() -> None:
         assert_not_red_shift_for_green,
         assert_monochrome_does_not_turn_red,
         assert_warm_ambient_does_not_recolor_blue,
+        assert_vivid_accent_policy_keeps_magenta,
+        assert_dominant_only_can_remove_magenta,
         assert_random_covers_keep_hue_family,
     ]
     for check in checks:
         check()
-    print("palette_regression: PASS - 53 synthetic album-cover cases")
+    print("palette_regression: PASS - 55 synthetic album-cover cases")
 
 
 if __name__ == "__main__":

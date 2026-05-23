@@ -1,3 +1,12 @@
+# v1.2.19
+
+- Upgraded **Palette Coherence** to named outcome options: Natural, Balanced, Dominant Colors Only, and Dominant + Vivid Accent.
+- Added vivid accent preservation so strong accent colors, such as magenta on cyan artwork, can survive coherence filtering.
+- Preserved the dominant-only look as an explicit user-selectable option.
+- Kept legacy Off and Strict values internally mapped to Natural and Dominant Colors Only for compatibility.
+- Palette Coherence diagnostics now include preserved accent colors.
+- Added regression coverage for cyan + magenta accent preservation and dominant-only filtering.
+
 # v1.2.18
 
 - Added album-cover palette regression testing to the release workflow.
