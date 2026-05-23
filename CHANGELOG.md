@@ -1,3 +1,13 @@
+# v1.2.20
+
+- Consolidated the visible color-tuning UI without removing underlying functionality.
+- Simplified **Artwork Style** choices to Auto, Album Accurate, Ambient, Vivid, High Contrast, and Monochrome / Neutral. Legacy style values remain supported internally.
+- Renamed **Auto Style Behavior** to **Auto Intensity** with Subtle, Balanced, and Expressive. Default is now Subtle so Auto remains conservative.
+- Kept legacy Prefer Vivid and Prefer Ambient values compatible for existing installations, but removed them from the main visible options.
+- Simplified **Neutral Tone Handling** to Natural, Reduce Whites, Warm Neutral, and Preserve Contrast while preserving older pure-white/graphic values internally.
+- Added a modest Expressive Auto pass that can make Auto more visible without forcing a drastic vivid or ambient reinterpretation.
+- Palette regression tests still pass across 55 synthetic album-cover cases.
+
 # v1.2.19
 
 - Upgraded **Palette Coherence** to named outcome options: Natural, Balanced, Dominant Colors Only, and Dominant + Vivid Accent.

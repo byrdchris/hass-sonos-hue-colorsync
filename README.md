@@ -1,3 +1,13 @@
+## v1.2.20 UI Consolidation and Conservative Auto
+
+This release simplifies the visible color-tuning controls while preserving the underlying palette functionality added across the v1.2.x series. Auto remains conservative by default, and stronger looks are now selected through fewer, clearer choices.
+
+- **Artwork Style** is now focused around Auto, Album Accurate, Ambient, Vivid, High Contrast, and Monochrome / Neutral.
+- **Auto Style Behavior** is now **Auto Intensity**: Subtle, Balanced, or Expressive. Subtle is the default and stays closest to the cover.
+- **Neutral Tone Handling** is simplified to Natural, Reduce Whites, Warm Neutral, and Preserve Contrast.
+- Legacy values such as Photography, Cinematic, Prefer Vivid, Prefer Ambient, Graphic / Poster, and Allow Pure White remain accepted internally for compatibility, but the main UI no longer presents them as separate broad choices.
+- Palette Coherence remains unchanged because it provides distinct useful outcomes: Natural, Balanced, Dominant Colors Only, and Dominant + Vivid Accent.
+
 ## v1.2.19 Palette Coherence Accent Options
 
 This release upgrades **Palette Coherence** into clearer outcome-based options so users can choose either a cohesive dominant-family look or preserve strong accent colors from the cover. It fixes cases where cyan/blue album art with real magenta accents lost those accents under strict coherence filtering.

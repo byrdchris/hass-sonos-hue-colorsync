@@ -42,6 +42,7 @@ from .const import (
     AUTO_STYLE_ACCURACY,
     AUTO_STYLE_AMBIENT,
     AUTO_STYLE_BALANCED,
+    AUTO_STYLE_EXPRESSIVE,
     AUTO_STYLE_VIVID,
     CONF_AUTO_STYLE_BEHAVIOR,
     DEFAULT_ARTWORK_STYLE,
@@ -946,6 +947,16 @@ def _detect_auto_artwork_style(image_bytes: bytes, config: dict) -> tuple[str, d
         scores[ARTWORK_STYLE_SOFT] += 0.45
         scores[ARTWORK_STYLE_NATURAL] += 0.25
         reasons.append("auto behavior prefers ambient lighting")
+    elif behavior == AUTO_STYLE_EXPRESSIVE:
+        # Expressive is intentionally conservative: it makes Auto more visually
+        # responsive without forcing a vivid or ambient reinterpretation.
+        if vivid_ratio > 0.10:
+            scores[ARTWORK_STYLE_BOLD] += 0.22
+        elif neutral_ratio > 0.45 or avg_sat < 0.25:
+            scores[ARTWORK_STYLE_SOFT] += 0.18
+        else:
+            scores[ARTWORK_STYLE_NATURAL] += 0.16
+        reasons.append("auto intensity is expressive")
 
     # Hard monochrome protection: vivid preference should not turn true
     # black-and-white artwork into red/pink/brown. Strong neutral metrics win
@@ -1005,7 +1016,7 @@ def _should_downgrade_low_confidence_auto(detected: str, diagnostics: dict, beha
         return False
     # If the user explicitly wants vivid or ambient, keep that bias visible;
     # Balanced and Accuracy should favor fidelity when the classifier is unsure.
-    if behavior not in (AUTO_STYLE_BALANCED, AUTO_STYLE_ACCURACY):
+    if behavior in (AUTO_STYLE_VIVID, AUTO_STYLE_AMBIENT):
         return False
     return detected not in (ARTWORK_STYLE_ALBUM, ARTWORK_STYLE_NATURAL)
 
@@ -1119,13 +1130,20 @@ def _shape_auto_behavior_color(color: RGB, behavior: str) -> RGB:
         else:
             v = max(0.28, min(0.88, v * 0.92))
     elif behavior == AUTO_STYLE_ACCURACY:
-        # Accuracy should reduce the most stylized/vivid outcomes and keep the
-        # palette closer to the artwork's extracted luminance relationships.
-        s = min(s, 0.72)
+        # Subtle keeps Auto closest to the artwork and avoids strong restyling.
+        s = min(s, 0.68)
         if v < 0.16:
             v = 0.16
         elif v > 0.92 and s < 0.18:
             v = 0.90
+    elif behavior == AUTO_STYLE_EXPRESSIVE:
+        # Expressive is a modest finishing pass: visible, but not a hard vivid
+        # or ambient mode. It preserves hue while adding slight separation.
+        if s >= 0.12:
+            s = min(0.82, max(s, s * 1.18))
+            v = max(0.18, min(0.94, v * 1.04))
+        elif v < 0.35:
+            v = min(0.48, v * 1.18 + 0.04)
     else:
         return color
 

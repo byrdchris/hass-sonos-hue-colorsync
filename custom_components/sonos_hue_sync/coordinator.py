@@ -665,33 +665,29 @@ class SonosHueCoordinator:
 Sonos Hue Sync watches the selected Sonos player, extracts colors from the current album art, applies those colors to Hue lights, and restores the previous lighting state when playback stops or Sync is turned off.
 
 ### Artwork Style
-**Artwork Style** is the main color interpretation control. Use **Auto** for playlists so the integration chooses a style per track from local image statistics. No cloud service or AI service is used.
+**Artwork Style** is the main color interpretation control. Use **Auto** for playlists so the integration chooses a conservative style per track from local image statistics. No cloud service or AI service is used.
 
-- **Auto** analyzes the album art and selects the best style for each track. Diagnostics show the detected style, confidence, and reasons. If Auto confidence is low, the integration now falls back to Album Accurate handling instead of applying an aggressive stylized preset.
+- **Auto** analyzes the album art and lightly adapts per track. If Auto confidence is low, the integration falls back to Album Accurate handling instead of applying an aggressive stylized preset.
 - **Album Accurate** preserves the album cover’s intended colors, including muted and neutral tones.
-- **Natural** balances album fidelity with comfortable room lighting.
-- **Graphic / Poster** is for typography, pop-art, high-contrast covers, and flat-color artwork. It reduces pastel drift and preserves dramatic color blocks.
-- **Photography** is for portraits and realistic photographic covers. It preserves skin tones and organic midtones without over-saturating them.
-- **Cinematic** is for darker or moodier art. It keeps deeper shadows, smoother gradients, and stronger warm/cool separation.
-- **Soft Ambient** is for subtle background lighting. It lowers harshness and avoids aggressive saturation.
-- **Bold / High Contrast** is for pop, dance, electronic, and vivid covers. It favors saturated accents and stronger separation.
-- **Monochrome Accent** is for black-and-white or grayscale covers. It preserves neutral contrast and avoids inventing unrelated color, especially red/pink warmth.
+- **Ambient** softens the palette for comfortable room lighting without heavy recoloring.
+- **Vivid** favors stronger color energy and saturated accents.
+- **High Contrast** increases light/dark and color separation for graphic or poster-like covers.
+- **Monochrome / Neutral** is for black-and-white, grayscale, beige, cream, or mostly neutral covers. It preserves neutral structure and avoids inventing unrelated red/pink warmth.
 
-### Auto Style Behavior
-This only affects **Artwork Style → Auto**.
-- **Balanced** chooses the highest-confidence style without strong bias.
-- **Prefer Accuracy** leans toward Album Accurate or Photography when confidence is close.
-- **Prefer Vivid** leans toward Bold / High Contrast or Graphic / Poster. For strongly monochrome artwork, Auto now applies monochrome guardrails so this preference cannot turn black-and-white covers red or pink.
-- **Prefer Ambient** leans toward Soft Ambient or Natural.
+Legacy style values such as Photography, Cinematic, and the older Graphic / Poster names are still understood internally for saved configurations, but the visible UI uses the simpler choices above.
+
+### Auto Intensity
+This only affects **Artwork Style → Auto**. Auto remains conservative by default.
+- **Subtle** stays closest to the extracted album colors and is the default.
+- **Balanced** allows moderate Auto shaping when confidence is good.
+- **Expressive** adds a modest visible color/contrast lift without forcing a drastic vivid or ambient reinterpretation.
 
 ### Neutral Tone Handling
-**Neutral Tone Handling** controls whites, grays, blacks, and cream tones.
-- **Natural** reduces whites only when useful colors exist.
+**Neutral Tone Handling** controls whites, grays, blacks, cream, and beige tones.
+- **Natural** preserves neutral tones unless white reduction is clearly useful.
 - **Reduce Whites** suppresses pale whites, creams, and light grays.
-- **Preserve Contrast** allows black/white contrast when the artwork depends on it.
-- **Warm Ambient** turns neutral-heavy art into warmer room lighting. It is constrained for normal colorful artwork so it does not recolor valid album palettes into unrelated brown/red tones.
-- **Graphic / Poster** preserves poster-like black/white contrast.
-- **Allow Pure White** allows bright white and grayscale tones.
+- **Warm Neutral** turns neutral-heavy art into warmer room lighting. It is constrained for normal colorful artwork so it does not recolor valid album palettes into unrelated brown/red tones.
+- **Preserve Contrast** keeps stronger black/white or light/dark separation when the artwork depends on it.
 
 ### Advanced color controls
 Advanced controls are still available in the options form for compatibility and fine tuning. They are not removed.
@@ -741,11 +737,11 @@ Download diagnostics from:
 **Settings → Devices & services → Sonos Hue Sync → three-dot menu → Download diagnostics**
 
 ### Common troubleshooting
-- For playlists with mixed artwork, use **Artwork Style → Auto** and adjust **Auto Style Behavior** if the results are too accurate, vivid, or ambient.
-- For poster-like covers with red/black/white typography, use **Graphic / Poster** or let **Auto** detect it.
-- For black-and-white covers, use **Monochrome Accent** or let **Auto** detect it. Auto will preserve grayscale when diagnostics show high neutral ratio and near-zero vivid color.
-- If colors look pastel or unrelated, try **Graphic / Poster** or **Bold / High Contrast**.
-- If colors look too harsh, use **Soft Ambient**, **Natural**, or Auto Style Behavior → Prefer Ambient.
+- For playlists with mixed artwork, use **Artwork Style → Auto** and adjust **Auto Intensity** if the results are too subtle or too expressive.
+- For poster-like covers with red/black/white typography, use **High Contrast** or let **Auto** detect it.
+- For black-and-white covers, use **Monochrome / Neutral** or let **Auto** detect it. Auto will preserve grayscale when diagnostics show high neutral ratio and near-zero vivid color.
+- If colors look pastel or unrelated, try **High Contrast** or **Vivid**.
+- If colors look too harsh, use **Ambient**, **Album Accurate**, or Auto Intensity → Subtle.
 - If palette ordering appears unchanged, use Sequential distribution and set Color Rotation to Off.
 - If gradients look reversed, check Status diagnostics for luminance values and rotation suppression.
 - If too many lights change, use Excluded lights or review the Targets sensor.

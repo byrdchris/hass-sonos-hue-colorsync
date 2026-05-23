@@ -93,7 +93,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # remain available in Options as Advanced / Custom inputs for compatibility.
     entities = [
         SonosHueSelect(coordinator, entry, CONF_ARTWORK_STYLE, "Artwork Style", ARTWORK_STYLE_OPTIONS, ARTWORK_STYLE_LABELS, "mdi:image-filter-vintage"),
-        SonosHueSelect(coordinator, entry, CONF_AUTO_STYLE_BEHAVIOR, "Auto Style Behavior", AUTO_STYLE_BEHAVIOR_OPTIONS, AUTO_STYLE_BEHAVIOR_LABELS, "mdi:auto-fix"),
+        SonosHueSelect(coordinator, entry, CONF_AUTO_STYLE_BEHAVIOR, "Auto Intensity", AUTO_STYLE_BEHAVIOR_OPTIONS, AUTO_STYLE_BEHAVIOR_LABELS, "mdi:auto-fix"),
         SonosHueSelect(coordinator, entry, CONF_NEUTRAL_TONE_HANDLING, "Neutral Tone Handling", NEUTRAL_TONE_OPTIONS, NEUTRAL_TONE_LABELS, "mdi:contrast-circle"),
         SonosHueSelect(coordinator, entry, CONF_PALETTE_COHERENCE, "Palette Coherence", PALETTE_COHERENCE_OPTIONS, PALETTE_COHERENCE_LABELS, "mdi:palette-swatch"),
         SonosHueSelect(coordinator, entry, CONF_ROTATION_MODE, "Color Rotation", ROTATION_MODE_OPTIONS, ROTATION_MODE_LABELS, "mdi:rotate-3d-variant"),

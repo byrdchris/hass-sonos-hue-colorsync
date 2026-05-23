@@ -37,7 +37,7 @@
           "expand_groups": "Distribute Across Group Lights",
           "airplay_poll_interval": "AirPlay Metadata Check Interval",
           "palette_coherence": "Palette Coherence",
-          "auto_style_behavior": "Auto Style Behavior",
+          "auto_style_behavior": "Auto Intensity",
           "gradient_neutral_suppression": "Gradient Neutral Suppression"
         },
         "data_description": {
@@ -71,9 +71,9 @@
           "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
           "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events.",
           "palette_coherence": "Controls how strongly colors stay within the dominant hue family. Natural preserves extracted colors, Balanced softens weak outliers, Dominant Colors Only keeps the cohesive single-family look, and Dominant + Vivid Accent keeps 1-2 strong contrast colors such as magenta.",
-          "artwork_style": "Choose Auto for hands-off per-track detection, or choose a fixed artwork interpretation preset.",
-          "auto_style_behavior": "Controls how Auto shapes the final palette after detecting the artwork type: balanced, more accurate, more vivid, or more ambient.",
-          "neutral_tone_handling": "Choose how whites, blacks, grays, and other neutral tones should behave.",
+          "artwork_style": "Controls the overall color interpretation. Auto is conservative by default; Album Accurate stays closest to the artwork; Ambient, Vivid, High Contrast, and Monochrome / Neutral provide focused manual choices.",
+          "auto_style_behavior": "Controls how strongly Auto adapts album art. Subtle stays closest to the cover, Balanced makes small adjustments, and Expressive adds modest color/contrast shaping without drastic reinterpretation.",
+          "neutral_tone_handling": "Controls neutral colors such as white, cream, gray, and black. Natural preserves them, Reduce Whites suppresses bright whites, Warm Neutral creates a creamier room-light feel, and Preserve Contrast keeps stronger light/dark separation.",
           "gradient_neutral_suppression": "For supported Hue gradient lights, controls whether gray, black, or white-like gradient anchors are replaced with colorized palette anchors when strong non-neutral album colors are available. This helps prevent gradient lamps from showing unwanted white on vivid covers."
         }
       }
@@ -117,7 +117,7 @@
           "palette_coherence": "Palette Coherence",
           "artwork_style": "Artwork Style",
           "neutral_tone_handling": "Neutral Tone Handling",
-          "auto_style_behavior": "Auto Style Behavior",
+          "auto_style_behavior": "Auto Intensity",
           "gradient_neutral_suppression": "Gradient Neutral Suppression"
         },
         "data_description": {
@@ -248,33 +248,39 @@
           "auto": "Auto",
           "natural": "Natural",
           "album_accurate": "Album Accurate",
-          "graphic_poster": "Graphic / Poster",
+          "graphic_poster": "High Contrast",
           "photography": "Photography",
           "cinematic": "Cinematic",
-          "soft_ambient": "Soft Ambient",
-          "bold_high_contrast": "Bold / High Contrast",
-          "monochrome_accent": "Monochrome Accent"
+          "soft_ambient": "Ambient",
+          "bold_high_contrast": "Vivid",
+          "monochrome_accent": "Monochrome / Neutral"
         },
         "state": {
           "auto": "Auto",
-          "monochrome_accent": "Monochrome Accent"
+          "monochrome_accent": "Monochrome / Neutral",
+          "soft_ambient": "Ambient",
+          "bold_high_contrast": "Vivid",
+          "graphic_poster": "High Contrast"
         }
       },
       "neutral_tone_handling": {
         "name": "Neutral Tone Handling",
         "options": {},
-        "state": {}
+        "state": {
+          "warm_ambient": "Warm Neutral"
+        }
       },
       "color_purity": {
         "name": "Color Purity Preset"
       },
       "auto_style_behavior": {
-        "name": "Auto Style Behavior",
+        "name": "Auto Intensity",
         "state": {
           "balanced": "Balanced",
-          "prefer_accuracy": "Prefer Accuracy",
+          "prefer_accuracy": "Subtle",
           "prefer_vivid": "Prefer Vivid",
-          "prefer_ambient": "Prefer Ambient"
+          "prefer_ambient": "Prefer Ambient",
+          "expressive": "Expressive"
         }
       },
       "gradient_neutral_suppression": {
@@ -364,13 +370,13 @@
       "options": {
         "natural": "Natural",
         "album_accurate": "Album Accurate",
-        "graphic_poster": "Graphic / Poster",
+        "graphic_poster": "High Contrast",
         "photography": "Photography",
         "cinematic": "Cinematic",
-        "soft_ambient": "Soft Ambient",
-        "bold_high_contrast": "Bold / High Contrast",
+        "soft_ambient": "Ambient",
+        "bold_high_contrast": "Vivid",
         "auto": "Auto",
-        "monochrome_accent": "Monochrome Accent"
+        "monochrome_accent": "Monochrome / Neutral"
       }
     },
     "neutral_tone_handling": {
@@ -378,8 +384,8 @@
         "natural": "Natural",
         "reduce_whites": "Reduce Whites",
         "preserve_contrast": "Preserve Contrast",
-        "warm_ambient": "Warm Ambient",
-        "graphic_poster": "Graphic / Poster",
+        "warm_ambient": "Warm Neutral",
+        "graphic_poster": "High Contrast",
         "allow_pure_white": "Allow Pure White"
       }
     },
