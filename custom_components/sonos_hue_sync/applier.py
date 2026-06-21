@@ -7,7 +7,7 @@ import asyncio
 import logging
 
 from .hue_capabilities import gradient_capability_from_ha
-from .palette import luminance
+from .palette import lock_palette, luminance
 from .hue_gradient import try_apply_gradient
 
 _LOGGER = logging.getLogger(__name__)
@@ -147,7 +147,7 @@ async def apply_assignments(hass, assignments: dict[str, tuple[int, int, int]], 
             success, gradient_diag = await try_apply_gradient(
                 hass,
                 entity_id,
-                list(palette),
+                list(palette)),
                 color,
                 int((config or {}).get("gradient_color_points", 5)),
                 transition,

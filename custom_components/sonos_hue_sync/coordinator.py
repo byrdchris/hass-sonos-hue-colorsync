@@ -89,6 +89,7 @@ class SonosHueCoordinator:
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {
         # v1.2.21 media snapshot
+        # v1.2.22 pipeline ordering enforced
         self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
         if state else None
         }
@@ -409,6 +410,7 @@ class SonosHueCoordinator:
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {
         # v1.2.21 media snapshot
+        # v1.2.22 pipeline ordering enforced
         self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
         if state else None
         }
@@ -426,6 +428,7 @@ class SonosHueCoordinator:
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {
         # v1.2.21 media snapshot
+        # v1.2.22 pipeline ordering enforced
         self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
         if state else None
         }
@@ -447,6 +450,7 @@ class SonosHueCoordinator:
         attrs = state.attributes if state is not None else {}
         self.last_sonos_attributes = {
         # v1.2.21 media snapshot
+        # v1.2.22 pipeline ordering enforced
         self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
         if state else None
         

@@ -636,3 +636,8 @@ async def try_apply_gradient(
 
     diagnostics["gradient_error"] = " | ".join(errors)
     return False, diagnostics
+
+
+# v1.2.22: gradient expects immutable palette input only
+def _ensure_locked(palette):
+    return tuple(palette)

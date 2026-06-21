@@ -764,7 +764,7 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
 
     if mode == PALETTE_COHERENCE_NATURAL or not palette:
         diagnostics["reason"] = "natural_preserved"
-        return palette
+        return tuple(palette)
 
     chromatic = []
     for idx, color in enumerate(palette):
@@ -777,7 +777,7 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
 
     if len(chromatic) < 3:
         diagnostics["reason"] = "not_enough_chromatic_colors"
-        return palette
+        return tuple(palette)
 
     if mode == PALETTE_COHERENCE_BALANCED:
         cluster_radius, keep_radius, minimum_ratio = 100.0, 118.0, 0.50
@@ -798,7 +798,7 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
     if best_hue is None or (best_score / total_score) < minimum_ratio:
         diagnostics["reason"] = "multicolor_palette_preserved"
         diagnostics["dominant_cluster_score"] = round(best_score / total_score, 3)
-        return palette
+        return tuple(palette)
 
     kept: list[RGB] = []
     removed: list[RGB] = []
@@ -816,7 +816,7 @@ def _apply_palette_coherence(palette: list[RGB], source_candidates: list[RGB], d
         diagnostics["reason"] = "no_outliers_found"
         diagnostics["dominant_hue_degrees"] = round(best_hue * 360.0, 1)
         diagnostics["dominant_cluster_score"] = round(best_score / total_score, 3)
-        return palette
+        return tuple(palette)
 
     # Restore vivid accents only for modes intended to preserve intentional
     # contrast colors. Dominant Colors Only intentionally keeps the cohesive look.
@@ -1046,7 +1046,7 @@ def _final_palette_guardrails(palette: list[RGB], config: dict, desired: int) ->
     Ambient should not recolor strongly non-neutral artwork.
     """
     if not palette:
-        return palette
+        return tuple(palette)
     diagnostics = config.get("_auto_artwork_style_diagnostics") or {}
     detected = config.get("_auto_artwork_style_detected")
     neutral_mode = config.get(CONF_NEUTRAL_TONE_HANDLING)
@@ -1084,7 +1084,7 @@ def _final_palette_guardrails(palette: list[RGB], config: dict, desired: int) ->
         })
 
     config["_final_palette_guardrails"] = guard
-    return palette[:desired]
+    return tuple(palette)[:desired]
 
 
 def _clamp_channel(value: float) -> int:
@@ -1178,7 +1178,7 @@ def _apply_auto_style_behavior_to_palette(palette: list[RGB], config: dict, desi
             "behavior": behavior,
             "reason": "balanced_or_manual_style",
         }
-        return palette[:desired]
+        return tuple(palette)[:desired]
 
     # Keep hard monochrome protection in control of true black-and-white art.
     # Neutral Tone Handling remains responsible for grayscale/white behavior.
@@ -1188,7 +1188,7 @@ def _apply_auto_style_behavior_to_palette(palette: list[RGB], config: dict, desi
             "behavior": behavior,
             "reason": "monochrome_guardrail_preserved_neutral_identity",
         }
-        return palette[:desired]
+        return tuple(palette)[:desired]
 
     before = palette[:desired]
     shaped = [_shape_auto_behavior_color(color, behavior) for color in before]
@@ -1333,3 +1333,8 @@ def warm_neutral_fallback_palette(desired: int) -> list[RGB]:
     desired = max(1, int(desired or 3))
     base = [(255, 214, 170), (220, 190, 150), (180, 160, 130), (130, 115, 100)]
     return _repeat_to_count(base, desired)[:desired]
+
+
+def lock_palette(palette):
+    """v1.2.22: enforce immutability"""
+    return tuple(tuple(c) for c in palette)
