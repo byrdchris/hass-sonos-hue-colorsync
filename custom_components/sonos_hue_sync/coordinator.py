@@ -1,4 +1,3 @@
-from .media_adapter import resolve_media_snapshot
 from __future__ import annotations
 
 # Runtime coordinator. Handles Sonos events, advanced config resolution, palette updates, rotation, and scene restore.
@@ -88,10 +87,6 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {
-        # v1.2.21 media snapshot
-        # v1.2.22 pipeline ordering enforced
-        self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
-        if state else None
         }
         self._restore_delay_task = None
         self._auto_rotate_task = None
@@ -409,10 +404,6 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {
-        # v1.2.21 media snapshot
-        # v1.2.22 pipeline ordering enforced
-        self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
-        if state else None
         }
         self._restore_delay_task = None
         self._stop_auto_rotate()
@@ -427,10 +418,6 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {
-        # v1.2.21 media snapshot
-        # v1.2.22 pipeline ordering enforced
-        self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
-        if state else None
         }
         self._restore_delay_task = None
         self._stop_auto_rotate()
@@ -449,10 +436,6 @@ class SonosHueCoordinator:
     def _snapshot_sonos_attrs(self, state):
         attrs = state.attributes if state is not None else {}
         self.last_sonos_attributes = {
-        # v1.2.21 media snapshot
-        # v1.2.22 pipeline ordering enforced
-        self.media_snapshot = resolve_media_snapshot(self.sonos_entity, state)
-        if state else None
         
             "state": state.state if state is not None else None,
             "media_title": attrs.get("media_title"),
@@ -490,7 +473,6 @@ class SonosHueCoordinator:
         self.last_fallback_suppressed = None
 
         has_previous = bool(self.last_palette)
-        current_track_key = self._track_key(state) if state else None
         same_palette_track = bool(
             has_previous
             and current_track_key

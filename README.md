@@ -397,3 +397,7 @@ Run before packaging a release:
 python3 tests/test_palette_regression.py
 ```
 
+
+
+## HomeKit
+Only sync enable/disable switch is supported. Advanced controls are intentionally hidden from HomeKit.

@@ -106,6 +106,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class SonosHueSelect(SelectEntity):
+    entity_registry_enabled_default = False
     _attr_has_entity_name = True
 
     def __init__(self, coordinator, entry, key, name, options, labels, icon):
