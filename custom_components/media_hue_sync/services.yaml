@@ -1,9 +1,9 @@
 enable:
   name: Enable
-  description: Enable Media Hue Sync control.
+  description: Enable Sonos Hue Sync control.
 disable:
   name: Disable
-  description: Disable Media Hue Sync control and restore the prior scene.
+  description: Disable Sonos Hue Sync control and restore the prior scene.
 apply_last_palette:
   name: Apply last palette
   description: Apply the last extracted palette immediately to the selected lights.
@@ -47,8 +47,8 @@ test_color:
 
 show_help:
   name: Show help
-  description: Show a Media Hue Sync quick guide, including where to download diagnostics, as a Home Assistant notification.
+  description: Show a Sonos Hue Sync quick guide, including where to download diagnostics, as a Home Assistant notification.
 
 health_check:
   name: Health check
-  description: Run a Media Hue Sync health check and show the result as a Home Assistant notification.
+  description: Run a Sonos Hue Sync health check and show the result as a Home Assistant notification.
