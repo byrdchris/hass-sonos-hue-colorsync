@@ -49,3 +49,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     coordinator = hass.data[DOMAIN].pop(entry.entry_id)
     await coordinator.async_unload()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+
+OLD_DOMAIN = "sonos_hue_sync"
+NEW_DOMAIN = "media_hue_sync"
+
+async def async_migrate_entry(hass, entry):
+    # dual-phase migration: keep compatibility temporarily
+    if entry.domain == OLD_DOMAIN:
+        entry.domain = NEW_DOMAIN
+        return True
+    return False

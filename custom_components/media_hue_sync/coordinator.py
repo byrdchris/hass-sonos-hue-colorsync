@@ -756,7 +756,7 @@ Download diagnostics from:
             {
                 "title": "Sonos Hue Sync Help",
                 "message": message,
-                "notification_id": "sonos_hue_sync_help",
+                "notification_id": "media_hue_sync_help",
             },
             blocking=False,
         )
@@ -1321,7 +1321,7 @@ Download diagnostics from:
             {
                 "title": "Sonos Hue Sync Health Check",
                 "message": format_health_message(report),
-                "notification_id": "sonos_hue_sync_health_check",
+                "notification_id": "media_hue_sync_health_check",
             },
             blocking=False,
         )

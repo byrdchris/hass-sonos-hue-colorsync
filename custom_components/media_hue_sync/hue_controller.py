@@ -10,7 +10,7 @@ from .resolver import resolve_targets
 
 async def snapshot_scene(hass, selected_entities: list[str]) -> dict:
     """Snapshot current light state for later restore, including off lights."""
-    scene_id = "sonos_hue_sync_snapshot"
+    scene_id = "media_hue_sync_snapshot"
     clean_entities = [entity_id for entity_id in selected_entities if entity_id]
     entities: dict[str, dict] = {}
     for entity_id in clean_entities:

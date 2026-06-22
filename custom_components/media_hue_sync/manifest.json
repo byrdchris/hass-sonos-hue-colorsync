@@ -1,5 +1,5 @@
 {
-  "domain": "sonos_hue_sync",
+  "domain": "media_hue_sync",
   "name": "Sonos Hue Sync",
   "version": "1.2.20",
   "documentation": "https://github.com/byrdchris/hass-sonos-hue-colorsync",

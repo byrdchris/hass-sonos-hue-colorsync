@@ -21,7 +21,7 @@ from typing import Iterable
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENT = ROOT / "custom_components" / "sonos_hue_sync"
+COMPONENT = ROOT / "custom_components" / "media_hue_sync"
 
 # Load palette.py without importing the Home Assistant integration package
 # __init__.py, which requires Home Assistant at test time.
@@ -29,10 +29,10 @@ import importlib.util
 import types
 
 pkg_root = types.ModuleType("custom_components")
-pkg = types.ModuleType("custom_components.sonos_hue_sync")
+pkg = types.ModuleType("custom_components.media_hue_sync")
 pkg.__path__ = [str(COMPONENT)]
 sys.modules.setdefault("custom_components", pkg_root)
-sys.modules.setdefault("custom_components.sonos_hue_sync", pkg)
+sys.modules.setdefault("custom_components.media_hue_sync", pkg)
 
 def load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -42,8 +42,8 @@ def load_module(name: str, path: Path):
     spec.loader.exec_module(module)
     return module
 
-const = load_module("custom_components.sonos_hue_sync.const", COMPONENT / "const.py")
-palette_mod = load_module("custom_components.sonos_hue_sync.palette", COMPONENT / "palette.py")
+const = load_module("custom_components.media_hue_sync.const", COMPONENT / "const.py")
+palette_mod = load_module("custom_components.media_hue_sync.palette", COMPONENT / "palette.py")
 
 AUTO_STYLE_ACCURACY = const.AUTO_STYLE_ACCURACY
 AUTO_STYLE_BALANCED = const.AUTO_STYLE_BALANCED

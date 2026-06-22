@@ -1,6 +1,6 @@
 # Shared constants. Defines defaults, options, entity labels, and behavior presets used across the integration.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
-DOMAIN = "sonos_hue_sync"
+DOMAIN = "media_hue_sync"
 
 CONF_SONOS_ENTITY = "sonos_entity"
 CONF_LIGHT_GROUP = "light_group"
