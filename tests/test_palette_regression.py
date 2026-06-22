@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic album-cover palette regression checks for Sonos Hue Sync.
+"""Deterministic album-cover palette regression checks for Media Hue Sync.
 
 Run from the repository root with:
     python3 tests/test_palette_regression.py

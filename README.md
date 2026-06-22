@@ -95,9 +95,9 @@ This release tightens Auto Artwork Style for black-and-white and grayscale artwo
 - **Bold / High Contrast**: vivid, energetic color separation.
 - **Monochrome Accent**: black-and-white or grayscale covers with restrained accents. Auto uses monochrome guardrails to preserve grayscale when no real vivid color is present.
 
-# Sonos Hue Sync
+# Media Hue Sync
 
-Sonos Hue Sync is a Home Assistant custom integration that extracts colors from the currently playing Sonos album art and applies them to Philips Hue lights, rooms, zones, and supported gradient lights.
+Media Hue Sync is a Home Assistant custom integration that extracts colors from the currently playing Sonos album art and applies them to Philips Hue lights, rooms, zones, and supported gradient lights.
 
 The integration is designed for Home Assistant installations running in container mode and is installable through HACS as a custom repository.
 
@@ -161,10 +161,10 @@ No color-processing capability was removed. The older mechanism-level controls r
    ```
 
 6. Set the category to **Integration**.
-7. Install **Sonos Hue Sync**.
+7. Install **Media Hue Sync**.
 8. Restart Home Assistant.
 9. Go to **Settings → Devices & services → Add integration**.
-10. Search for **Sonos Hue Sync** and complete setup.
+10. Search for **Media Hue Sync** and complete setup.
 
 ## Configuration
 
@@ -207,7 +207,7 @@ UI labels are intentionally friendly. Internal configuration names are not shown
 
 ### Control model
 
-Sonos Hue Sync uses a single advanced control surface. Basic / Advanced mode has been removed because Home Assistant device controls do not support that behavior cleanly.
+Media Hue Sync uses a single advanced control surface. Basic / Advanced mode has been removed because Home Assistant device controls do not support that behavior cleanly.
 
 Color tuning is split into independent controls:
 
@@ -289,7 +289,7 @@ Gradient support uses both Home Assistant/Hue capability metadata and a model-ba
 
 ### Mixed groups
 
-A selected Hue room or zone can contain both gradient-capable lights and regular color lights. Sonos Hue Sync applies the same album palette through two clean paths:
+A selected Hue room or zone can contain both gradient-capable lights and regular color lights. Media Hue Sync applies the same album palette through two clean paths:
 
 - gradient-capable lights receive multi-point gradient updates when **Enable True Gradient** is on;
 - standard lights receive normal single-color updates from the same palette and distribution mode.
@@ -397,7 +397,3 @@ Run before packaging a release:
 python3 tests/test_palette_regression.py
 ```
 
-
-
-## HomeKit
-Only sync enable/disable switch is supported. Advanced controls are intentionally hidden from HomeKit.

@@ -1,0 +1,401 @@
+{
+  "title": "Media Hue Sync",
+  "config": {
+    "flow_title": "Media Hue Sync",
+    "step": {
+      "user": {
+        "title": "Media Hue Sync",
+        "description": "Configure Sonos album art color sync for Hue lights.",
+        "data": {
+          "sonos_entity": "Sonos Speaker",
+          "light_entities": "Hue Lights / Groups",
+          "color_accuracy_mode": "Color Accuracy Mode",
+          "color_purity": "Color Purity Preset",
+          "white_handling": "White Handling",
+          "white_level": "White Suppression",
+          "color_count": "Number of Colors",
+          "transition": "Transition Time",
+          "auto_rotate_colors": "Legacy timed rotation",
+          "rotation_mode": "Color Rotation",
+          "auto_rotate_interval": "Auto Rotation Interval",
+          "restore_delay": "Restore Delay",
+          "group_entities": "Additional Hue Groups",
+          "member_light_entities": "Additional Member Lights",
+          "exclude_light_entities": "Excluded Lights",
+          "assignment_strategy": "Color Distribution Mode",
+          "palette_ordering": "Palette Ordering",
+          "true_gradient_mode": "Enable True Gradient",
+          "gradient_order_mode": "Gradient Pattern",
+          "gradient_color_points": "Gradient Detail Level",
+          "gradient_brightness": "Gradient Brightness",
+          "min_brightness": "Minimum Brightness",
+          "max_brightness": "Maximum Brightness",
+          "monochrome_mode": "Black & White Handling",
+          "low_color_handling": "Stabilize Low-Color Art",
+          "artwork_fallback_mode": "Artwork Fallback",
+          "cache": "Cache Album Colors",
+          "expand_groups": "Distribute Across Group Lights",
+          "airplay_poll_interval": "AirPlay Metadata Check Interval",
+          "palette_coherence": "Palette Coherence",
+          "auto_style_behavior": "Auto Intensity",
+          "gradient_neutral_suppression": "Gradient Neutral Suppression"
+        },
+        "data_description": {
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main Hue lights or groups to control. If a selected room or group exposes member lights, colors are distributed across those members.",
+          "color_accuracy_mode": "Choose the overall extraction style. Natural is balanced, Vivid favors saturated accents, and Album Accurate keeps more muted or neutral artwork tones.",
+          "color_purity": "Choose how strongly the integration favors saturated colors versus faithful album tones. Presets preserve the same underlying color behavior without requiring a numeric slider.",
+          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity Preset.",
+          "white_level": "Adjusts how strongly white and light neutral tones are reduced. 0 preserves whites. 100 suppresses whites strongly.",
+          "color_count": "Number of album-art colors to keep, from 1 to 10. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds when applying album colors.",
+          "auto_rotate_colors": "Legacy compatibility option. New installs should use Color Rotation instead.",
+          "rotation_mode": "Choose whether colors rotate off, once per track change, continuously while music plays, or both.",
+          "auto_rotate_interval": "Seconds between continuous color rotations when Color Rotation includes Continuous.",
+          "restore_delay": "Seconds to wait before restoring the previous light state after playback stops or sync is disabled.",
+          "group_entities": "Optional extra Hue groups to include in addition to the main targets.",
+          "member_light_entities": "Optional individual Hue lights to include in addition to the main targets.",
+          "exclude_light_entities": "Lights to leave untouched even if they are included through a selected group.",
+          "assignment_strategy": "Controls how palette colors are assigned across standard lights.",
+          "palette_ordering": "Controls whether vivid or dominant colors are prioritized first.",
+          "true_gradient_mode": "Use native multi-color Hue gradients on supported gradient lights.",
+          "gradient_order_mode": "Controls how colors are arranged on gradient-capable Hue lights. Dark-to-light and light-to-dark are locked layout choices that use full-palette luminance ordering after Artwork Style changes. Gradient lights also anchor their representative color to the final palette so non-white covers do not leave white behind.",
+          "gradient_color_points": "Number of colors sent to each supported gradient light.",
+          "gradient_brightness": "Brightness used for supported gradient lights.",
+          "min_brightness": "Lowest brightness used for standard lights.",
+          "max_brightness": "Highest brightness used for standard lights.",
+          "monochrome_mode": "Controls behavior for black-and-white or very low-color album art.",
+          "low_color_handling": "Stabilizes palettes for album art with very few usable colors.",
+          "artwork_fallback_mode": "Controls what happens when album art is unavailable or cannot be processed.",
+          "cache": "Remember album palettes to avoid reprocessing the same artwork.",
+          "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
+          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events.",
+          "palette_coherence": "Controls how strongly colors stay within the dominant hue family. Natural preserves extracted colors, Balanced softens weak outliers, Dominant Colors Only keeps the cohesive single-family look, and Dominant + Vivid Accent keeps 1-2 strong contrast colors such as magenta.",
+          "artwork_style": "Controls the overall color interpretation. Auto is conservative by default; Album Accurate stays closest to the artwork; Ambient, Vivid, High Contrast, and Monochrome / Neutral provide focused manual choices.",
+          "auto_style_behavior": "Controls how strongly Auto adapts album art. Subtle stays closest to the cover, Balanced makes small adjustments, and Expressive adds modest color/contrast shaping without drastic reinterpretation.",
+          "neutral_tone_handling": "Controls neutral colors such as white, cream, gray, and black. Natural preserves them, Reduce Whites suppresses bright whites, Warm Neutral creates a creamier room-light feel, and Preserve Contrast keeps stronger light/dark separation.",
+          "gradient_neutral_suppression": "For supported Hue gradient lights, controls whether gray, black, or white-like gradient anchors are replaced with colorized palette anchors when strong non-neutral album colors are available. This helps prevent gradient lamps from showing unwanted white on vivid covers."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Media Hue Sync options",
+        "description": "Update the speaker, Hue targets, and palette behavior.",
+        "data": {
+          "sonos_entity": "Sonos Speaker",
+          "light_entities": "Hue Lights / Groups",
+          "color_accuracy_mode": "Color Accuracy Mode",
+          "color_purity": "Color Purity Preset",
+          "white_handling": "White Handling",
+          "white_level": "White Suppression",
+          "color_count": "Number of Colors",
+          "transition": "Transition Time",
+          "auto_rotate_colors": "Legacy timed rotation",
+          "rotation_mode": "Color Rotation",
+          "auto_rotate_interval": "Auto Rotation Interval",
+          "restore_delay": "Restore Delay",
+          "group_entities": "Additional Hue Groups",
+          "member_light_entities": "Additional Member Lights",
+          "exclude_light_entities": "Excluded Lights",
+          "assignment_strategy": "Color Distribution Mode",
+          "palette_ordering": "Palette Ordering",
+          "true_gradient_mode": "Enable True Gradient",
+          "gradient_order_mode": "Gradient Pattern",
+          "gradient_color_points": "Gradient Detail Level",
+          "gradient_brightness": "Gradient Brightness",
+          "min_brightness": "Minimum Brightness",
+          "max_brightness": "Maximum Brightness",
+          "monochrome_mode": "Black & White Handling",
+          "low_color_handling": "Stabilize Low-Color Art",
+          "artwork_fallback_mode": "Artwork Fallback",
+          "cache": "Cache Album Colors",
+          "expand_groups": "Distribute Across Group Lights",
+          "airplay_poll_interval": "AirPlay Metadata Check Interval",
+          "palette_coherence": "Palette Coherence",
+          "artwork_style": "Artwork Style",
+          "neutral_tone_handling": "Neutral Tone Handling",
+          "auto_style_behavior": "Auto Intensity",
+          "gradient_neutral_suppression": "Gradient Neutral Suppression"
+        },
+        "data_description": {
+          "sonos_entity": "Choose the Sonos media player to follow. For grouped speakers, choose the room that shows the active track title, artist, album, and album art.",
+          "light_entities": "Main Hue lights or groups to control. If a selected room or group exposes member lights, colors are distributed across those members.",
+          "color_accuracy_mode": "Choose the overall extraction style. Natural is balanced, Vivid favors saturated accents, and Album Accurate keeps more muted or neutral artwork tones.",
+          "color_purity": "Choose how strongly the integration favors saturated colors versus faithful album tones. Presets preserve the same underlying color behavior without requiring a numeric slider.",
+          "white_handling": "Controls how white and light neutral tones are treated separately from Color Purity Preset.",
+          "white_level": "Adjusts how strongly white and light neutral tones are reduced. 0 preserves whites. 100 suppresses whites strongly.",
+          "color_count": "Number of album-art colors to keep, from 1 to 10. If there are more target lights than colors, colors repeat.",
+          "transition": "Fade time in seconds when applying album colors.",
+          "auto_rotate_colors": "Legacy compatibility option. New installs should use Color Rotation instead.",
+          "rotation_mode": "Choose whether colors rotate off, once per track change, continuously while music plays, or both.",
+          "auto_rotate_interval": "Seconds between continuous color rotations when Color Rotation includes Continuous.",
+          "restore_delay": "Seconds to wait before restoring the previous light state after playback stops or sync is disabled.",
+          "group_entities": "Optional extra Hue groups to include in addition to the main targets.",
+          "member_light_entities": "Optional individual Hue lights to include in addition to the main targets.",
+          "exclude_light_entities": "Lights to leave untouched even if they are included through a selected group.",
+          "assignment_strategy": "Controls how palette colors are assigned across standard lights.",
+          "palette_ordering": "Controls whether vivid or dominant colors are prioritized first.",
+          "true_gradient_mode": "Use native multi-color Hue gradients on supported gradient lights.",
+          "gradient_order_mode": "Controls how colors are arranged on gradient-capable Hue lights. Dark-to-light and light-to-dark are locked layout choices that use full-palette luminance ordering after Artwork Style changes. Gradient lights also anchor their representative color to the final palette so non-white covers do not leave white behind.",
+          "gradient_color_points": "Number of colors sent to each supported gradient light.",
+          "gradient_brightness": "Brightness used for supported gradient lights.",
+          "min_brightness": "Lowest brightness used for standard lights.",
+          "max_brightness": "Highest brightness used for standard lights.",
+          "monochrome_mode": "Controls behavior for black-and-white or very low-color album art.",
+          "low_color_handling": "Stabilizes palettes for album art with very few usable colors.",
+          "artwork_fallback_mode": "Controls what happens when album art is unavailable or cannot be processed.",
+          "cache": "Remember album palettes to avoid reprocessing the same artwork.",
+          "expand_groups": "Apply colors to individual lights within selected Hue groups when possible.",
+          "airplay_poll_interval": "Fallback metadata check interval for sources that do not reliably send Sonos events.",
+          "palette_coherence": "Controls how strongly colors stay within the dominant hue family. Natural preserves extracted colors, Balanced softens weak outliers, Dominant Colors Only keeps the cohesive single-family look, and Dominant + Vivid Accent keeps 1-2 strong contrast colors such as magenta.",
+          "artwork_style": "Choose Auto for hands-off per-track detection, or choose a fixed artwork interpretation preset.",
+          "neutral_tone_handling": "Choose how whites, blacks, grays, and other neutral tones should behave.",
+          "auto_style_behavior": "Controls how Auto shapes the final palette after detecting the artwork type: balanced, more accurate, more vivid, or more ambient.",
+          "gradient_neutral_suppression": "For supported Hue gradient lights, controls whether gray, black, or white-like gradient anchors are replaced with colorized palette anchors when strong non-neutral album colors are available. This helps prevent gradient lamps from showing unwanted white on vivid covers."
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "extract_now": {
+        "name": "Refresh Colors"
+      },
+      "update_lights_now": {
+        "name": "Update Lights Now"
+      },
+      "apply_last_palette": {
+        "name": "Rotate Colors"
+      },
+      "test_rainbow": {
+        "name": "Test Lighting"
+      },
+      "health_check": {
+        "name": "Health Check"
+      },
+      "show_help": {
+        "name": "Help & Guide"
+      }
+    },
+    "sensor": {
+      "palette": {
+        "name": "Status"
+      },
+      "target_preview": {
+        "name": "Targets"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Enable Sync"
+      },
+      "auto_rotate_colors": {
+        "name": "Legacy timed rotation"
+      },
+      "filter_dull": {
+        "name": "Filter Dull Colors"
+      },
+      "filter_bright_white": {
+        "name": "Filter Harsh Whites"
+      },
+      "low_color_handling": {
+        "name": "Stabilize Low-Color Art"
+      },
+      "cache": {
+        "name": "Cache Album Colors"
+      },
+      "expand_groups": {
+        "name": "Distribute Across Group Lights"
+      },
+      "true_gradient_mode": {
+        "name": "Enable True Gradient"
+      }
+    },
+    "select": {
+      "color_accuracy_mode": {
+        "name": "Color Accuracy Mode"
+      },
+      "white_handling": {
+        "name": "White Handling"
+      },
+      "rotation_mode": {
+        "name": "Color Rotation"
+      },
+      "assignment_strategy": {
+        "name": "Color Distribution Mode"
+      },
+      "palette_ordering": {
+        "name": "Palette Ordering"
+      },
+      "gradient_order_mode": {
+        "name": "Gradient Pattern"
+      },
+      "monochrome_mode": {
+        "name": "Black & White Handling"
+      },
+      "artwork_fallback_mode": {
+        "name": "Artwork Fallback"
+      },
+      "palette_coherence": {
+        "name": "Palette Coherence"
+      },
+      "artwork_style": {
+        "name": "Artwork Style",
+        "options": {
+          "auto": "Auto",
+          "natural": "Natural",
+          "album_accurate": "Album Accurate",
+          "graphic_poster": "High Contrast",
+          "photography": "Photography",
+          "cinematic": "Cinematic",
+          "soft_ambient": "Ambient",
+          "bold_high_contrast": "Vivid",
+          "monochrome_accent": "Monochrome / Neutral"
+        },
+        "state": {
+          "auto": "Auto",
+          "monochrome_accent": "Monochrome / Neutral",
+          "soft_ambient": "Ambient",
+          "bold_high_contrast": "Vivid",
+          "graphic_poster": "High Contrast"
+        }
+      },
+      "neutral_tone_handling": {
+        "name": "Neutral Tone Handling",
+        "options": {},
+        "state": {
+          "warm_ambient": "Warm Neutral"
+        }
+      },
+      "color_purity": {
+        "name": "Color Purity Preset"
+      },
+      "auto_style_behavior": {
+        "name": "Auto Intensity",
+        "state": {
+          "balanced": "Balanced",
+          "prefer_accuracy": "Subtle",
+          "prefer_vivid": "Prefer Vivid",
+          "prefer_ambient": "Prefer Ambient",
+          "expressive": "Expressive"
+        }
+      },
+      "gradient_neutral_suppression": {
+        "name": "Gradient Neutral Suppression",
+        "state": {
+          "off": "Off",
+          "auto": "Auto",
+          "strong": "Strong",
+          "keep_artwork_whites": "Keep Whites Only When Present"
+        }
+      }
+    },
+    "number": {
+      "color_purity": {
+        "name": "Color Purity Preset"
+      },
+      "white_level": {
+        "name": "White Suppression"
+      },
+      "color_count": {
+        "name": "Number of Colors"
+      },
+      "transition": {
+        "name": "Transition Time"
+      },
+      "auto_rotate_interval": {
+        "name": "Auto Rotation Interval"
+      },
+      "restore_delay": {
+        "name": "Restore Delay"
+      },
+      "gradient_color_points": {
+        "name": "Gradient Detail Level"
+      },
+      "gradient_brightness": {
+        "name": "Gradient Brightness"
+      },
+      "min_brightness": {
+        "name": "Minimum Brightness"
+      },
+      "max_brightness": {
+        "name": "Maximum Brightness"
+      }
+    }
+  },
+  "selector": {
+    "color_accuracy_mode": {
+      "options": {
+        "natural": "Natural",
+        "vivid": "Vivid",
+        "album_accurate": "Album Accurate"
+      }
+    },
+    "white_handling": {
+      "options": {
+        "suppress_when_color_exists": "Natural",
+        "always_filter": "Reduce Whites",
+        "allow_whites": "Allow Whites"
+      }
+    },
+    "rotation_mode": {
+      "options": {
+        "track_change": "On Track Change",
+        "off": "Off",
+        "auto_rotate": "Continuous",
+        "track_change_and_auto_rotate": "Track Change and Continuous"
+      }
+    },
+    "gradient_order_mode": {
+      "options": {
+        "same_order": "Same Order",
+        "rotated_by_light": "Offset",
+        "random": "Random Order",
+        "dark_to_light": "Dark to Light",
+        "light_to_dark": "Light to Dark"
+      }
+    },
+    "palette_coherence": {
+      "options": {
+        "natural": "Natural",
+        "balanced": "Balanced",
+        "dominant_only": "Dominant Colors Only",
+        "dominant_vivid_accent": "Dominant + Vivid Accent"
+      }
+    },
+    "artwork_style": {
+      "options": {
+        "natural": "Natural",
+        "album_accurate": "Album Accurate",
+        "graphic_poster": "High Contrast",
+        "photography": "Photography",
+        "cinematic": "Cinematic",
+        "soft_ambient": "Ambient",
+        "bold_high_contrast": "Vivid",
+        "auto": "Auto",
+        "monochrome_accent": "Monochrome / Neutral"
+      }
+    },
+    "neutral_tone_handling": {
+      "options": {
+        "natural": "Natural",
+        "reduce_whites": "Reduce Whites",
+        "preserve_contrast": "Preserve Contrast",
+        "warm_ambient": "Warm Neutral",
+        "graphic_poster": "High Contrast",
+        "allow_pure_white": "Allow Pure White"
+      }
+    },
+    "gradient_neutral_suppression": {
+      "options": {
+        "off": "Off",
+        "auto": "Auto",
+        "strong": "Strong",
+        "keep_artwork_whites": "Keep Whites Only When Present"
+      }
+    }
+  }
+}
