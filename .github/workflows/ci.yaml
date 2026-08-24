@@ -37,6 +37,9 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          ignore:
+            - brands
+            - topics
 
   test:
     name: Unit & Palette Regression Tests (${{ matrix.python-version }})
