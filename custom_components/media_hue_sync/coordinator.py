@@ -56,6 +56,8 @@ from .const import (
 from .applier import clear_apply_cache
 from .hue_controller import apply_palette, resolve_light_entities, resolve_light_entities_detailed, restore_scene, snapshot_scene, _snapshot_count
 from .palette import extract_palette_from_bytes, rgb_to_hex, fallback_palette_from_metadata, warm_neutral_fallback_palette
+from .restore_manager import RestoreManager
+from .rotation_manager import RotationManager
 from .health import build_health_report, format_health_message
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,7 +80,6 @@ class SonosHueCoordinator:
     def __init__(self, hass, entry):
         self.hass = hass
         self.entry = entry
-        self.scene = None
         self.enabled = False
         self._remove_listener = None
         self._poll_remove = None
@@ -87,13 +88,13 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
-        self._restore_delay_task = None
-        self._auto_rotate_task = None
-        self._auto_rotate_wake_event = asyncio.Event()
-        self.last_auto_rotation_started = None
-        self.last_auto_rotation_completed = None
-        self.last_auto_rotation_skipped_reason = None
-        self.last_auto_rotation_timing = {}
+        self.restore_manager = RestoreManager(hass, self._notify)
+        self.rotation_manager = RotationManager(
+            hass,
+            self._get_rotation_state,
+            lambda: self.async_apply_last_palette(reason="auto_rotate_colors"),
+            self._notify,
+        )
         self._listeners = []
         self.last_palette = []
         self.last_image = None
@@ -120,9 +121,6 @@ class SonosHueCoordinator:
         self.reapply_rotation_offset = 0
         self.last_timings = {}
         self.last_cache_result = None
-        self.last_restore_result = None
-        self.last_restore_snapshot_count = 0
-        self.last_restore_reason = None
         self.last_health_report = None
         self.last_palette_coherence = {}
         self.last_detected_artwork_style = None
@@ -131,6 +129,87 @@ class SonosHueCoordinator:
         self.last_final_palette_guardrails = {}
         self.last_advanced_overrides_active = False
         self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
+
+    @property
+    def scene(self):
+        return self.restore_manager.scene
+
+    @scene.setter
+    def scene(self, value):
+        self.restore_manager.scene = value
+
+    @property
+    def last_restore_result(self):
+        return self.restore_manager.last_restore_result
+
+    @last_restore_result.setter
+    def last_restore_result(self, value):
+        self.restore_manager.last_restore_result = value
+
+    @property
+    def last_restore_snapshot_count(self):
+        return self.restore_manager.last_restore_snapshot_count
+
+    @last_restore_snapshot_count.setter
+    def last_restore_snapshot_count(self, value):
+        self.restore_manager.last_restore_snapshot_count = value
+
+    @property
+    def last_restore_reason(self):
+        return self.restore_manager.last_restore_reason
+
+    @last_restore_reason.setter
+    def last_restore_reason(self, value):
+        self.restore_manager.last_restore_reason = value
+
+    @property
+    def _restore_delay_task(self):
+        return self.restore_manager._restore_delay_task
+
+    @property
+    def _auto_rotate_task(self):
+        return self.rotation_manager._auto_rotate_task
+
+    @property
+    def last_auto_rotation_started(self):
+        return self.rotation_manager.last_auto_rotation_started
+
+    @last_auto_rotation_started.setter
+    def last_auto_rotation_started(self, value):
+        self.rotation_manager.last_auto_rotation_started = value
+
+    @property
+    def last_auto_rotation_completed(self):
+        return self.rotation_manager.last_auto_rotation_completed
+
+    @last_auto_rotation_completed.setter
+    def last_auto_rotation_completed(self, value):
+        self.rotation_manager.last_auto_rotation_completed = value
+
+    @property
+    def last_auto_rotation_skipped_reason(self):
+        return self.rotation_manager.last_auto_rotation_skipped_reason
+
+    @last_auto_rotation_skipped_reason.setter
+    def last_auto_rotation_skipped_reason(self, value):
+        self.rotation_manager.last_auto_rotation_skipped_reason = value
+
+    @property
+    def last_auto_rotation_timing(self):
+        return self.rotation_manager.last_auto_rotation_timing
+
+    @last_auto_rotation_timing.setter
+    def last_auto_rotation_timing(self, value):
+        self.rotation_manager.last_auto_rotation_timing = value
+
+    def _get_rotation_state(self) -> dict:
+        return {
+            "enabled": self.enabled,
+            "sonos_is_active": self._is_currently_playing(),
+            "last_palette": self.last_palette,
+            "config": self.config,
+            "apply_in_progress": self._apply_in_progress,
+        }
 
     @property
     def config(self):
@@ -963,129 +1042,16 @@ Download diagnostics from:
         )
 
     def _maybe_start_auto_rotate(self):
-        if not self._auto_rotate_allowed():
-            return
-        if self._auto_rotate_task and not self._auto_rotate_task.done():
-            return
-        self._auto_rotate_task = self.hass.loop.create_task(self._auto_rotate_loop())
-        self._notify()
+        self.rotation_manager.start_if_needed()
 
     def _stop_auto_rotate(self):
-        if self._auto_rotate_task and not self._auto_rotate_task.done():
-            self._auto_rotate_task.cancel()
-        self._auto_rotate_task = None
+        self.rotation_manager.stop()
 
     def _wake_auto_rotate_timer(self):
-        """Wake the active auto-rotation loop so timing changes apply immediately."""
-        try:
-            self._auto_rotate_wake_event.set()
-        except Exception:
-            pass
-
-    def _transition_seconds(self) -> float:
-        value = self.config.get(CONF_TRANSITION, 0)
-        try:
-            value = float(value)
-        except (TypeError, ValueError):
-            value = 0.0
-        return max(0.0, min(60.0, value))
+        self.rotation_manager.wake()
 
     def _auto_rotation_timing(self) -> dict:
-        """Return cycle timing for auto rotation.
-
-        Auto Rotation Interval is treated as the total time between rotation
-        starts. Transition Time is the fade portion of that cycle. A small
-        internal buffer accounts for Home Assistant/Hue service-call latency.
-        """
-        interval = float(self._auto_rotate_interval_seconds())
-        transition = self._transition_seconds()
-        safety_buffer = float(AUTO_ROTATE_SAFETY_BUFFER_SECONDS)
-        protected_time = transition + safety_buffer
-        hold_time = max(0.0, interval - protected_time)
-        effective_cycle = protected_time + hold_time
-        limited_by_transition = interval < protected_time
-        return {
-            "configured_interval_seconds": interval,
-            "transition_time_seconds": transition,
-            "safety_buffer_seconds": safety_buffer,
-            "calculated_hold_seconds": round(hold_time, 3),
-            "effective_cycle_seconds": round(effective_cycle, 3),
-            "limited_by_transition": limited_by_transition,
-        }
-
-    async def _auto_rotate_wait(self, seconds: float) -> bool:
-        """Wait for auto-rotation timing, waking early on option changes.
-
-        Returns True if an option change woke the timer, False if the timeout
-        completed normally. The short polling cadence lets pause/stop/disable
-        take effect promptly without waiting for the full interval.
-        """
-        if seconds <= 0:
-            return False
-
-        deadline = time.monotonic() + seconds
-        while self._auto_rotate_allowed():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                return False
-            self._auto_rotate_wake_event.clear()
-            try:
-                await asyncio.wait_for(
-                    self._auto_rotate_wake_event.wait(),
-                    timeout=min(1.0, remaining),
-                )
-                return True
-            except asyncio.TimeoutError:
-                continue
-        return False
-
-    async def _wait_for_apply_idle(self) -> bool:
-        """Wait briefly for a current light update to finish before rotating."""
-        while self._apply_in_progress:
-            self.last_auto_rotation_skipped_reason = "waiting_for_active_light_update"
-            self._notify()
-            changed = await self._auto_rotate_wait(0.25)
-            if changed:
-                return False
-            if not self._auto_rotate_allowed():
-                return False
-        return True
-
-    async def _auto_rotate_loop(self):
-        try:
-            while self._auto_rotate_allowed():
-                timing = self._auto_rotation_timing()
-                self.last_auto_rotation_timing = timing
-                self.last_auto_rotation_skipped_reason = None
-                self._notify()
-
-                changed = await self._auto_rotate_wait(timing["effective_cycle_seconds"])
-                if changed:
-                    continue
-                if not self._auto_rotate_allowed():
-                    break
-
-                if not await self._wait_for_apply_idle():
-                    continue
-                if not self._auto_rotate_allowed():
-                    break
-
-                self.last_auto_rotation_started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                self.last_auto_rotation_skipped_reason = None
-                self._notify()
-                await self.async_apply_last_palette(reason="auto_rotate_colors")
-                self.last_auto_rotation_completed = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                self._notify()
-        except asyncio.CancelledError:
-            raise
-        except Exception as err:
-            self.last_error = f"auto_rotate_failed: {err}"
-            self.last_auto_rotation_skipped_reason = f"error:{type(err).__name__}"
-            _LOGGER.exception("Continuous color rotation failed")
-            self._notify()
-        finally:
-            self._auto_rotate_task = None
-            self._notify()
+        return self.rotation_manager.rotation_timing()
 
     async def _handle(self, event):
         new_state = event.data.get("new_state")
@@ -1209,7 +1175,9 @@ Download diagnostics from:
                 # coherence diagnostics to it for the Status sensor.
                 palette_config = self.effective_config()
                 palette_config["_artwork_fetch_succeeded"] = True
-                palette = extract_palette_from_bytes(image_bytes, palette_config)
+                palette = await self.hass.async_add_executor_job(
+                    extract_palette_from_bytes, image_bytes, palette_config
+                )
                 self.last_palette_coherence = palette_config.get("_palette_coherence_diagnostics", {})
                 self.last_detected_artwork_style = palette_config.get("_auto_artwork_style_detected")
                 self.last_auto_artwork_style_diagnostics = palette_config.get("_auto_artwork_style_diagnostics", {})
@@ -1243,70 +1211,19 @@ Download diagnostics from:
             _LOGGER.exception("Failed extracting/applying palette")
             self._notify()
 
-
     def _cancel_pending_restore(self, reason="cancelled"):
-        """Cancel a pending delayed restore and record why it was cancelled."""
-        if self._restore_delay_task and not self._restore_delay_task.done():
-            self.last_restore_result = {"status": "cancelled", "reason": reason}
-            self._restore_delay_task.cancel()
-        self._restore_delay_task = None
+        self.restore_manager.cancel_pending_restore(reason=reason)
 
     async def _restore_snapshot_now(self, reason="restore", clear_snapshot=True):
-        """Restore the captured light snapshot immediately.
+        return await self.restore_manager.restore_snapshot_now(reason=reason, clear_snapshot=clear_snapshot)
 
-        This is used when Sync is turned off and by delayed playback-stop
-        restores. It bypasses the apply queue so a restore cannot be mistaken
-        for another palette update.
-        """
-        self.last_restore_reason = reason
-        if not self.scene:
-            self.last_restore_snapshot_count = 0
-            self.last_restore_result = {"status": "no_snapshot", "reason": reason}
-            clear_apply_cache()
-            self._notify()
-            return self.last_restore_result
-
-        try:
-            self.last_restore_snapshot_count = _snapshot_count(self.scene)
-            restore_result = await restore_scene(self.hass, self.scene)
-            restore_result["status"] = "restored"
-            restore_result["reason"] = reason
-            self.last_restore_result = restore_result
-            if clear_snapshot:
-                self.scene = None
-        except Exception as err:
-            self.last_restore_result = {"status": "failed", "reason": reason, "failed": str(err)}
-            _LOGGER.exception("Failed restoring Media Hue Sync scene")
-        clear_apply_cache()
-        self._notify()
-        return self.last_restore_result
-
-    # Delay scene restore after playback stops.
-    # This prevents abrupt restore flicker during short pauses or track transitions.
     async def _restore_after_delay(self, delay: float, reason="playback_stopped"):
-        try:
-            if delay > 0:
-                self.last_restore_result = {"status": "pending", "reason": reason, "delay_seconds": delay}
-                self._notify()
-                await asyncio.sleep(delay)
-            await self._restore_snapshot_now(reason=reason, clear_snapshot=True)
-        except asyncio.CancelledError:
-            # The caller records the precise cancellation reason before
-            # cancelling the task. Keep that diagnostic instead of replacing it
-            # with a generic string.
-            if not isinstance(self.last_restore_result, dict) or self.last_restore_result.get("status") != "cancelled":
-                self.last_restore_result = {"status": "cancelled", "reason": reason}
-                self._notify()
-            raise
+        await self.restore_manager.restore_after_delay(delay, reason=reason)
 
     async def _handle_stop(self, reason="playback_stopped"):
         self._stop_auto_rotate()
-        self.last_restore_reason = reason
         delay = float(self.config.get("restore_delay", 0) or 0)
-        self._cancel_pending_restore(reason=f"new_restore_request:{reason}")
-        self._restore_delay_task = self.hass.loop.create_task(self._restore_after_delay(delay, reason=reason))
-        self.last_restore_result = {"status": "pending", "reason": reason, "delay_seconds": delay}
-        self._notify()
+        self.restore_manager.handle_stop(delay, reason=reason)
 
     async def async_health_check(self) -> dict:
         """Run a user-facing integration health check."""

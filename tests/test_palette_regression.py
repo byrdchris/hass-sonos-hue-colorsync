@@ -219,6 +219,24 @@ def assert_random_covers_keep_hue_family() -> None:
     assert not failures, f"random album hue-family failures: {failures[:5]}"
 
 
+def test_green_graphic_cover_no_red_shift():
+    assert_not_red_shift_for_green()
+
+def test_monochrome_cover_grayscale_guardrail():
+    assert_monochrome_does_not_turn_red()
+
+def test_warm_ambient_dark_blue_protection():
+    assert_warm_ambient_does_not_recolor_blue()
+
+def test_vivid_accent_preserves_magenta():
+    assert_vivid_accent_policy_keeps_magenta()
+
+def test_dominant_only_cohesion_filtering():
+    assert_dominant_only_can_remove_magenta()
+
+def test_random_covers_hue_family_integrity():
+    assert_random_covers_keep_hue_family()
+
 def main() -> None:
     checks = [
         assert_not_red_shift_for_green,

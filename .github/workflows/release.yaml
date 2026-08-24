@@ -17,19 +17,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create release archive
+      - name: Create release archives
         run: |
           mkdir -p dist
+          # Full repository archive
           tar \
             --exclude=".git" \
             --exclude=".github" \
             --exclude="dist" \
-            -czf "dist/sonos_hue_sync_${GITHUB_REF_NAME}.tar.gz" .
+            --exclude=".venv" \
+            --exclude=".pytest_cache" \
+            --exclude="__pycache__" \
+            -czf "dist/media_hue_sync_${GITHUB_REF_NAME}.tar.gz" .
+
+          # Standard HACS integration zip
+          cd custom_components
+          zip -r "../dist/media_hue_sync.zip" media_hue_sync -x "**/__pycache__/*"
+          cd ..
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/sonos_hue_sync_${{ github.ref_name }}.tar.gz
+          files: |
+            dist/media_hue_sync_${{ github.ref_name }}.tar.gz
+            dist/media_hue_sync.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
