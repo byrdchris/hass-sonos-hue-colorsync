@@ -22,13 +22,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Python syntax check
+      - name: Pre-flight script validation
         run: |
-          python -m py_compile custom_components/media_hue_sync/*.py tests/*.py
-
-      - name: JSON schema validation
-        run: |
-          python -c "import json, glob; [json.load(open(f)) for f in glob.glob('**/*.json', recursive=True) if not f.startswith('.venv/')]"
+          pip install pytest pillow colorthief
+          python scripts/validate.py
 
       - name: Hassfest validation
         uses: home-assistant/actions/hassfest@master
