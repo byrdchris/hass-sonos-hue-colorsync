@@ -1,3 +1,12 @@
+# v1.4.0
+
+- **Modular Architecture**: Rebuilt core extraction, neutral guardrails, circular hue coherence, and lifecycle management into clean, maintainable subsystems (`models.py`, `palette_auto_style.py`, `palette_neutral.py`, `palette_coherence.py`, `rotation_manager.py`, `restore_manager.py`).
+- **Async Event Loop Offloading**: Offloaded CPU-bound image decoding, GaussianBlur, and ColorThief MMCQ quantization to Home Assistant worker threads (`async_add_executor_job`) in `coordinator.py`.
+- **Concurrent Gradient Updates**: Multi-channel Hue gradient lights (Signe, Gradient strips, Play tubes) are now dispatched concurrently alongside standard bulbs in `applier.py`.
+- **Automated CI/CD Test Pipeline**: Added GitHub Actions workflow (`ci.yaml`) running Hassfest validation, HACS compliance checks, and a comprehensive 24-test suite across Python 3.11, 3.12, and 3.13.
+- **Expanded Test Suite**: Added dedicated unit tests for target resolver, color assignment strategies, LRU/TTL palette cache, and gradient calculations.
+- **Release Packaging Standards**: Standardized release archive generation to `media_hue_sync_${TAG}.tar.gz` and `media_hue_sync.zip` for automated HACS distribution.
+
 # v1.2.20
 
 - Consolidated the visible color-tuning UI without removing underlying functionality.
