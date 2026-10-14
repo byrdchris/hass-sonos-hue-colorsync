@@ -168,9 +168,17 @@ class SonosHueCoordinator:
     def _restore_delay_task(self):
         return self.restore_manager._restore_delay_task
 
+    @_restore_delay_task.setter
+    def _restore_delay_task(self, value):
+        self.restore_manager._restore_delay_task = value
+
     @property
     def _auto_rotate_task(self):
         return self.rotation_manager._auto_rotate_task
+
+    @_auto_rotate_task.setter
+    def _auto_rotate_task(self, value):
+        self.rotation_manager._auto_rotate_task = value
 
     @property
     def last_auto_rotation_started(self):
@@ -484,6 +492,7 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
+        self.restore_manager.cancel_pending_restore()
         self._restore_delay_task = None
         self._stop_auto_rotate()
 
@@ -497,6 +506,7 @@ class SonosHueCoordinator:
         self._apply_rerun_requested = False
         self.last_apply_queue_status = None
         self.last_sonos_attributes = {}
+        self.restore_manager.cancel_pending_restore()
         self._restore_delay_task = None
         self._stop_auto_rotate()
         _LOGGER.info("Listening for Sonos state changes on %s", self.sonos_entity)

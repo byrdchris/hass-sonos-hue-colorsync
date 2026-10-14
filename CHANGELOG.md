@@ -1,3 +1,9 @@
+# v1.4.2
+
+- **Fix Startup Setup AttributeError**: Added explicit property setters for `_restore_delay_task` and `_auto_rotate_task` on `SonosHueCoordinator`. Resolves `AttributeError: property '_restore_delay_task' of 'SonosHueCoordinator' object has no setter` occurring during Home Assistant entry setup (`async_setup_entry`).
+- **Coordinator Lifecycle Hardening**: Added explicit cancellation for pending restore tasks during coordinator listener refresh and unload.
+- **Unit Test Coverage**: Added comprehensive test coverage in `tests/test_coordinator.py` exercising `async_setup()`, `async_refresh_listener()`, and `async_unload()`.
+
 # v1.4.1
 
 - **Home Assistant 2026.10 Compatibility**: Fully audited and verified against Home Assistant Core 2026.10 and developer deprecations (including `DeviceEntry.config_entries` and `RestoreStateData` changes).

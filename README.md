@@ -8,8 +8,9 @@
 
 ---
 
-## What's New in v1.4.1
+## What's New in v1.4.2
 
+- **Fix Startup Setup AttributeError**: Fixed an `AttributeError` on `_restore_delay_task` that could occur on integration setup during Home Assistant startup.
 - **Home Assistant 2026.10 Compatibility**: Audited and confirmed safe for Home Assistant Core 2026.10 (including `DeviceEntry.config_entries` and `RestoreStateData` deprecations).
 - **Service Registration Bug Fix**: Fixed an issue where `test_rainbow`, `show_help`, and `health_check` services failed to register. All 8 services are independently registered and verified by automated unit tests.
 - **Concurrent Scene Restoration**: Light states are now restored in parallel via `asyncio.gather`, slashing restore latency from ~2s to ~150ms.

@@ -49,6 +49,15 @@ ha_events.async_track_time_interval = MagicMock()
 ha_config_entries = sys.modules.setdefault("homeassistant.config_entries", types.ModuleType("homeassistant.config_entries"))
 ha_config_entries.ConfigEntry = MagicMock
 
+if "aiohttp" not in sys.modules:
+    try:
+        import aiohttp
+    except ImportError:
+        aiohttp_mod = types.ModuleType("aiohttp")
+        aiohttp_mod.ClientTimeout = MagicMock()
+        aiohttp_mod.ClientError = Exception
+        sys.modules["aiohttp"] = aiohttp_mod
+
 if "voluptuous" not in sys.modules:
     try:
         import voluptuous
