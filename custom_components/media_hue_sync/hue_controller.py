@@ -3,6 +3,8 @@ from __future__ import annotations
 # Hue service bridge. Resolves target lights, snapshots original state, applies RGB palettes, and restores previous scenes.
 # brief-code-commented-build: moderate block-level comments added for maintainability.
 
+import asyncio
+
 from .applier import apply_assignments, clear_apply_cache
 from .assignment import assign_colors, is_gradient_entity
 from .const import ASSIGNMENT_STRATEGY_BALANCED, CONF_ASSIGNMENT_STRATEGY, CONF_EXPAND_GROUPS, CONF_EXCLUDE_LIGHT_ENTITIES
@@ -49,7 +51,7 @@ def _snapshot_count(snapshot) -> int:
 
 
 async def restore_scene(hass, snapshot) -> dict:
-    """Restore snapshot. Supports previous scene-id string snapshots too."""
+    """Restore snapshot concurrently. Supports previous scene-id string snapshots too."""
     result = {
         "attempted": 0,
         "restored_on": 0,
@@ -65,18 +67,19 @@ async def restore_scene(hass, snapshot) -> dict:
         result["attempted"] = 1
         result["used_scene_fallback"] = True
         return result
-    for entity_id, stored in (snapshot.get("entities", {}) or {}).items():
-        result["attempted"] += 1
+
+    entities_dict = snapshot.get("entities", {}) or {}
+    result["attempted"] = len(entities_dict)
+
+    async def _restore_entity(entity_id: str, stored: dict):
         original_state = stored.get("state")
         attrs = stored.get("attributes", {}) or {}
         try:
             if original_state in ("off", "unavailable", "unknown"):
                 await hass.services.async_call("light", "turn_off", {"entity_id": entity_id}, blocking=True)
-                result["restored_off"] += 1
-                continue
+                return "off", entity_id, None
             if original_state != "on":
-                result["skipped"] += 1
-                continue
+                return "skip", entity_id, None
             data = {"entity_id": entity_id}
             if attrs.get("brightness") is not None:
                 data["brightness"] = attrs.get("brightness")
@@ -91,9 +94,27 @@ async def restore_scene(hass, snapshot) -> dict:
             if effect not in (None, "off"):
                 data["effect"] = effect
             await hass.services.async_call("light", "turn_on", data, blocking=True)
-            result["restored_on"] += 1
+            return "on", entity_id, None
         except Exception as err:
-            result["failed"].append({"entity_id": entity_id, "error": str(err)})
+            return "fail", entity_id, str(err)
+
+    tasks = [_restore_entity(entity_id, stored) for entity_id, stored in entities_dict.items()]
+    if tasks:
+        restore_results = await asyncio.gather(*tasks, return_exceptions=True)
+        for outcome in restore_results:
+            if isinstance(outcome, Exception):
+                result["failed"].append({"entity_id": "unknown", "error": str(outcome)})
+                continue
+            status, entity_id, err_msg = outcome
+            if status == "on":
+                result["restored_on"] += 1
+            elif status == "off":
+                result["restored_off"] += 1
+            elif status == "skip":
+                result["skipped"] += 1
+            elif status == "fail":
+                result["failed"].append({"entity_id": entity_id, "error": err_msg})
+
     return result
 
 def resolve_light_entities(hass, selected_entities: list[str], expand_groups: bool = True):

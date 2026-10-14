@@ -345,12 +345,10 @@ def _match_hue_resource(hass, entity_id: str):
                     }
                 )
 
-                # Strong direct matching.
+                # Exact match first.
                 for resource_frag in resource_fragments:
                     for entity_frag in entity_fragments:
-                        if resource_frag and resource_frag in entity_frag:
-                            return bridge, controller, rid, resource, attempted
-                        if entity_frag and entity_frag in resource_frag:
+                        if resource_frag and resource_frag == entity_frag:
                             return bridge, controller, rid, resource, attempted
 
                 # Friendly name matching with normalized punctuation.
@@ -358,6 +356,14 @@ def _match_hue_resource(hass, entity_id: str):
                 norm_resource_name = "".join(ch for ch in name.casefold() if ch.isalnum())
                 if norm_entity_name and norm_resource_name and norm_entity_name == norm_resource_name:
                     return bridge, controller, rid, resource, attempted
+
+                # Substring matching (require min length of 4 to avoid single-digit or short token collisions).
+                for resource_frag in resource_fragments:
+                    for entity_frag in entity_fragments:
+                        if len(resource_frag) >= 4 and resource_frag in entity_frag:
+                            return bridge, controller, rid, resource, attempted
+                        if len(entity_frag) >= 4 and entity_frag in resource_frag:
+                            return bridge, controller, rid, resource, attempted
 
     return None, None, None, None, attempted
 

@@ -69,8 +69,8 @@ async def async_setup_services(hass):
     hass.services.async_register(DOMAIN, SERVICE_APPLY_LAST_PALETTE, apply_last_palette)
     hass.services.async_register(DOMAIN, SERVICE_TEST_COLOR, test_color, schema=TEST_COLOR_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_EXTRACT_NOW, extract_now)
-    hass.services.async_register(DOMAIN, SERVICE_TEST_RAINBOW,
-    SERVICE_SHOW_HELP,
-    SERVICE_HEALTH_CHECK, test_rainbow)
+    hass.services.async_register(DOMAIN, SERVICE_TEST_RAINBOW, test_rainbow)
+    hass.services.async_register(DOMAIN, SERVICE_SHOW_HELP, show_help)
+    hass.services.async_register(DOMAIN, SERVICE_HEALTH_CHECK, health_check)
     hass.data[f"{DOMAIN}_services_registered"] = True
     _LOGGER.info("Registered Media Hue Sync services")

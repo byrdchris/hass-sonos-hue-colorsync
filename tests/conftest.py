@@ -49,6 +49,19 @@ ha_events.async_track_time_interval = MagicMock()
 ha_config_entries = sys.modules.setdefault("homeassistant.config_entries", types.ModuleType("homeassistant.config_entries"))
 ha_config_entries.ConfigEntry = MagicMock
 
+if "voluptuous" not in sys.modules:
+    try:
+        import voluptuous
+    except ImportError:
+        vol = types.ModuleType("voluptuous")
+        vol.Schema = lambda s: s
+        vol.Required = lambda k, **kw: k
+        vol.Optional = lambda k, **kw: k
+        vol.All = lambda *args: args
+        vol.Range = lambda **kw: kw
+        vol.In = lambda *args: args
+        sys.modules["voluptuous"] = vol
+
 
 @pytest.fixture
 def mock_hass():

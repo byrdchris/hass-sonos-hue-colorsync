@@ -8,13 +8,15 @@ import logging
 import time
 from datetime import timedelta
 
+import aiohttp
 from aiohttp import ClientError
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_track_state_change_event,
+    async_track_time_interval,
+)
 from homeassistant.helpers.network import get_url
-from homeassistant.helpers.event import async_track_time_interval
-from datetime import timedelta
 
 from .cache import PaletteCache
 from .const import (
@@ -502,7 +504,12 @@ class SonosHueCoordinator:
         self._remove_listener = async_track_state_change_event(self.hass, [self.sonos_entity], self._handle)
 
     async def async_update_config(self):
-        self.cache = PaletteCache() if self.config.get(CONF_CACHE, True) else None
+        cache_enabled = self.config.get(CONF_CACHE, True)
+        if cache_enabled:
+            if self.cache is None:
+                self.cache = PaletteCache()
+        else:
+            self.cache = None
         await self.async_refresh_listener()
         self._notify()
         await self.async_process_current_state(reason="options_update")
@@ -621,7 +628,8 @@ class SonosHueCoordinator:
 
             _LOGGER.debug("Fetching artwork from %s", url)
             session = async_get_clientsession(self.hass)
-            async with session.get(url) as resp:
+            timeout = aiohttp.ClientTimeout(total=10, connect=4)
+            async with session.get(url, timeout=timeout) as resp:
                 data = await resp.read()
                 if resp.status >= 400:
                     self.last_image_fetch_status = f"http_{resp.status}"
@@ -692,8 +700,12 @@ class SonosHueCoordinator:
         self._frozen_track_key = None
         self._frozen_resolve_result = None
         if key == "cache":
-            from .cache import PaletteCache
-            self.cache = PaletteCache() if value else None
+            if value:
+                if self.cache is None:
+                    from .cache import PaletteCache
+                    self.cache = PaletteCache()
+            else:
+                self.cache = None
         if key == CONF_ROTATION_MODE:
             if self._auto_rotate_enabled():
                 self._maybe_start_auto_rotate()
