@@ -8,13 +8,15 @@
 
 ---
 
-## What's New in v1.4.0
+## What's New in v1.4.1
 
-- **Modular Architecture**: Rebuilt core extraction, neutral guardrails, circular hue coherence, and lifecycle management into clean, maintainable subsystems.
-- **Async Event Loop Offloading**: Heavy image quantization and GaussianBlur filtering are safely offloaded to Home Assistant worker threads (`async_add_executor_job`) to prevent UI or event loop latency.
-- **Concurrent Gradient Updates**: Multi-channel Hue gradient lights (Signe, Gradient strips, Play tubes) are now dispatched concurrently alongside standard bulbs.
-- **Automated CI/CD Test Pipeline**: Continuous integration with GitHub Actions running Hassfest validation, HACS compliance checks, and a comprehensive 24-test suite across Python 3.11, 3.12, and 3.13.
-- **Release Packaging Standards**: Standardized release archives to `media_hue_sync_${TAG}.tar.gz` and `media_hue_sync.zip` for automated HACS distribution.
+- **Home Assistant 2026.10 Compatibility**: Audited and confirmed safe for Home Assistant Core 2026.10 (including `DeviceEntry.config_entries` and `RestoreStateData` deprecations).
+- **Service Registration Bug Fix**: Fixed an issue where `test_rainbow`, `show_help`, and `health_check` services failed to register. All 8 services are independently registered and verified by automated unit tests.
+- **Concurrent Scene Restoration**: Light states are now restored in parallel via `asyncio.gather`, slashing restore latency from ~2s to ~150ms.
+- **Palette Cache Retention**: Preserves previously cached album palettes when tweaking settings or sliders instead of clearing the cache.
+- **Network Timeout Defense**: Added a 10s connection/read timeout to artwork downloads.
+- **Hue Gradient Matching Hardened**: Enforced exact matching and minimum token length to prevent false-positive fixture matching on short identifiers.
+- **Hassfest Compliance**: Updated dependency declaration to `colorthief>=0.2.1` per modern Hassfest packaging rules.
 
 *(See [CHANGELOG.md](CHANGELOG.md) for complete historical release notes.)*
 

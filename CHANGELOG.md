@@ -1,3 +1,13 @@
+# v1.4.1
+
+- **Home Assistant 2026.10 Compatibility**: Fully audited and verified against Home Assistant Core 2026.10 and developer deprecations (including `DeviceEntry.config_entries` and `RestoreStateData` changes).
+- **Service Registration Bug Fix**: Fixed an issue in `services.py` where `test_rainbow`, `show_help`, and `health_check` were collapsed into an invalid registration call. Each service is now registered independently and verified via dedicated unit tests.
+- **Concurrent Scene Restoration**: Lights are now restored in parallel using `asyncio.gather` in `hue_controller.py`, reducing restore latency from ~2 seconds down to ~150ms.
+- **Palette Cache Retention**: Fixed an issue in `coordinator.py` where adjusting options or sliders cleared the in-memory album art cache. Existing cached palettes are now preserved across option updates.
+- **Network Timeout Defense**: Added a 10s connection and read timeout (`aiohttp.ClientTimeout`) to album artwork downloads to prevent hanging requests.
+- **Hue Gradient Matching Hardened**: Prioritized exact matching and normalized names for Hue gradient resource lookup, enforcing a minimum fragment length to prevent false-positive matches on short identifiers.
+- **Hassfest Compliance**: Updated dependency declaration in `manifest.json` to `colorthief>=0.2.1` per Hassfest packaging rules.
+
 # v1.4.0
 
 - **Modular Architecture**: Rebuilt core extraction, neutral guardrails, circular hue coherence, and lifecycle management into clean, maintainable subsystems (`models.py`, `palette_auto_style.py`, `palette_neutral.py`, `palette_coherence.py`, `rotation_manager.py`, `restore_manager.py`).

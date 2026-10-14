@@ -35,12 +35,26 @@ jobs:
           zip -r "../dist/media_hue_sync.zip" media_hue_sync -x "**/__pycache__/*"
           cd ..
 
+      - name: Extract Release Notes from CHANGELOG
+        run: |
+          python3 -c '
+          import os, re
+          tag = os.environ.get("GITHUB_REF_NAME", "")
+          with open("CHANGELOG.md", "r", encoding="utf-8") as f:
+              content = f.read()
+          pattern = rf"# {re.escape(tag)}\s*\n(.*?)(?=\n# v|\Z)"
+          m = re.search(pattern, content, re.DOTALL)
+          notes = m.group(1).strip() if m else f"Release {tag}"
+          with open("dist/RELEASE_NOTES.md", "w", encoding="utf-8") as out:
+              out.write(notes + "\n")
+          '
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          body_path: dist/RELEASE_NOTES.md
           files: |
             dist/media_hue_sync_${{ github.ref_name }}.tar.gz
             dist/media_hue_sync.zip
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
